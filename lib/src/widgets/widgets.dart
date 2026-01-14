@@ -19,6 +19,7 @@ export 'image/image_bubble.dart';
 export 'image/full_screen_image_viewer.dart';
 export 'poll/poll_bubble.dart';
 export 'poll/poll_vote_details_view.dart';
+export 'video/video_bubble.dart';
 
 // Input
 export 'input/chat_input.dart';
