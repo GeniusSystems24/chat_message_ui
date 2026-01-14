@@ -26,12 +26,20 @@ class VideoBubble extends StatefulWidget {
   final bool isMyMessage;
   final VoidCallback? onTap;
 
+  /// Optional direct file path (overrides message.mediaData.url)
+  final String? filePath;
+
+  /// Optional thumbnail file path for placeholder
+  final String? thumbnailFilePath;
+
   const VideoBubble({
     super.key,
     required this.message,
     required this.chatTheme,
     required this.isMyMessage,
     this.onTap,
+    this.filePath,
+    this.thumbnailFilePath,
   });
 
   @override
@@ -44,8 +52,41 @@ class _VideoBubbleState extends State<VideoBubble> {
   bool _isInitialized = false;
   String? _error;
 
-  String? get url => widget.message.mediaData?.url;
+  /// Returns the URL from mediaData if it's a network URL
+  String? get url {
+    // If filePath is provided, don't use URL
+    if (widget.filePath != null) return null;
+
+    final mediaUrl = widget.message.mediaData?.url;
+    if (mediaUrl != null && mediaUrl.startsWith('http')) {
+      return mediaUrl;
+    }
+    return null;
+  }
+
+  /// Returns the local file path (priority: filePath > mediaData.url if local)
+  String? get localPath {
+    // Priority 1: Explicit filePath parameter
+    if (widget.filePath != null) return widget.filePath;
+
+    // Priority 2: mediaData.url if it's a local path
+    final mediaUrl = widget.message.mediaData?.url;
+    if (mediaUrl != null && !mediaUrl.startsWith('http')) {
+      return mediaUrl;
+    }
+    return null;
+  }
+
+  /// Returns the video source (local path or URL)
+  String? get videoSource => localPath ?? url;
+
+  /// Whether the source is a local file
+  bool get isLocalSource => localPath != null;
+
+  /// Returns the thumbnail path (priority: thumbnailFilePath > thumbnailUrl)
+  String? get thumbnailPath => widget.thumbnailFilePath;
   String? get thumbnailUrl => widget.message.mediaData?.thumbnailUrl;
+
   int get duration => widget.message.mediaData?.duration ?? 0;
   int get fileSize => widget.message.mediaData?.fileSize ?? 0;
   String get heroTag => 'video-${widget.message.id}';
@@ -65,16 +106,16 @@ class _VideoBubbleState extends State<VideoBubble> {
   }
 
   Future<void> _initializeVideo() async {
-    if (url == null) {
+    final source = videoSource;
+    if (source == null) {
       setState(() => _error = 'Video not available');
       return;
     }
 
     try {
-      final isLocalFile = !url!.startsWith('http');
-      _videoPlayerController = isLocalFile
-          ? VideoPlayerController.file(File(url!))
-          : VideoPlayerController.networkUrl(Uri.parse(url!));
+      _videoPlayerController = isLocalSource
+          ? VideoPlayerController.file(File(source))
+          : VideoPlayerController.networkUrl(Uri.parse(source));
 
       await _videoPlayerController!.initialize();
 
@@ -139,7 +180,7 @@ class _VideoBubbleState extends State<VideoBubble> {
       );
     }
 
-    if (url == null) {
+    if (videoSource == null) {
       return _VideoErrorWidget(
         error: 'Video not available',
         chatTheme: widget.chatTheme,
@@ -148,7 +189,7 @@ class _VideoBubbleState extends State<VideoBubble> {
 
     if (_isInitialized && _chewieController != null) {
       return GestureDetector(
-        onTap: _showFullScreenVideo,
+        onTap: widget.onTap ?? _showFullScreenVideo,
         child: Hero(
           tag: heroTag,
           child: Chewie(controller: _chewieController!),
@@ -158,6 +199,7 @@ class _VideoBubbleState extends State<VideoBubble> {
 
     // Show thumbnail with play button
     return _VideoThumbnail(
+      thumbnailFilePath: thumbnailPath,
       thumbnailUrl: thumbnailUrl,
       duration: _formatDuration(duration),
       fileSize: _formatFileSize(fileSize),
@@ -187,6 +229,7 @@ class _VideoBubbleState extends State<VideoBubble> {
 }
 
 class _VideoThumbnail extends StatelessWidget {
+  final String? thumbnailFilePath;
   final String? thumbnailUrl;
   final String duration;
   final String fileSize;
@@ -194,6 +237,7 @@ class _VideoThumbnail extends StatelessWidget {
   final VoidCallback onTap;
 
   const _VideoThumbnail({
+    this.thumbnailFilePath,
     this.thumbnailUrl,
     required this.duration,
     required this.fileSize,
@@ -210,33 +254,7 @@ class _VideoThumbnail extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            if (thumbnailUrl != null)
-              Positioned.fill(
-                child: CachedNetworkImage(
-                  imageUrl: thumbnailUrl!,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: chatTheme.colors.surfaceContainerHigh,
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: chatTheme.colors.surfaceContainerHigh,
-                    child: Icon(
-                      Icons.videocam,
-                      color: chatTheme.colors.onSurface.withValues(alpha: 0.5),
-                      size: 48,
-                    ),
-                  ),
-                ),
-              )
-            else
-              Container(
-                color: chatTheme.colors.surfaceContainerHigh,
-                child: Icon(
-                  Icons.videocam,
-                  color: chatTheme.colors.onSurface.withValues(alpha: 0.5),
-                  size: 48,
-                ),
-              ),
+            _buildThumbnailImage(),
             // Overlay
             Container(
               color: Colors.black.withValues(alpha: 0.3),
@@ -267,6 +285,49 @@ class _VideoThumbnail extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnailImage() {
+    // Priority 1: Local thumbnail file
+    if (thumbnailFilePath != null) {
+      return Positioned.fill(
+        child: Image.file(
+          File(thumbnailFilePath!),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+        ),
+      );
+    }
+
+    // Priority 2: Network thumbnail URL
+    if (thumbnailUrl != null) {
+      return Positioned.fill(
+        child: CachedNetworkImage(
+          imageUrl: thumbnailUrl!,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            color: chatTheme.colors.surfaceContainerHigh,
+          ),
+          errorWidget: (context, url, error) => _buildPlaceholder(),
+        ),
+      );
+    }
+
+    // Default placeholder
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: chatTheme.colors.surfaceContainerHigh,
+      child: Center(
+        child: Icon(
+          Icons.videocam,
+          color: chatTheme.colors.onSurface.withValues(alpha: 0.5),
+          size: 48,
         ),
       ),
     );

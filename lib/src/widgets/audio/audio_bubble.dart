@@ -12,57 +12,32 @@ part 'audio_player_widget.dart';
 part 'audio_waveform_painter.dart';
 part 'play_pause_button.dart';
 part 'audio_waveform_section.dart';
-
-/// Constants for audio bubble styling and configuration.
-abstract class AudioBubbleConstants {
-  // Container styling
-  static const double maxWidthFactor = 0.7;
-  static const double minWidth = 220.0;
-  static const double horizontalPadding = 12.0;
-  static const double verticalPadding = 8.0;
-  static const double borderRadius = 8.0;
-
-  // Button styling
-  static const double playButtonSize = 40.0;
-  static const double playIconSize = 20.0;
-  static const double micIconSize = 18.0;
-
-  // Waveform styling
-  static const double waveformHeight = 15.0;
-
-  // Progress and loading
-  static const double progressIndicatorSize = 20.0;
-  static const double progressStrokeWidth = 2.0;
-
-  // Spacing
-  static const double spacing = 12.0;
-  static const double smallSpacing = 6.0;
-  static const double microSpacing = 8.0;
-
-  // Typography
-  static const double durationFontSize = 12.0;
-
-  // Opacity values
-  static const double opacitySecondary = 0.3;
-  static const double opacityDimmed = 0.7;
-  static const double opacityLight = 0.6;
-  static const double opacityButton = 0.1;
-
-  // Waveform configuration
-  static const int minWaveformPoints = 50;
-}
+part 'constants.dart';
 
 /// Widget to display an audio attachment in a message bubble.
 class AudioBubble extends StatefulWidget {
   /// Message model containing audio data.
   final IChatMessageData message;
 
-  const AudioBubble({super.key, required this.message});
+  /// Optional direct file path (overrides message.mediaData.url)
+  final String? filePath;
+
+  const AudioBubble({
+    super.key,
+    required this.message,
+    this.filePath,
+  });
 
   String get messageId => message.id;
 
-  /// URL of the audio if available.
-  String? get url => message.mediaData?.url;
+  /// Returns the audio source (priority: filePath > mediaData.url)
+  String? get audioSource {
+    // Priority 1: Explicit filePath parameter
+    if (filePath != null) return filePath;
+
+    // Priority 2: mediaData.url
+    return message.mediaData?.url;
+  }
 
   /// Duration of the audio in seconds.
   int get duration => message.mediaData?.duration ?? 0;
@@ -119,7 +94,7 @@ class _AudioBubbleState extends State<AudioBubble> {
 
   /// Builds the audio content.
   Widget _buildAudioContent(BuildContext context, ChatThemeData chatTheme) {
-    final source = widget.url;
+    final source = widget.audioSource;
     if (source == null || source.isEmpty) {
       return _buildEmptyState(chatTheme, 'Audio not available');
     }

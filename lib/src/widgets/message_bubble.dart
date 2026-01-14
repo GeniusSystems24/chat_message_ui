@@ -3,28 +3,13 @@ import 'package:text_preview/text_preview.dart';
 
 import '../theme/chat_theme.dart';
 import '../adapters/adapters.dart';
+import '../utils/messages_grouping.dart';
 import 'message_bubble_layout.dart';
 import 'message_content_builder.dart';
 import 'message_metadata_builder.dart';
 import 'reaction_chip.dart';
 import 'reply_bubble_widget.dart';
 import 'user_avatar.dart';
-
-/// Message group status for determining bubble shape.
-class MessageGroupStatus {
-  final bool isFirst;
-  final bool isLast;
-
-  const MessageGroupStatus({
-    this.isFirst = false,
-    this.isLast = false,
-  });
-
-  static const single = MessageGroupStatus(isFirst: true, isLast: true);
-  static const first = MessageGroupStatus(isFirst: true);
-  static const middle = MessageGroupStatus();
-  static const last = MessageGroupStatus(isLast: true);
-}
 
 /// Widget that displays a message bubble with support for different content types.
 ///

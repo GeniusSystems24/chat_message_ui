@@ -38,3 +38,9 @@ export 'src/theme/theme.dart';
 
 // Widgets - UI components
 export 'src/widgets/widgets.dart';
+
+// Screens - Ready-to-use screens
+export 'src/screens/screens.dart';
+
+// Utils - Utility classes and functions
+export 'src/utils/utils.dart';

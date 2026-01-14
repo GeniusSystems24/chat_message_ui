@@ -27,6 +27,7 @@ dependencies:
   just_audio: ^0.10.5
   chewie: any
   video_player: any
+  smart_pagination: any
 
 dev_dependencies:
   flutter_test:

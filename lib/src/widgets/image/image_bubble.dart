@@ -22,19 +22,50 @@ class ImageBubble extends StatelessWidget {
   final bool isMyMessage;
   final VoidCallback? onTap;
 
+  /// Optional direct file path (overrides message.mediaData.url)
+  final String? filePath;
+
+  /// Optional thumbnail file path for placeholder
+  final String? thumbnailFilePath;
+
   const ImageBubble({
     super.key,
     required this.message,
     required this.chatTheme,
     required this.isMyMessage,
     this.onTap,
+    this.filePath,
+    this.thumbnailFilePath,
   });
 
-  String? get url => message.mediaData?.url;
-  String? get localPath => message.mediaData?.url != null &&
-          !message.mediaData!.url.startsWith('http')
-      ? message.mediaData!.url
-      : null;
+  /// Returns the URL from mediaData if it's a network URL
+  String? get url {
+    // If filePath is provided, don't use URL
+    if (filePath != null) return null;
+
+    final mediaUrl = message.mediaData?.url;
+    if (mediaUrl != null && mediaUrl.startsWith('http')) {
+      return mediaUrl;
+    }
+    return null;
+  }
+
+  /// Returns the local file path (priority: filePath > mediaData.url if local)
+  String? get localPath {
+    // Priority 1: Explicit filePath parameter
+    if (filePath != null) return filePath;
+
+    // Priority 2: mediaData.url if it's a local path
+    final mediaUrl = message.mediaData?.url;
+    if (mediaUrl != null && !mediaUrl.startsWith('http')) {
+      return mediaUrl;
+    }
+    return null;
+  }
+
+  /// Returns the thumbnail path (priority: thumbnailFilePath > thumbnailUrl)
+  String? get thumbnailPath => thumbnailFilePath;
+  String? get thumbnailUrl => message.mediaData?.thumbnailUrl;
 
   String get heroTag => '${ImageBubbleConstants.heroTagPrefix}${message.id}';
 
@@ -47,9 +78,6 @@ class ImageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // If localPath is available (e.g. freshly picked image), show it.
-    // If Only URL is available, show CachedNetworkImage.
-
     final child = _ImageContainer(
       heroTag: heroTag,
       borderRadius: chatTheme.imageBubble.borderRadius,
@@ -60,9 +88,10 @@ class ImageBubble extends StatelessWidget {
   }
 
   Widget _buildImageContent(BuildContext context) {
+    // Priority 1: Local file path
     if (localPath != null) {
       return GestureDetector(
-        onTap: () => _showFullScreenImage(context, localPath!, false),
+        onTap: onTap ?? () => _showFullScreenImage(context, localPath!, false),
         child: Image.file(
           File(localPath!),
           fit: BoxFit.cover,
@@ -72,16 +101,14 @@ class ImageBubble extends StatelessWidget {
       );
     }
 
+    // Priority 2: Network URL with optional thumbnail
     if (url != null) {
       return GestureDetector(
-        onTap: () => _showFullScreenImage(context, url!, true),
+        onTap: onTap ?? () => _showFullScreenImage(context, url!, true),
         child: CachedNetworkImage(
           imageUrl: url!,
           fit: BoxFit.cover,
-          placeholder: (context, url) => Container(
-            color: chatTheme.colors.surfaceContainerHigh,
-            child: const Center(child: CircularProgressIndicator()),
-          ),
+          placeholder: (context, url) => _buildPlaceholder(),
           errorWidget: (context, url, error) =>
               _ImageErrorWidget(chatTheme: chatTheme),
         ),
@@ -89,6 +116,36 @@ class ImageBubble extends StatelessWidget {
     }
 
     return _ImageErrorWidget(chatTheme: chatTheme);
+  }
+
+  Widget _buildPlaceholder() {
+    // Use thumbnail file if available
+    if (thumbnailPath != null) {
+      return Image.file(
+        File(thumbnailPath!),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _defaultPlaceholder(),
+      );
+    }
+
+    // Use thumbnail URL if available
+    if (thumbnailUrl != null) {
+      return CachedNetworkImage(
+        imageUrl: thumbnailUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => _defaultPlaceholder(),
+        errorWidget: (context, url, error) => _defaultPlaceholder(),
+      );
+    }
+
+    return _defaultPlaceholder();
+  }
+
+  Widget _defaultPlaceholder() {
+    return Container(
+      color: chatTheme.colors.surfaceContainerHigh,
+      child: const Center(child: CircularProgressIndicator()),
+    );
   }
 
   void _showFullScreenImage(BuildContext context, String path, bool isUrl) {
