@@ -1,0 +1,23 @@
+name: chat_message_ui_example
+description: A comprehensive example app demonstrating all features of the chat_message_ui library.
+publish_to: "none"
+version: 1.0.0
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  chat_message_ui:
+    path: ../
+  smart_pagination: ^3.1.1
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

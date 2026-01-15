@@ -76,6 +76,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Bottom actions bar with share/download buttons
   - Gradient overlays for better UI contrast
   - Video info chips (duration, file size)
+- Comprehensive example app demonstrating all library features
+  - Home screen with feature overview and navigation
+  - Full chat screen demo with message list and input
+  - Message types demo (text, image, video, audio, document, poll, contact, location)
+  - Audio features demo with AudioPlayerFactory controls and AudioBubble variants
+  - Video features demo with VideoPlayerFactory controls and VideoBubble variants
+  - Image features demo with ImageBubble variants and full-screen viewer
+  - Input widget demo with voice recording, attachments, and suggestions
+  - Theme customization demo with preset themes and live preview
+  - MockChatMessage adapter for easy testing and demonstration
 
 ### Changed
 - Improved duration formatting with proper zero-padding (MM:SS format)
