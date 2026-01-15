@@ -46,3 +46,7 @@ export 'src/screens/screens.dart';
 
 // Utils - Utility classes and functions
 export 'src/utils/utils.dart';
+
+// TransferKit bridge
+export 'src/transfer/transfer_kit_bridge.dart';
+export 'src/transfer/media_transfer_controller.dart';

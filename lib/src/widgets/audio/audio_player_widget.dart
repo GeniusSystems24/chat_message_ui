@@ -51,7 +51,6 @@ class AudioPlayerWidget extends StatelessWidget {
             child: _AudioWaveformSection(
               messageId: messageId,
               filePath: filePath,
-              url: url,
               waveform: waveform,
               durationInSeconds: durationInSeconds,
               onSeek: onSeek,

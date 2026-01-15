@@ -31,6 +31,24 @@ dependencies:
 import 'package:chat_message_ui/chat_message_ui.dart';
 ```
 
+### TransferKit Setup (Required for Media Downloads)
+
+Initialize TransferKit once in your app startup to enable cache-first
+media downloads and upload helpers used by the widgets:
+
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await TransferKitBridge.initialize(
+    cacheEnabled: true,
+    maxCacheSizeBytes: 1024 * 1024 * 1024, // 1 GB
+  );
+
+  runApp(const MyApp());
+}
+```
+
 ---
 
 ## Table of Contents
@@ -497,6 +515,16 @@ ChatInputWidget(
   onRecordingComplete: (path, duration) async {
     // Send voice message
   },
+  recordingUploadDestinationPathBuilder: (localPath) {
+    // Firebase storage destination path (example)
+    return 'uploads/voice/${DateTime.now().millisecondsSinceEpoch}.m4a';
+  },
+  onRecordingUploadProgress: (task) {
+    // Track upload progress
+  },
+  onRecordingUploadComplete: (task) {
+    // Use task.downloadUrl
+  },
   controller: textController,
   focusNode: focusNode,
   replyMessage: replyNotifier,
@@ -727,6 +755,7 @@ lib/
 dependencies:
   flutter: sdk
   cached_network_image: any
+  transfer_kit: any
   url_launcher: any
   intl: any
   lottie: any

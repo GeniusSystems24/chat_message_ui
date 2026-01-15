@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'package:transfer_kit/transfer_kit.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ENUMS
@@ -216,6 +217,7 @@ class ChatMediaData {
   final int? fileSize; // in bytes
   final String? fileName;
   final double? aspectRatio;
+  final MediaMetadata? metadata;
 
   const ChatMediaData({
     required this.url,
@@ -225,6 +227,7 @@ class ChatMediaData {
     this.fileSize,
     this.fileName,
     this.aspectRatio,
+    this.metadata,
   });
 
   @override

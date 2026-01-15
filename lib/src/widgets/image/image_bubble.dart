@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:transfer_kit/transfer_kit.dart' hide ImageViewerFullScreen;
 
 import '../../adapters/adapters.dart';
 import '../../theme/chat_theme.dart';
+import '../../transfer/media_transfer_controller.dart';
 import 'full_screen_image_viewer.dart';
 
 /// Constants for image bubble styling and configuration.
@@ -169,14 +172,57 @@ class _ImageBubbleState extends State<ImageBubble>
       );
     }
 
-    // Priority 2: Network URL
-    if (widget.url != null) {
-      return _NetworkImage(
-        url: widget.url!,
-        thumbnailPath: widget.thumbnailPath,
-        thumbnailUrl: widget.thumbnailUrl,
-        chatTheme: widget.chatTheme,
-        showProgress: widget.showProgress,
+    // Priority 2: Network URL (cache-first with TransferKit)
+    final url = widget.url;
+    if (url != null) {
+      final controller = MediaTransferController.instance;
+      final downloadTask = controller.buildDownloadTask(
+        url: url,
+        fileName: widget.message.mediaData?.fileName,
+      );
+
+      return FutureBuilder(
+        future: controller.enqueueOrResume(downloadTask, autoStart: false),
+        builder: (context, asyncSnapshot) {
+          final (
+            String? filePath,
+            StreamController<TaskItem>? streamController
+          ) = asyncSnapshot.data ?? (null, null);
+
+          if (filePath != null) {
+            return _LocalImage(path: filePath, chatTheme: widget.chatTheme);
+          }
+
+          return StreamBuilder(
+            initialData:
+                FileTaskController.instance.fileUpdates[downloadTask.url],
+            stream: (streamController ??
+                    FileTaskController.instance.createFileController(
+                      downloadTask.url,
+                    ))
+                .stream,
+            builder: (context, snapshot) {
+              final taskItem = snapshot.data;
+              return MediaDownloadCard(
+                item: taskItem,
+                onStart: () => controller.startDownload(downloadTask),
+                onPause: controller.pauseDownload,
+                onResume: controller.resumeDownload,
+                onCancel: controller.cancelDownload,
+                onRetry: controller.retryDownload,
+                completedBuilder: (context, item) => _LocalImage(
+                  path: item.filePath,
+                  chatTheme: widget.chatTheme,
+                ),
+                thumbnailWidget: _ThumbnailPreview(
+                  thumbnailPath: widget.thumbnailPath,
+                  thumbnailUrl: widget.thumbnailUrl,
+                  chatTheme: widget.chatTheme,
+                ),
+              );
+            },
+          );
+        },
       );
     }
 
@@ -267,51 +313,20 @@ class _LocalImage extends StatelessWidget {
   }
 }
 
-/// Network image widget with progress and placeholder.
-class _NetworkImage extends StatelessWidget {
-  final String url;
+/// Thumbnail preview used during download.
+class _ThumbnailPreview extends StatelessWidget {
   final String? thumbnailPath;
   final String? thumbnailUrl;
   final ChatThemeData chatTheme;
-  final bool showProgress;
 
-  const _NetworkImage({
-    required this.url,
-    this.thumbnailPath,
-    this.thumbnailUrl,
+  const _ThumbnailPreview({
+    required this.thumbnailPath,
+    required this.thumbnailUrl,
     required this.chatTheme,
-    this.showProgress = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      progressIndicatorBuilder: (context, url, progress) {
-        if (!showProgress) {
-          return _buildPlaceholder();
-        }
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            _buildPlaceholder(),
-            Center(
-              child: _DownloadProgress(
-                progress: progress.progress ?? 0,
-              ),
-            ),
-          ],
-        );
-      },
-      errorWidget: (context, url, error) {
-        return _ImageErrorWidget(chatTheme: chatTheme);
-      },
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    // Use thumbnail file if available
     if (thumbnailPath != null) {
       return _BlurredThumbnail(
         child: Image.file(
@@ -321,7 +336,6 @@ class _NetworkImage extends StatelessWidget {
       );
     }
 
-    // Use thumbnail URL if available
     if (thumbnailUrl != null) {
       return _BlurredThumbnail(
         child: CachedNetworkImage(
@@ -427,49 +441,7 @@ class _ShimmerPlaceholderState extends State<_ShimmerPlaceholder>
   }
 }
 
-/// Circular download progress indicator.
-class _DownloadProgress extends StatelessWidget {
-  final double progress;
-
-  const _DownloadProgress({required this.progress});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.5),
-        shape: BoxShape.circle,
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: 36,
-            height: 36,
-            child: CircularProgressIndicator(
-              value: progress,
-              strokeWidth: 3,
-              backgroundColor: Colors.white.withValues(alpha: 0.3),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ),
-          Text(
-            '${(progress * 100).toInt()}%',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// Intentionally left empty: progress UI handled by MediaDownloadCard.
 
 /// File size overlay widget.
 class _FileSizeOverlay extends StatelessWidget {

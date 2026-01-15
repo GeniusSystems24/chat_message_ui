@@ -6,6 +6,9 @@ import 'src/screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await TransferKitBridge.initialize(
+    cacheEnabled: true,
+  );
   await initializeDateFormatting();
   runApp(const ChatMessageUIExampleApp());
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
@@ -5,11 +6,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:transfer_kit/transfer_kit.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../adapters/adapters.dart';
 import '../../theme/chat_theme.dart';
-import 'video_player_factory.dart';
+import '../../transfer/media_transfer_controller.dart';
 
 /// Constants for video bubble styling and configuration.
 abstract class VideoBubbleConstants {
@@ -96,6 +98,8 @@ class _VideoBubbleState extends State<VideoBubble>
   bool _isPressed = false;
   late AnimationController _loadingController;
   double _loadingProgress = 0.0;
+  String? _downloadedPath;
+  String? _currentFilePath;
 
   String? get url {
     if (widget.filePath != null) return null;
@@ -115,8 +119,8 @@ class _VideoBubbleState extends State<VideoBubble>
     return null;
   }
 
-  String? get videoSource => localPath ?? url;
-  bool get isLocalSource => localPath != null;
+  String? get videoSource => _downloadedPath ?? localPath;
+  bool get isLocalSource => videoSource != null;
 
   String? get thumbnailPath => widget.thumbnailFilePath;
   String? get thumbnailUrl => widget.message.mediaData?.thumbnailUrl;
@@ -157,8 +161,8 @@ class _VideoBubbleState extends State<VideoBubble>
   Future<void> _initializeVideo() async {
     if (_isInitializing) return;
 
-    final source = videoSource;
-    if (source == null) {
+    final filePath = videoSource;
+    if (filePath == null) {
       setState(() => _error = 'Video not available');
       return;
     }
@@ -169,9 +173,15 @@ class _VideoBubbleState extends State<VideoBubble>
     });
 
     try {
-      _videoPlayerController = isLocalSource
-          ? VideoPlayerController.file(File(source))
-          : VideoPlayerController.networkUrl(Uri.parse(source));
+      if (_currentFilePath != filePath) {
+        _chewieController?.dispose();
+        _videoPlayerController?.dispose();
+        _chewieController = null;
+        _videoPlayerController = null;
+        _currentFilePath = filePath;
+      }
+
+      _videoPlayerController = VideoPlayerController.file(File(filePath));
 
       // Listen for buffering progress
       _videoPlayerController!.addListener(_onVideoProgress);
@@ -244,7 +254,9 @@ class _VideoBubbleState extends State<VideoBubble>
       _isInitialized = false;
       _error = null;
     });
-    _initializeVideo();
+    if (videoSource != null) {
+      _initializeVideo();
+    }
   }
 
   void _showFullScreenVideo() {
@@ -283,11 +295,15 @@ class _VideoBubbleState extends State<VideoBubble>
 
   @override
   Widget build(BuildContext context) {
+    final isDownloadOnly = videoSource == null && url != null;
+    final canPlay = videoSource != null;
+
     return GestureDetector(
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
       onTapCancel: _handleTapCancel,
-      onTap: widget.onTap ?? (_isInitialized ? _showFullScreenVideo : _initializeVideo),
+      onTap: widget.onTap ??
+          (canPlay ? (_isInitialized ? _showFullScreenVideo : _initializeVideo) : null),
       onLongPress: widget.onLongPress,
       child: AnimatedScale(
         scale: _isPressed ? 0.97 : 1.0,
@@ -296,7 +312,9 @@ class _VideoBubbleState extends State<VideoBubble>
           borderRadius: BorderRadius.circular(VideoBubbleConstants.borderRadius),
           child: AspectRatio(
             aspectRatio: aspectRatio,
-            child: _buildVideoContent(context),
+            child: isDownloadOnly
+                ? _buildDownloadContent(context, url!)
+                : _buildVideoContent(context),
           ),
         ),
       ),
@@ -406,6 +424,65 @@ class _VideoBubbleState extends State<VideoBubble>
     }
 
     return _ShimmerPlaceholder(chatTheme: widget.chatTheme);
+  }
+
+  Widget _buildDownloadContent(BuildContext context, String downloadUrl) {
+    final controller = MediaTransferController.instance;
+    final downloadTask = controller.buildDownloadTask(
+      url: downloadUrl,
+      fileName: widget.message.mediaData?.fileName,
+    );
+
+    return FutureBuilder(
+      future: controller.enqueueOrResume(downloadTask, autoStart: false),
+      builder: (context, asyncSnapshot) {
+        final (
+          String? filePath,
+          StreamController<TaskItem>? streamController
+        ) = asyncSnapshot.data ?? (null, null);
+
+        if (filePath != null) {
+          _setDownloadedPath(filePath);
+          return _buildVideoContent(context);
+        }
+
+        return StreamBuilder(
+          initialData: FileTaskController.instance.fileUpdates[downloadTask.url],
+          stream: (streamController ??
+                  FileTaskController.instance.createFileController(
+                    downloadTask.url,
+                  ))
+              .stream,
+          builder: (context, snapshot) {
+            final taskItem = snapshot.data;
+            return MediaDownloadCard(
+              item: taskItem,
+              isVideo: true,
+              onStart: () => controller.startDownload(downloadTask),
+              onPause: controller.pauseDownload,
+              onResume: controller.resumeDownload,
+              onCancel: controller.cancelDownload,
+              onRetry: controller.retryDownload,
+              completedBuilder: (context, item) {
+                _setDownloadedPath(item.filePath);
+                return _buildVideoContent(context);
+              },
+              thumbnailWidget: _buildThumbnailContent(),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _setDownloadedPath(String filePath) {
+    if (_downloadedPath == filePath) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _downloadedPath = filePath;
+      });
+    });
   }
 
   Widget _buildPlaceholder() {
