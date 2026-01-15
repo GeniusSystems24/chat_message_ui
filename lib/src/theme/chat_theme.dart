@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:super_interactive_text/super_interactive_text.dart';
 
+import '../widgets/input/floating_suggestion/floating_suggestion_theme.dart';
+
 /// Comprehensive chat theme data containing all styling components for chat UI
 class ChatThemeData extends ThemeExtension<ChatThemeData> {
   /// Returns the [ChatThemeData] from the [BuildContext].
@@ -70,6 +72,9 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
   /// Document bubble specific styling
   final DocumentBubbleTheme documentBubble;
 
+  /// Floating suggestion card styling
+  final FloatingSuggestionTheme floatingSuggestion;
+
   ChatThemeData({
     Brightness brightness = Brightness.light,
     ChatColors? colors,
@@ -88,6 +93,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
     AudioBubbleTheme? audioBubble,
     VideoBubbleTheme? videoBubble,
     DocumentBubbleTheme? documentBubble,
+    FloatingSuggestionTheme? floatingSuggestion,
   })  : colors = colors ??
             (brightness == Brightness.light
                 ? const ChatColors.light()
@@ -148,7 +154,11 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
         documentBubble = documentBubble ??
             (brightness == Brightness.light
                 ? const DocumentBubbleTheme.light()
-                : const DocumentBubbleTheme.dark());
+                : const DocumentBubbleTheme.dark()),
+        floatingSuggestion = floatingSuggestion ??
+            (brightness == Brightness.light
+                ? const FloatingSuggestionTheme.light()
+                : const FloatingSuggestionTheme.dark());
 
   /// Creates a default light theme.
   /// Optionally specify a [textTheme].
@@ -170,6 +180,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
           audioBubble: const AudioBubbleTheme.light(),
           videoBubble: const VideoBubbleTheme.light(),
           documentBubble: const DocumentBubbleTheme.light(),
+          floatingSuggestion: const FloatingSuggestionTheme.light(),
         );
 
   /// Creates a default dark theme.
@@ -192,6 +203,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
           audioBubble: const AudioBubbleTheme.dark(),
           videoBubble: const VideoBubbleTheme.dark(),
           documentBubble: const DocumentBubbleTheme.dark(),
+          floatingSuggestion: const FloatingSuggestionTheme.dark(),
         );
 
   /// Creates a [ChatThemeData] based on a Material [ThemeData].
@@ -213,6 +225,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
         audioBubble: const AudioBubbleTheme.light(),
         videoBubble: const VideoBubbleTheme.light(),
         documentBubble: const DocumentBubbleTheme.light(),
+        floatingSuggestion: FloatingSuggestionTheme.fromThemeData(themeData),
       );
 
   /// Creates a copy of [ChatThemeData] with updated properties.
@@ -234,6 +247,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
     AudioBubbleTheme? audioBubble,
     VideoBubbleTheme? videoBubble,
     DocumentBubbleTheme? documentBubble,
+    FloatingSuggestionTheme? floatingSuggestion,
   }) {
     return ChatThemeData(
       colors: colors ?? this.colors,
@@ -252,6 +266,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
       audioBubble: audioBubble ?? this.audioBubble,
       videoBubble: videoBubble ?? this.videoBubble,
       documentBubble: documentBubble ?? this.documentBubble,
+      floatingSuggestion: floatingSuggestion ?? this.floatingSuggestion,
     );
   }
 
@@ -281,6 +296,11 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
       audioBubble: audioBubble,
       videoBubble: videoBubble,
       documentBubble: documentBubble,
+      floatingSuggestion: FloatingSuggestionTheme.lerp(
+        floatingSuggestion,
+        other.floatingSuggestion,
+        t,
+      ),
     );
   }
 
@@ -306,6 +326,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
       audioBubble: other.audioBubble,
       videoBubble: other.videoBubble,
       documentBubble: other.documentBubble,
+      floatingSuggestion: other.floatingSuggestion,
     );
   }
 
