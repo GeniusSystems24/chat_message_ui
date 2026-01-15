@@ -390,7 +390,7 @@ class _SearchResultItem extends StatelessWidget {
                         ),
                         const Spacer(),
                         Text(
-                          _formatTime(message.createdAt),
+                          _formatTime(message.createdAt ?? DateTime.now()),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),

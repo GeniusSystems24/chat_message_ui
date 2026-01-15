@@ -35,7 +35,8 @@ class _ChatInputExampleState extends State<ChatInputExample> {
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',
-            description: 'Text input with attachments, voice recording, and suggestions',
+            description:
+                'Text input with attachments, voice recording, and suggestions',
             icon: Icons.keyboard_outlined,
           ),
           const SizedBox(height: 16),
@@ -210,21 +211,23 @@ class _ChatInputExampleState extends State<ChatInputExample> {
                 await Future.delayed(const Duration(milliseconds: 300));
                 return [
                   FloatingSuggestionItem(
+                    type: FloatingSuggestionType.username,
                     label: 'John Doe',
                     subtitle: '@john',
                     value: const ChatUserSuggestion(
                       id: '1',
                       name: 'John Doe',
-                      mentionText: '@john',
+                      username: 'john',
                     ),
                   ),
                   FloatingSuggestionItem(
+                    type: FloatingSuggestionType.username,
                     label: 'Jane Smith',
                     subtitle: '@jane',
                     value: const ChatUserSuggestion(
                       id: '2',
                       name: 'Jane Smith',
-                      mentionText: '@jane',
+                      username: 'jane',
                     ),
                   ),
                 ];
@@ -233,12 +236,14 @@ class _ChatInputExampleState extends State<ChatInputExample> {
                 await Future.delayed(const Duration(milliseconds: 300));
                 return [
                   FloatingSuggestionItem(
+                    type: FloatingSuggestionType.hashtag,
                     label: '#flutter',
-                    value: const Hashtag(hashtag: 'flutter'),
+                    value: Hashtag(id: '1', hashtag: 'flutter'),
                   ),
                   FloatingSuggestionItem(
+                    type: FloatingSuggestionType.hashtag,
                     label: '#dart',
-                    value: const Hashtag(hashtag: 'dart'),
+                    value: Hashtag(id: '2', hashtag: 'dart'),
                   ),
                 ];
               },
@@ -246,17 +251,21 @@ class _ChatInputExampleState extends State<ChatInputExample> {
                 await Future.delayed(const Duration(milliseconds: 300));
                 return [
                   FloatingSuggestionItem(
+                    type: FloatingSuggestionType.quickReply,
                     label: '/hello',
                     subtitle: 'Send a greeting',
-                    value: const QuickReply(
+                    value: QuickReply(
+                      id: '1',
                       command: 'hello',
                       response: 'Hello! How can I help you?',
                     ),
                   ),
                   FloatingSuggestionItem(
+                    type: FloatingSuggestionType.quickReply,
                     label: '/thanks',
                     subtitle: 'Send thanks',
-                    value: const QuickReply(
+                    value: QuickReply(
+                      id: '2',
                       command: 'thanks',
                       response: 'Thank you for your message!',
                     ),
@@ -285,7 +294,10 @@ class _ChatInputExampleState extends State<ChatInputExample> {
               inputDecoration: InputDecoration(
                 hintText: 'Custom styled input...',
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                fillColor: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.3),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,

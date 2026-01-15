@@ -288,22 +288,22 @@ class _NetworkImage extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: url,
       fit: BoxFit.cover,
-      placeholder: (context, url) => _buildPlaceholder(),
-      progressIndicatorBuilder: showProgress
-          ? (context, url, progress) {
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  _buildPlaceholder(),
-                  Center(
-                    child: _DownloadProgress(
-                      progress: progress.progress ?? 0,
-                    ),
-                  ),
-                ],
-              );
-            }
-          : null,
+      progressIndicatorBuilder: (context, url, progress) {
+        if (!showProgress) {
+          return _buildPlaceholder();
+        }
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildPlaceholder(),
+            Center(
+              child: _DownloadProgress(
+                progress: progress.progress ?? 0,
+              ),
+            ),
+          ],
+        );
+      },
       errorWidget: (context, url, error) {
         return _ImageErrorWidget(chatTheme: chatTheme);
       },
