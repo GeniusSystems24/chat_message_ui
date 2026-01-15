@@ -21,6 +21,7 @@ import 'input_models.dart';
 import 'text_data_preview_card.dart';
 
 part 'voice_recorder.dart';
+part 'recording_waveform.dart';
 
 /// Callback type for text message sending
 typedef OnSendText = Future<void> Function(String text);
@@ -40,9 +41,12 @@ class ChatInputWidget extends StatefulWidget {
   /// Callback when attachment is selected
   final OnAttachmentSelected? onAttachmentSelected;
 
-  /// Callback when audio recording is complete
-  final Future<void> Function(String filePath, int durationInSeconds)?
-      onRecordingComplete;
+  /// Callback when audio recording is complete with optional waveform data
+  final Future<void> Function(
+    String filePath,
+    int durationInSeconds, {
+    List<double>? waveform,
+  })? onRecordingComplete;
 
   /// Callback when audio recording starts
   final VoidCallback? onRecordingStart;
@@ -715,21 +719,26 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                 builder: (context, value, child) {
                   if (widget.enableAudioRecording &&
                       value.text.trim().isEmpty) {
-                    // WhatsApp-style voice recorder
+                    // WhatsApp-style voice recorder with waveform
                     return WhatsAppVoiceRecorder(
                       size: 40,
+                      showWaveform: true,
                       onRecordingStart: () {
                         setState(() {
                           _isRecording = true;
                         });
                         widget.onRecordingStart?.call();
                       },
-                      onRecordingComplete: (path, duration) async {
+                      onRecordingComplete: (path, duration, {waveform}) async {
                         setState(() {
                           _isRecording = false;
                         });
                         if (widget.onRecordingComplete != null) {
-                          await widget.onRecordingComplete!(path, duration);
+                          await widget.onRecordingComplete!(
+                            path,
+                            duration,
+                            waveform: waveform,
+                          );
                         }
                       },
                       onRecordingCancel: () {

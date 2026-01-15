@@ -1,12 +1,13 @@
 part of 'chat_input.dart';
 
-/// Professional WhatsApp-style voice recorder button
+/// Professional WhatsApp-style voice recorder button with real-time waveform
 class WhatsAppVoiceRecorder extends StatefulWidget {
   /// Callback when recording starts
   final VoidCallback? onRecordingStart;
 
-  /// Callback when recording stops with file path
-  final Function(String filePath, int duration)? onRecordingComplete;
+  /// Callback when recording stops with file path and waveform data
+  final Function(String filePath, int duration, {List<double>? waveform})?
+      onRecordingComplete;
 
   /// Callback when recording is cancelled
   final VoidCallback? onRecordingCancel;
@@ -23,6 +24,12 @@ class WhatsAppVoiceRecorder extends StatefulWidget {
   /// Get recording path
   final String Function()? getRecordingPath;
 
+  /// Waveform bar color (defaults to theme primary)
+  final Color? waveformColor;
+
+  /// Show waveform visualization during recording
+  final bool showWaveform;
+
   const WhatsAppVoiceRecorder({
     super.key,
     this.onRecordingStart,
@@ -32,6 +39,8 @@ class WhatsAppVoiceRecorder extends StatefulWidget {
     this.size = 55.0,
     this.enabled = true,
     this.getRecordingPath,
+    this.waveformColor,
+    this.showWaveform = true,
   });
 
   @override
@@ -54,8 +63,19 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
   Timer? timer;
   int durationInSeconds = 0;
 
-  String get recordDurationString =>
-      "${durationInSeconds ~/ 60}:${durationInSeconds % 60}";
+  // Waveform state
+  final List<double> _recordedAmplitudes = [];
+  StreamSubscription<Amplitude>? _amplitudeSubscription;
+  final StreamController<double> _amplitudeStreamController =
+      StreamController<double>.broadcast();
+
+  Stream<double> get amplitudeStream => _amplitudeStreamController.stream;
+
+  String get recordDurationString {
+    final minutes = durationInSeconds ~/ 60;
+    final seconds = durationInSeconds % 60;
+    return "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
+  }
 
   // Animation controllers
   AnimationController? animController;
@@ -119,6 +139,8 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
 
   @override
   void dispose() {
+    _amplitudeSubscription?.cancel();
+    _amplitudeStreamController.close();
     _recorder.dispose();
     animController?.dispose();
     timer?.cancel();
@@ -189,6 +211,8 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
 
   Widget _buildCancelSlider() {
     final theme = Theme.of(context);
+    final waveformColor = widget.waveformColor ?? theme.colorScheme.primary;
+
     return PositionedDirectional(
       end: timerAnimation.value + 12,
       child: Container(
@@ -199,14 +223,36 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
           color: theme.colorScheme.surfaceContainerHighest,
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Duration and waveform section
               showLottie
                   ? const AddToTrashOnCancelLottieAnimation()
-                  : _buildDurationText(),
+                  : Expanded(
+                      child: Row(
+                        children: [
+                          _buildDurationText(),
+                          const SizedBox(width: 8),
+                          // Real-time waveform
+                          if (widget.showWaveform)
+                            Expanded(
+                              child: RecordingWaveform(
+                                amplitudeStream: amplitudeStream,
+                                height: 24,
+                                activeColor: waveformColor,
+                                inactiveColor: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.3),
+                                isPaused: isPaused,
+                                maxBars: 25,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+              // Slide to cancel hint
               FlowShader(
                 direction: Axis.horizontal,
                 duration: const Duration(seconds: 3),
@@ -215,23 +261,26 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
                   theme.colorScheme.primary,
                 ],
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       isRTL
                           ? Icons.keyboard_arrow_right
                           : Icons.keyboard_arrow_left,
                       color: theme.colorScheme.onSurfaceVariant,
+                      size: 18,
                     ),
                     Text(
-                      'Slide to cancel', // Localize this later
+                      'Slide to cancel',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 11,
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: widget.size),
+              SizedBox(width: widget.size - 10),
             ],
           ),
         ),
@@ -278,63 +327,88 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
 
   Widget _buildTimerLocked() {
     final theme = Theme.of(context);
+    final waveformColor = widget.waveformColor ?? theme.colorScheme.primary;
 
-    return SizedBox(
+    return Container(
       width: MediaQuery.of(context).size.width - 12,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Delete button
-          Padding(
-            padding: const EdgeInsetsDirectional.only(start: 0.0),
-            child: IconButton(
-              icon: Icon(Icons.delete, color: theme.colorScheme.error),
-              onPressed: () async => await _cancelRecordingAndDeleteFile(0),
+          // Waveform visualization
+          if (widget.showWaveform && _recordedAmplitudes.isNotEmpty)
+            Container(
+              height: 36,
+              margin: const EdgeInsets.only(bottom: 8, top: 4),
+              child: LockedRecordingWaveform(
+                amplitudes: _recordedAmplitudes,
+                isPaused: isPaused,
+                height: 36,
+                color: waveformColor,
+              ),
             ),
-          ),
 
-          // Pause/Resume button
-          IconButton(
-            onPressed: () async {
-              if (isPaused) {
-                await _resumeRecording();
-              } else {
-                await _pauseRecording();
-              }
-            },
-            icon: Icon(
-              isPaused ? Icons.play_arrow : Icons.pause,
-              size: 20,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            style: IconButton.styleFrom(
-              backgroundColor: theme.colorScheme.surfaceContainerHigh,
-              foregroundColor: theme.colorScheme.onSurfaceVariant,
-              minimumSize: const Size(40, 40),
-            ),
-          ),
+          // Controls row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Delete button
+              IconButton(
+                icon: Icon(Icons.delete, color: theme.colorScheme.error),
+                onPressed: () async => await _cancelRecordingAndDeleteFile(0),
+                style: IconButton.styleFrom(
+                  minimumSize: const Size(40, 40),
+                ),
+              ),
 
-          // Duration display
-          _buildDurationText(),
+              // Pause/Resume button
+              IconButton(
+                onPressed: () async {
+                  if (isPaused) {
+                    await _resumeRecording();
+                  } else {
+                    await _pauseRecording();
+                  }
+                },
+                icon: Icon(
+                  isPaused ? Icons.play_arrow : Icons.pause,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.colorScheme.surfaceContainerHigh,
+                  foregroundColor: theme.colorScheme.onSurfaceVariant,
+                  minimumSize: const Size(40, 40),
+                ),
+              ),
 
-          // Send button
-          Container(
-            margin: const EdgeInsets.only(left: 4),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            child: IconButton(
-              onPressed: () async {
-                setState(() {
-                  isLocked = false;
-                  isRecording = false;
-                  isPaused = false;
-                });
-                await _stopRecordingAndSave();
-              },
-              icon: Icon(Icons.send, color: theme.colorScheme.onPrimary),
-            ),
+              // Duration display
+              _buildDurationText(),
+
+              // Send button
+              Container(
+                margin: const EdgeInsets.only(left: 4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.primary,
+                ),
+                child: IconButton(
+                  onPressed: () async {
+                    setState(() {
+                      isLocked = false;
+                      isRecording = false;
+                      isPaused = false;
+                    });
+                    await _stopRecordingAndSave();
+                  },
+                  icon: Icon(Icons.send, color: theme.colorScheme.onPrimary),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -400,9 +474,11 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
       if (!hasPermission) return;
 
       // Generate file path
-
       _currentRecordingPath = widget.getRecordingPath?.call() ??
           '${Directory.systemTemp.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      // Clear previous amplitudes
+      _recordedAmplitudes.clear();
 
       await _recorder.start(
         const RecordConfig(
@@ -412,6 +488,11 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
         ),
         path: _currentRecordingPath!,
       );
+
+      // Start amplitude monitoring for waveform visualization
+      if (widget.showWaveform) {
+        _startAmplitudeMonitoring();
+      }
 
       durationInSeconds = 0;
       timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -430,6 +511,40 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
     } catch (e) {
       debugPrint('Error starting recording: $e');
     }
+  }
+
+  /// Start monitoring amplitude for waveform visualization
+  void _startAmplitudeMonitoring() {
+    _amplitudeSubscription?.cancel();
+    _amplitudeSubscription = _recorder
+        .onAmplitudeChanged(const Duration(milliseconds: 100))
+        .listen((amplitude) {
+      if (!isRecording || isPaused) return;
+
+      // Convert dB to normalized value (0.0 - 1.0)
+      // Amplitude.current is in dB, typically ranges from -160 to 0
+      final normalizedAmplitude = _normalizeAmplitude(amplitude.current);
+
+      _recordedAmplitudes.add(normalizedAmplitude);
+      _amplitudeStreamController.add(normalizedAmplitude);
+
+      // Trigger rebuild for waveform update
+      if (mounted) setState(() {});
+    });
+  }
+
+  /// Normalize dB amplitude to 0.0 - 1.0 range
+  double _normalizeAmplitude(double dB) {
+    // dB typically ranges from -160 (silence) to 0 (max)
+    // We'll use a more practical range for voice recording
+    const minDb = -60.0;
+    const maxDb = 0.0;
+
+    if (dB <= minDb) return 0.0;
+    if (dB >= maxDb) return 1.0;
+
+    // Linear interpolation
+    return (dB - minDb) / (maxDb - minDb);
   }
 
   Future<void> _pauseRecording() async {
@@ -470,6 +585,12 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
       HapticFeedback.lightImpact();
 
       final currentDuration = durationInSeconds;
+      final recordedWaveform = List<double>.from(_recordedAmplitudes);
+
+      // Stop amplitude monitoring
+      _amplitudeSubscription?.cancel();
+      _amplitudeSubscription = null;
+
       timer?.cancel();
       timer = null;
       startTime = null;
@@ -482,8 +603,15 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
 
       final filePath = await _recorder.stop();
 
+      // Clear recorded amplitudes
+      _recordedAmplitudes.clear();
+
       if (filePath != null && widget.onRecordingComplete != null) {
-        widget.onRecordingComplete!(filePath, currentDuration);
+        widget.onRecordingComplete!(
+          filePath,
+          currentDuration,
+          waveform: recordedWaveform,
+        );
         widget.onRecordingLockedChanged?.call(false);
       }
     } catch (e) {
@@ -496,10 +624,17 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
     widget.onRecordingLockedChanged?.call(false);
     HapticFeedback.heavyImpact();
 
+    // Stop amplitude monitoring
+    _amplitudeSubscription?.cancel();
+    _amplitudeSubscription = null;
+
     timer?.cancel();
     timer = null;
     startTime = null;
     durationInSeconds = 0;
+
+    // Clear recorded amplitudes
+    _recordedAmplitudes.clear();
 
     setState(() {
       showLottie = true;
@@ -516,9 +651,11 @@ class _WhatsAppVoiceRecorderState extends State<WhatsAppVoiceRecorder>
         await File(filePath).delete();
       }
 
-      setState(() {
-        showLottie = false;
-      });
+      if (mounted) {
+        setState(() {
+          showLottie = false;
+        });
+      }
     });
   }
 
