@@ -4,6 +4,7 @@ import 'package:smart_pagination/pagination.dart';
 
 import '../data/example_pagination.dart';
 import '../data/example_sample_data.dart';
+import 'shared/example_scaffold.dart';
 
 class ThemingExample extends StatefulWidget {
   const ThemingExample({super.key});
@@ -89,10 +90,29 @@ class _ThemingExampleState extends State<ThemingExample> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Theming')),
-      body: SmartPaginationListView.withCubit(
-        cubit: _pagination.cubit,
-        padding: const EdgeInsets.all(16),
-        itemBuilder: (context, items, index) => items[index],
+      body: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: ExampleDescription(
+              title: 'Screen Overview',
+              icon: Icons.palette_outlined,
+              lines: [
+                'Compares multiple ChatThemeData configurations side by side.',
+                'Shows how bubbles and inputs adapt to theme extensions.',
+                'Useful for designing a branded chat experience.',
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: SmartPaginationListView.withCubit(
+              cubit: _pagination.cubit,
+              padding: const EdgeInsets.all(16),
+              itemBuilder: (context, items, index) => items[index],
+            ),
+          ),
+        ],
       ),
     );
   }

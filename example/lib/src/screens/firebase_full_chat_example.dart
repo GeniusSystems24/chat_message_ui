@@ -1,27 +1,27 @@
-import 'package:flutter/material.dart';
 import 'package:chat_message_ui/chat_message_ui.dart';
+import 'package:flutter/material.dart';
 
-import '../data/example_chat_controller.dart';
 import '../data/example_sample_data.dart';
+import '../data/firebase_chat_controller.dart';
 import 'shared/example_scaffold.dart';
 
-class FullChatExample extends StatefulWidget {
-  const FullChatExample({super.key});
+class FirebaseFullChatExample extends StatefulWidget {
+  const FirebaseFullChatExample({super.key});
 
   @override
-  State<FullChatExample> createState() => _FullChatExampleState();
+  State<FirebaseFullChatExample> createState() => _FirebaseFullChatExampleState();
 }
 
-class _FullChatExampleState extends State<FullChatExample> {
-  late final ExampleChatController _controller;
+class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
+  late final FirebaseChatController _controller;
   final ValueNotifier<ChatReplyData?> _replyNotifier = ValueNotifier(null);
 
   @override
   void initState() {
     super.initState();
-    _controller = ExampleChatController(
+    _controller = FirebaseChatController(
       currentUserId: ExampleSampleData.currentUserId,
-      seedMessages: ExampleSampleData.buildMessages(),
+      chatId: ExampleSampleData.chatId,
     );
     _controller.loadInitial();
   }
@@ -38,28 +38,54 @@ class _FullChatExampleState extends State<FullChatExample> {
     return ChatScreen(
       messagesCubit: _controller.messagesCubit,
       currentUserId: ExampleSampleData.currentUserId,
-      onSendMessage: (text) async {
-        await _controller.sendText(text, reply: _replyNotifier.value);
-        _replyNotifier.value = null;
-      },
-      onAttachmentSelected: (type) => _showSnackBar(
-        context,
-        'Attachment selected: ${type.name}',
-      ),
+      onSendMessage: _handleSendText,
+      onAttachmentSelected: _handleAttachment,
       onReactionTap: _controller.toggleReaction,
       onRefresh: _controller.refresh,
       onDelete: _controller.deleteMessages,
       replyMessage: _replyNotifier,
       appBarBuilder: _buildAppBar,
       selectionAppBarBuilder: _buildSelectionAppBar,
-      emptyMessage: 'All caught up! Send a message to get started.',
+      emptyMessage: 'No messages yet. Send one to Firebase.',
     );
+  }
+
+  Future<void> _handleSendText(String text) async {
+    await _controller.sendText(text, reply: _replyNotifier.value);
+    _replyNotifier.value = null;
+  }
+
+  Future<void> _handleAttachment(AttachmentSource type) async {
+    final reply = _replyNotifier.value;
+    switch (type) {
+      case AttachmentSource.cameraImage:
+      case AttachmentSource.galleryImage:
+        await _controller.sendImage(reply: reply);
+        break;
+      case AttachmentSource.cameraVideo:
+      case AttachmentSource.galleryVideo:
+        await _controller.sendVideo(reply: reply);
+        break;
+      case AttachmentSource.location:
+        await _controller.sendLocation(reply: reply);
+        break;
+      case AttachmentSource.document:
+        await _controller.sendDocument(reply: reply);
+        break;
+      case AttachmentSource.contact:
+        await _controller.sendContact(reply: reply);
+        break;
+      case AttachmentSource.voting:
+        await _controller.sendPoll(reply: reply);
+        break;
+    }
+    _replyNotifier.value = null;
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
     return PreferredSize(
-      preferredSize: const Size.fromHeight(200),
+      preferredSize: const Size.fromHeight(210),
       child: Container(
         color: theme.colorScheme.surface,
         child: Column(
@@ -67,26 +93,47 @@ class _FullChatExampleState extends State<FullChatExample> {
           children: [
             ChatAppBar(
               chat: const ChatAppBarData(
-                id: ExampleSampleData.chatId,
-                title: 'Product Studio',
-                subtitle: '8 members • Online',
-                imageUrl: 'https://i.pravatar.cc/150?img=64',
+                id: 'firebase_demo',
+                title: 'Firebase Live Chat',
+                subtitle: 'Firestore + Storage sync',
+                imageUrl: 'https://i.pravatar.cc/150?img=31',
               ),
+              showSearch: true,
+              showMenu: true,
+              menuItems: const [
+                PopupMenuItem(
+                  value: 'seed_samples',
+                  child: Row(
+                    children: [
+                      Icon(Icons.auto_awesome_outlined),
+                      SizedBox(width: 8),
+                      Text('Seed sample messages'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'send_audio',
+                  child: Row(
+                    children: [
+                      Icon(Icons.mic_outlined),
+                      SizedBox(width: 8),
+                      Text('Send audio message'),
+                    ],
+                  ),
+                ),
+              ],
               onSearch: () => _openSearch(context),
-              onMenuSelection: (value) => _showSnackBar(
-                context,
-                'Menu action: $value',
-              ),
+              onMenuSelection: (value) => _handleMenuAction(context, value),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
               child: ExampleDescription(
                 title: 'Screen Overview',
-                icon: Icons.forum_outlined,
+                icon: Icons.cloud_outlined,
                 lines: const [
-                  'Full chat experience with selection, reply, and search flows.',
-                  'Demonstrates reactions, deletion, and multi-action app bars.',
-                  'Best reference for integrating the library in production screens.',
+                  'Fully connected chat that reads/writes messages in Firebase.',
+                  'Supports text, media, location, contact, and poll messages.',
+                  'Use attachments to upload to Storage and sync to Firestore.',
                 ],
               ),
             ),
@@ -153,6 +200,18 @@ class _FullChatExampleState extends State<FullChatExample> {
       type: message.type,
       thumbnailUrl: message.mediaData?.thumbnailUrl,
     );
+  }
+
+  Future<void> _handleMenuAction(BuildContext context, String value) async {
+    switch (value) {
+      case 'seed_samples':
+        await _controller.seedSampleMessages();
+        break;
+      case 'send_audio':
+        await _controller.sendAudio(reply: _replyNotifier.value);
+        _replyNotifier.value = null;
+        break;
+    }
   }
 
   void _showSnackBar(BuildContext context, String text) {

@@ -32,6 +32,16 @@ class _ChatInputExampleState extends State<ChatInputExample> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.keyboard_outlined,
+            lines: [
+              'Walks through chat input configurations and attachments.',
+              'Highlights reply preview, recording, and suggestion triggers.',
+              'Ideal for tuning input UX before full chat integration.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

@@ -6,8 +6,10 @@ import 'input_features_example.dart';
 import 'message_types_example.dart';
 import 'reactions_example.dart';
 import 'theming_example.dart';
+import 'firebase_full_chat_example.dart';
 import 'bubbles/bubbles.dart';
 import 'features/features.dart';
+import 'shared/example_scaffold.dart';
 
 /// Home screen showcasing all available examples with modern design.
 class HomeScreen extends StatelessWidget {
@@ -41,6 +43,16 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                const ExampleDescription(
+                  title: 'Screen Overview',
+                  icon: Icons.home_outlined,
+                  lines: [
+                    'Central hub for exploring all chat_message_ui examples.',
+                    'Groups demos by bubbles, features, and full chat flows.',
+                    'Use this screen to compare layouts and navigate quickly.',
+                  ],
+                ),
+                const SizedBox(height: 24),
                 // Quick Start Section
                 _buildSectionTitle(context, 'Quick Start', Icons.rocket_launch_outlined),
                 const SizedBox(height: 12),
@@ -63,6 +75,12 @@ class HomeScreen extends StatelessWidget {
                 _buildSectionTitle(context, 'Complete Examples', Icons.apps_outlined),
                 const SizedBox(height: 12),
                 _CompleteExamplesGrid(context),
+                const SizedBox(height: 28),
+
+                // Firebase Section
+                _buildSectionTitle(context, 'Firebase Live', Icons.cloud_outlined),
+                const SizedBox(height: 12),
+                const _FirebaseExampleCard(),
                 const SizedBox(height: 28),
 
                 // Capabilities Section
@@ -521,6 +539,26 @@ class _CompleteExamplesGrid extends StatelessWidget {
       ),
       itemCount: examples.length,
       itemBuilder: (context, index) => _ExampleCard(example: examples[index]),
+    );
+  }
+}
+
+class _FirebaseExampleCard extends StatelessWidget {
+  const _FirebaseExampleCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final example = _ExampleItem(
+      'Firebase Live Chat',
+      'Realtime Firestore + Storage',
+      Icons.cloud_outlined,
+      Colors.indigo,
+      const FirebaseFullChatExample(),
+    );
+
+    return SizedBox(
+      height: 140,
+      child: _ExampleCard(example: example),
     );
   }
 }

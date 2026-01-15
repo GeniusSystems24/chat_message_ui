@@ -24,6 +24,16 @@ class ImageBubbleExample extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.image_outlined,
+            lines: [
+              'Focuses on image rendering, sizing, and preview states.',
+              'Highlights file size badges and gallery indicators.',
+              'Useful for validating media bubbles with different ratios.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

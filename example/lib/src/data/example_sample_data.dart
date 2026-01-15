@@ -48,6 +48,18 @@ class ExampleSampleData {
     'https://firebasestorage.googleapis.com/v0/b/skycachefiles.appspot.com/o/WhatsApp%20Ptt%202026-01-06%20at%2019.11.56.mp3?alt=media&token=8bc5b4c3-d4d1-4fb5-a207-63f0744079b1',
   ];
 
+  static List<String> get defaultImageUrls =>
+      List<String>.unmodifiable(_defaultImageUrls);
+
+  static List<String> get defaultVideoUrls =>
+      List<String>.unmodifiable(_defaultVideoUrls);
+
+  static List<String> get defaultDocUrls =>
+      List<String>.unmodifiable(_defaultDocUrls);
+
+  static List<String> get defaultAudioUrls =>
+      List<String>.unmodifiable(_defaultAudioUrls);
+
   static List<ExampleMessage> buildMessages() {
     final baseTime = DateTime.now().subtract(const Duration(minutes: 90));
 

@@ -4,16 +4,16 @@ overview: تحديد وتخطيط كل شاشات الأمثلة المطلوب�
 todos:
   - id: audit-examples
     content: حصر الشاشات الحالية وميزات كل شاشة
-    status: in_progress
+    status: completed
   - id: firebase-design
     content: تصميم طبقة بيانات Firebase للرسائل
-    status: pending
+    status: completed
   - id: firebase-screen
     content: إضافة شاشة Firebase المتكاملة وربطها
-    status: pending
+    status: completed
   - id: update-navigation
     content: تحديث التنقل والواجهة الرئيسية للوصول
-    status: pending
+    status: completed
 ---
 
 # خطة شاشات الأمثلة

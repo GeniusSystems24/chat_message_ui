@@ -5,6 +5,7 @@ import 'package:smart_pagination/pagination.dart';
 import '../data/example_message.dart';
 import '../data/example_pagination.dart';
 import '../data/example_sample_data.dart';
+import 'shared/example_scaffold.dart';
 
 class ReactionsExample extends StatefulWidget {
   const ReactionsExample({super.key});
@@ -44,21 +45,40 @@ class _ReactionsExampleState extends State<ReactionsExample> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Reactions & Status')),
-      body: SmartPaginationListView.withCubit(
-        cubit: _pagination.cubit,
-        padding: const EdgeInsets.all(16),
-        itemBuilder: (context, items, index) {
-          final message = items[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: MessageBubble(
-              message: message,
-              currentUserId: ExampleSampleData.currentUserId,
-              showAvatar: true,
-              onReactionTap: (emoji) => _toggleReaction(message, emoji),
+      body: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: ExampleDescription(
+              title: 'Screen Overview',
+              icon: Icons.emoji_emotions_outlined,
+              lines: [
+                'Focuses on message reactions and status indicators.',
+                'Lets you toggle emoji reactions for the current user.',
+                'Useful to validate reaction UI and state updates.',
+              ],
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: SmartPaginationListView.withCubit(
+              cubit: _pagination.cubit,
+              padding: const EdgeInsets.all(16),
+              itemBuilder: (context, items, index) {
+                final message = items[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: MessageBubble(
+                    message: message,
+                    currentUserId: ExampleSampleData.currentUserId,
+                    showAvatar: true,
+                    onReactionTap: (emoji) => _toggleReaction(message, emoji),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

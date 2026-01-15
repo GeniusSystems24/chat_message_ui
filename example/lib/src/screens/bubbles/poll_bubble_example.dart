@@ -21,6 +21,16 @@ class _PollBubbleExampleState extends State<PollBubbleExample> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.poll_outlined,
+            lines: [
+              'Demonstrates poll creation, voting, and result states.',
+              'Covers single and multi-select scenarios with totals.',
+              'Useful for validating poll layouts and vote callbacks.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

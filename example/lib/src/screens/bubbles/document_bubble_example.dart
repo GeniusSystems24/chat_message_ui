@@ -21,6 +21,16 @@ class DocumentBubbleExample extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.description_outlined,
+            lines: [
+              'Explores file attachments with size and type metadata.',
+              'Shows automatic icon selection by file extension.',
+              'Validates sent/received styling for document cards.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

@@ -15,6 +15,16 @@ class ContactBubbleExample extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.contact_phone_outlined,
+            lines: [
+              'Showcases contact cards with phone and email fields.',
+              'Demonstrates name formatting and partial data handling.',
+              'Validates sent/received styles for contact bubbles.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

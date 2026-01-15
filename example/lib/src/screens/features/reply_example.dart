@@ -17,6 +17,16 @@ class ReplyExample extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.reply_outlined,
+            lines: [
+              'Covers reply previews and quoted message rendering.',
+              'Shows how reply metadata appears across message types.',
+              'Helps verify reply styling and cancellation behavior.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

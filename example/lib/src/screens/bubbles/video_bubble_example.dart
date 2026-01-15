@@ -24,6 +24,16 @@ class VideoBubbleExample extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.videocam_outlined,
+            lines: [
+              'Demonstrates inline video playback with thumbnails.',
+              'Shows duration, file size, and aspect ratio handling.',
+              'Validates mini player and full-screen behaviors.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

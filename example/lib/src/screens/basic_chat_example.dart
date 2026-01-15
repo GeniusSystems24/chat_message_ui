@@ -3,6 +3,7 @@ import 'package:chat_message_ui/chat_message_ui.dart';
 
 import '../data/example_chat_controller.dart';
 import '../data/example_sample_data.dart';
+import 'shared/example_scaffold.dart';
 
 class BasicChatExample extends StatefulWidget {
   const BasicChatExample({super.key});
@@ -40,7 +41,24 @@ class _BasicChatExampleState extends State<BasicChatExample> {
       currentUserId: ExampleSampleData.currentUserId,
       onSendMessage: _controller.sendText,
       onRefresh: _controller.refresh,
-      appBar: AppBar(title: const Text('Basic Chat')),
+      appBar: AppBar(
+        title: const Text('Basic Chat'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(140),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: ExampleDescription(
+              title: 'Screen Overview',
+              icon: Icons.info_outline,
+              lines: const [
+                'Shows the minimum setup required to render a chat timeline.',
+                'Focuses on text-only messaging and simple refresh behavior.',
+                'Useful as a starting point before adding attachments or reactions.',
+              ],
+            ),
+          ),
+        ),
+      ),
       showAvatar: true,
       emptyMessage: 'Start the conversation with a simple text message.',
     );

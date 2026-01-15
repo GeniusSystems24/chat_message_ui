@@ -17,6 +17,16 @@ class TextBubbleExample extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.text_fields,
+            lines: [
+              'Covers the full lifecycle of text bubbles and their metadata.',
+              'Demonstrates status indicators, reactions, and special states.',
+              'Shows rich text behavior for links, mentions, and hashtags.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

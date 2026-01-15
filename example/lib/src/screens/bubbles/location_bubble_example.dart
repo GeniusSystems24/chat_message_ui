@@ -17,6 +17,16 @@ class LocationBubbleExample extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.location_on_outlined,
+            lines: [
+              'Highlights map preview cards with coordinates and address data.',
+              'Covers variations in name and address completeness.',
+              'Useful to verify location styling for both sent and received.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

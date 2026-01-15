@@ -19,6 +19,16 @@ class AudioBubbleExample extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.audiotrack_outlined,
+            lines: [
+              'Highlights voice and audio playback with waveforms.',
+              'Covers speed controls, duration labels, and file sizes.',
+              'Validates styling for both voice notes and audio files.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

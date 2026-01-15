@@ -4,6 +4,7 @@ import 'package:smart_pagination/pagination.dart';
 
 import '../data/example_pagination.dart';
 import '../data/example_sample_data.dart';
+import 'shared/example_scaffold.dart';
 
 class MessageTypesExample extends StatefulWidget {
   const MessageTypesExample({super.key});
@@ -106,10 +107,29 @@ class _MessageTypesExampleState extends State<MessageTypesExample> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Message Types')),
-      body: SmartPaginationListView.withCubit(
-        cubit: _pagination.cubit,
-        padding: const EdgeInsets.all(16),
-        itemBuilder: (context, items, index) => items[index],
+      body: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: ExampleDescription(
+              title: 'Screen Overview',
+              icon: Icons.category_outlined,
+              lines: [
+                'Displays every supported message bubble in one scroll.',
+                'Shows the data requirements for each message type.',
+                'Great for testing rendering consistency across media.',
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: SmartPaginationListView.withCubit(
+              cubit: _pagination.cubit,
+              padding: const EdgeInsets.all(16),
+              itemBuilder: (context, items, index) => items[index],
+            ),
+          ),
+        ],
       ),
     );
   }

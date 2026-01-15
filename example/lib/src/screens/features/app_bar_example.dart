@@ -15,6 +15,16 @@ class AppBarExample extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const ExampleDescription(
+            title: 'Screen Overview',
+            icon: Icons.web_asset_outlined,
+            lines: [
+              'Showcases ChatAppBar variants and action configurations.',
+              'Demonstrates group titles, avatars, and menu behaviors.',
+              'Useful for aligning app bar visuals with your product.',
+            ],
+          ),
+          const SizedBox(height: 16),
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',

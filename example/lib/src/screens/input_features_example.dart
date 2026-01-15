@@ -5,6 +5,7 @@ import 'package:smart_pagination/pagination.dart';
 import '../data/example_message.dart';
 import '../data/example_pagination.dart';
 import '../data/example_sample_data.dart';
+import 'shared/example_scaffold.dart';
 
 class InputFeaturesExample extends StatefulWidget {
   const InputFeaturesExample({super.key});
@@ -71,6 +72,19 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
       appBar: AppBar(title: const Text('Input Features')),
       body: Column(
         children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: ExampleDescription(
+              title: 'Screen Overview',
+              icon: Icons.keyboard_outlined,
+              lines: [
+                'Highlights advanced input options like mentions and quick replies.',
+                'Shows reply preview, attachments, and command suggestions together.',
+                'Useful to validate input UX before wiring real message delivery.',
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           _buildHintCard(context),
           const SizedBox(height: 12),
           Expanded(

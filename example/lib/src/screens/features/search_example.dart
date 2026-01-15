@@ -56,6 +56,19 @@ class _SearchExampleState extends State<SearchExample> {
       subtitle: 'Search and filter messages',
       body: Column(
         children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: ExampleDescription(
+              title: 'Screen Overview',
+              icon: Icons.search_outlined,
+              lines: [
+                'Demonstrates client-side search and result highlighting.',
+                'Shows how to filter messages as the user types.',
+                'Useful template for wiring search to real data sources.',
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           // Overview Section
           Padding(
             padding: const EdgeInsets.all(16),
