@@ -24,9 +24,11 @@ class DocumentBubble extends StatelessWidget {
     this.onTap,
   });
 
-  String? get fileName => message.mediaData?.fileName ?? message.textContent;
+  String? get fileName =>
+      message.mediaData?.resolvedFileName ?? message.textContent;
   String? get url => message.mediaData?.url;
-  int get fileSize => message.mediaData?.fileSize ?? 0;
+  int get fileSize => message.mediaData?.resolvedFileSize ?? 0;
+  int? get pageCount => message.mediaData?.pageCount;
   String? get localPath =>
       url != null && !(url!.startsWith('http')) ? url : null;
 
@@ -150,12 +152,26 @@ class DocumentBubble extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          _formatFileSize(fileSize),
-          style: TextStyle(
-            fontSize: 12,
-            color: chatTheme.colors.onSurface.withValues(alpha: 0.6),
-          ),
+        Row(
+          children: [
+            Text(
+              _formatFileSize(fileSize),
+              style: TextStyle(
+                fontSize: 12,
+                color: chatTheme.colors.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            if (pageCount != null) ...[
+              const SizedBox(width: 8),
+              Text(
+                '${pageCount!} pages',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: chatTheme.colors.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ],
         ),
       ],
     );

@@ -984,10 +984,11 @@ packages:
   transfer_kit:
     dependency: "direct main"
     description:
-      path: "../transfer_kit"
-      relative: true
-    source: path
-    version: "2.1.0"
+      name: transfer_kit
+      sha256: "775c6d8fda664bc06e93e4abe0c58ba89b6be2e3ef053951c4f3c8fc58710fbc"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0+1"
   typed_data:
     dependency: transitive
     description:

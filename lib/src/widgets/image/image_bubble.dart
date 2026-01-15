@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -96,12 +97,13 @@ class ImageBubble extends StatefulWidget {
 
   String? get thumbnailPath => thumbnailFilePath;
   String? get thumbnailUrl => message.mediaData?.thumbnailUrl;
-  int get fileSize => message.mediaData?.fileSize ?? 0;
+  int get fileSize => message.mediaData?.resolvedFileSize ?? 0;
 
   String get heroTag => '${ImageBubbleConstants.heroTagPrefix}${message.id}';
 
   double get aspectRatio {
-    double ratio = message.mediaData?.aspectRatio ?? ImageBubbleConstants.maxAspectRatio;
+    double ratio = message.mediaData?.resolvedAspectRatio ??
+        ImageBubbleConstants.maxAspectRatio;
     return ratio.clamp(
       ImageBubbleConstants.minAspectRatio,
       ImageBubbleConstants.maxAspectRatio,
@@ -178,7 +180,7 @@ class _ImageBubbleState extends State<ImageBubble>
       final controller = MediaTransferController.instance;
       final downloadTask = controller.buildDownloadTask(
         url: url,
-        fileName: widget.message.mediaData?.fileName,
+        fileName: widget.message.mediaData?.resolvedFileName,
       );
 
       return FutureBuilder(
@@ -217,6 +219,7 @@ class _ImageBubbleState extends State<ImageBubble>
                 thumbnailWidget: _ThumbnailPreview(
                   thumbnailPath: widget.thumbnailPath,
                   thumbnailUrl: widget.thumbnailUrl,
+                  metadataThumbnail: widget.message.mediaData?.thumbnail,
                   chatTheme: widget.chatTheme,
                 ),
               );
@@ -241,7 +244,7 @@ class _ImageBubbleState extends State<ImageBubble>
             imagePath: path,
             isUrl: widget.localPath == null,
             heroTag: widget.heroTag,
-            fileName: widget.message.mediaData?.fileName,
+            fileName: widget.message.mediaData?.resolvedFileName,
             fileSize: widget.fileSize,
           );
         },
@@ -317,11 +320,13 @@ class _LocalImage extends StatelessWidget {
 class _ThumbnailPreview extends StatelessWidget {
   final String? thumbnailPath;
   final String? thumbnailUrl;
+  final ThumbnailData? metadataThumbnail;
   final ChatThemeData chatTheme;
 
   const _ThumbnailPreview({
     required this.thumbnailPath,
     required this.thumbnailUrl,
+    required this.metadataThumbnail,
     required this.chatTheme,
   });
 
@@ -346,7 +351,32 @@ class _ThumbnailPreview extends StatelessWidget {
       );
     }
 
+    final metadataWidget = _buildMetadataThumbnail();
+    if (metadataWidget != null) return metadataWidget;
+
     return _ShimmerPlaceholder(chatTheme: chatTheme);
+  }
+
+  Widget? _buildMetadataThumbnail() {
+    if (metadataThumbnail == null) return null;
+    if (metadataThumbnail!.bytes != null) {
+      return _BlurredThumbnail(
+        child: Image.memory(
+          metadataThumbnail!.bytes!,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    if (metadataThumbnail!.base64 != null) {
+      final bytes = base64Decode(metadataThumbnail!.base64!);
+      return _BlurredThumbnail(
+        child: Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    return null;
   }
 }
 

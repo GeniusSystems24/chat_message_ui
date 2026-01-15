@@ -63,13 +63,13 @@ class AudioBubble extends StatefulWidget {
   }
 
   /// Duration of the audio in seconds.
-  int get duration => message.mediaData?.duration ?? 0;
+  int get duration => message.mediaData?.resolvedDurationSeconds ?? 0;
 
   /// File size in bytes.
-  int get fileSize => message.mediaData?.fileSize ?? 0;
+  int get fileSize => message.mediaData?.resolvedFileSize ?? 0;
 
   /// File name of the document.
-  String? get fileName => message.mediaData?.fileName;
+  String? get fileName => message.mediaData?.resolvedFileName;
 
   @override
   State<AudioBubble> createState() => _AudioBubbleState();
@@ -111,6 +111,13 @@ class _AudioBubbleState extends State<AudioBubble>
   void _initializeWaveform() {
     if (widget.waveformData != null && widget.waveformData!.isNotEmpty) {
       _displayWaveform = widget.waveformData!;
+      return;
+    }
+
+    final metadataWaveform = widget.message.mediaData?.waveform?.samples;
+    if (metadataWaveform != null && metadataWaveform.isNotEmpty) {
+      _displayWaveform = metadataWaveform;
+      return;
     } else {
       final pointCount = widget.duration > 0 ? widget.duration : 60;
       final actualPointCount =

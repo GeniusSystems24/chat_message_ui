@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -125,15 +126,15 @@ class _VideoBubbleState extends State<VideoBubble>
   String? get thumbnailPath => widget.thumbnailFilePath;
   String? get thumbnailUrl => widget.message.mediaData?.thumbnailUrl;
 
-  int get duration => widget.message.mediaData?.duration ?? 0;
-  int get fileSize => widget.message.mediaData?.fileSize ?? 0;
+  int get duration => widget.message.mediaData?.resolvedDurationSeconds ?? 0;
+  int get fileSize => widget.message.mediaData?.resolvedFileSize ?? 0;
   String get heroTag => 'video-${widget.message.id}';
 
   double get aspectRatio {
     const double defaultRatio = 16 / 9;
     const double minRatio = 0.5;
     const double maxRatio = 2.0;
-    double ratio = widget.message.mediaData?.aspectRatio ?? defaultRatio;
+    double ratio = widget.message.mediaData?.resolvedAspectRatio ?? defaultRatio;
     return ratio.clamp(minRatio, maxRatio);
   }
 
@@ -269,7 +270,8 @@ class _VideoBubbleState extends State<VideoBubble>
             MaterialPageRoute(
               builder: (context) => _VideoFullScreenPlayer(
                 chewieController: _chewieController!,
-                videoTitle: widget.message.mediaData?.fileName ?? 'Video',
+                videoTitle:
+                    widget.message.mediaData?.resolvedFileName ?? 'Video',
                 heroTag: heroTag,
                 onShare: null,
                 onDownload: null,
@@ -423,14 +425,40 @@ class _VideoBubbleState extends State<VideoBubble>
       );
     }
 
+    final metadataWidget = _buildMetadataThumbnail();
+    if (metadataWidget != null) return metadataWidget;
+
     return _ShimmerPlaceholder(chatTheme: widget.chatTheme);
+  }
+
+  Widget? _buildMetadataThumbnail() {
+    final thumbnail = widget.message.mediaData?.thumbnail;
+    if (thumbnail == null) return null;
+    if (thumbnail.bytes != null) {
+      return _BlurredThumbnail(
+        child: Image.memory(
+          thumbnail.bytes!,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    if (thumbnail.base64 != null) {
+      final bytes = base64Decode(thumbnail.base64!);
+      return _BlurredThumbnail(
+        child: Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    return null;
   }
 
   Widget _buildDownloadContent(BuildContext context, String downloadUrl) {
     final controller = MediaTransferController.instance;
     final downloadTask = controller.buildDownloadTask(
       url: downloadUrl,
-      fileName: widget.message.mediaData?.fileName,
+      fileName: widget.message.mediaData?.resolvedFileName,
     );
 
     return FutureBuilder(

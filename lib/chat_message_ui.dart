@@ -31,6 +31,9 @@
 library;
 
 export 'package:smart_pagination/pagination.dart';
+export 'package:super_interactive_text/super_interactive_text.dart';
+export 'package:transfer_kit/transfer_kit.dart'
+    hide ImageBubbleConstants, ImageViewerFullScreen, MapNotifier, formatDuration, formatFileSize;
 
 // Adapters - Core data interfaces and models
 export 'src/adapters/adapters.dart';
