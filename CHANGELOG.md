@@ -26,11 +26,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New configuration options for `WhatsAppVoiceRecorder`
   - `waveformColor` - customize waveform bar color
   - `showWaveform` - toggle waveform visibility
+- Enhanced `AudioBubble` widget
+  - Custom waveform data support via `waveformData` parameter
+  - Playback speed control button (optional)
+  - Animated loading indicator with rotating ring
+  - Smooth play/pause icon transitions with scale animation
+  - Glow effect on play button when playing
+  - File size display
+  - Custom primary color support
+- Enhanced `ImageBubble` widget
+  - Shimmer loading placeholder animation
+  - Blurred thumbnail preview while loading
+  - Download progress indicator with percentage
+  - Tap animation feedback (scale effect)
+  - File size overlay (optional)
+  - Gallery indicator for multiple images
+  - Long press callback support
+- Enhanced `ImageViewerFullScreen`
+  - Double-tap to zoom in/out
+  - Swipe down to dismiss with fade effect
+  - Tap to toggle controls visibility
+  - File name and size display in top bar
+  - Share and download action buttons
+  - Loading progress with percentage
 
 ### Changed
 - Improved duration formatting with proper zero-padding (MM:SS format)
 - Enhanced locked recording UI with full waveform history display
 - Better resource cleanup in voice recorder
+- Improved image loading with frame-based animation
+- Better error states with rounded icons
 
 ### Fixed
 - Added `mounted` check before setState in async callbacks

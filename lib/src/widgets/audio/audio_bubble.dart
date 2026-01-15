@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -15,6 +15,13 @@ part 'audio_waveform_section.dart';
 part 'constants.dart';
 
 /// Widget to display an audio attachment in a message bubble.
+///
+/// Features:
+/// - Real-time waveform visualization with progress indicator
+/// - Play/pause with loading state
+/// - Optional playback speed control
+/// - Seek by tapping on waveform
+/// - Supports both local files and URLs
 class AudioBubble extends StatefulWidget {
   /// Message model containing audio data.
   final IChatMessageData message;
@@ -22,20 +29,33 @@ class AudioBubble extends StatefulWidget {
   /// Optional direct file path (overrides message.mediaData.url)
   final String? filePath;
 
+  /// Optional custom waveform data (if not provided, generates random)
+  final List<double>? waveformData;
+
+  /// Whether to show speed control button
+  final bool showSpeedControl;
+
+  /// Whether this is a voice message (shows mic icon instead of music note)
+  final bool isVoiceMessage;
+
+  /// Custom primary color for the player
+  final Color? primaryColor;
+
   const AudioBubble({
     super.key,
     required this.message,
     this.filePath,
+    this.waveformData,
+    this.showSpeedControl = false,
+    this.isVoiceMessage = true,
+    this.primaryColor,
   });
 
   String get messageId => message.id;
 
   /// Returns the audio source (priority: filePath > mediaData.url)
   String? get audioSource {
-    // Priority 1: Explicit filePath parameter
     if (filePath != null) return filePath;
-
-    // Priority 2: mediaData.url
     return message.mediaData?.url;
   }
 
@@ -52,71 +72,438 @@ class AudioBubble extends StatefulWidget {
   State<AudioBubble> createState() => _AudioBubbleState();
 }
 
-class _AudioBubbleState extends State<AudioBubble> {
+class _AudioBubbleState extends State<AudioBubble>
+    with SingleTickerProviderStateMixin {
   List<double> _displayWaveform = [];
+  double _currentSpeed = 1.0;
+  late AnimationController _loadingController;
+
+  static const List<double> _availableSpeeds = [1.0, 1.25, 1.5, 1.75, 2.0, 0.5, 0.75];
 
   @override
   void initState() {
     super.initState();
     _initializeWaveform();
+    _loadingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
   }
 
-  /// Initialize waveform data.
+  @override
+  void didUpdateWidget(AudioBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.waveformData != widget.waveformData ||
+        oldWidget.duration != widget.duration) {
+      _initializeWaveform();
+    }
+  }
+
+  @override
+  void dispose() {
+    _loadingController.dispose();
+    super.dispose();
+  }
+
   void _initializeWaveform() {
-    // In the future, if IChatMessageData supports waveform data, use it here.
-    // For now, generate random waveform.
-    final pointCount = widget.duration > 0 ? widget.duration : 60;
-    final actualPointCount = pointCount < AudioBubbleConstants.minWaveformPoints
-        ? AudioBubbleConstants.minWaveformPoints
-        : pointCount;
-    _displayWaveform = WaveformDataGenerator.generateRandomWaveform(
-      actualPointCount,
-    );
+    if (widget.waveformData != null && widget.waveformData!.isNotEmpty) {
+      _displayWaveform = widget.waveformData!;
+    } else {
+      final pointCount = widget.duration > 0 ? widget.duration : 60;
+      final actualPointCount =
+          pointCount < AudioBubbleConstants.minWaveformPoints
+              ? AudioBubbleConstants.minWaveformPoints
+              : pointCount;
+      _displayWaveform = WaveformDataGenerator.generateRandomWaveform(
+        actualPointCount,
+      );
+    }
   }
 
-  /// Handle seeking to a specific position.
   void _handleSeek(double position) {
     final duration = widget.duration;
     final currentPosition = (position * duration).toInt();
     final seekDuration = Duration(seconds: currentPosition);
-
     AudioPlayerFactory.seek(widget.messageId, seekDuration);
+  }
+
+  void _cycleSpeed() {
+    final currentIndex = _availableSpeeds.indexOf(_currentSpeed);
+    final nextIndex = (currentIndex + 1) % _availableSpeeds.length;
+    setState(() {
+      _currentSpeed = _availableSpeeds[nextIndex];
+    });
+    AudioPlayerFactory.setSpeed(widget.messageId, _currentSpeed);
   }
 
   @override
   Widget build(BuildContext context) {
     final chatTheme = ChatThemeData.get(context);
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 100),
-      child: _buildAudioContent(context, chatTheme),
-    );
-  }
-
-  /// Builds the audio content.
-  Widget _buildAudioContent(BuildContext context, ChatThemeData chatTheme) {
     final source = widget.audioSource;
+
     if (source == null || source.isEmpty) {
-      return _buildEmptyState(chatTheme, 'Audio not available');
+      return _AudioEmptyState(chatTheme: chatTheme);
     }
 
     final isUrl = source.startsWith('http') || source.startsWith('https');
 
-    return AudioPlayerWidget(
+    return _AudioPlayerCard(
       url: isUrl ? source : null,
       filePath: !isUrl ? source : null,
       messageId: widget.messageId,
       waveform: _displayWaveform,
       durationInSeconds: widget.duration,
+      fileSize: widget.fileSize,
       onSeek: _handleSeek,
-      onPlay: () =>
-          AudioPlayerFactory.currentAudioMessageId.value = widget.messageId,
+      showSpeedControl: widget.showSpeedControl,
+      currentSpeed: _currentSpeed,
+      onSpeedChange: _cycleSpeed,
+      isVoiceMessage: widget.isVoiceMessage,
+      loadingAnimation: _loadingController,
+      primaryColor: widget.primaryColor,
+    );
+  }
+}
+
+/// Main audio player card widget.
+class _AudioPlayerCard extends StatelessWidget {
+  final String? filePath;
+  final String? url;
+  final String messageId;
+  final List<double> waveform;
+  final int durationInSeconds;
+  final int fileSize;
+  final Function(double)? onSeek;
+  final bool showSpeedControl;
+  final double currentSpeed;
+  final VoidCallback? onSpeedChange;
+  final bool isVoiceMessage;
+  final AnimationController loadingAnimation;
+  final Color? primaryColor;
+
+  const _AudioPlayerCard({
+    this.filePath,
+    this.url,
+    required this.messageId,
+    required this.waveform,
+    required this.durationInSeconds,
+    this.fileSize = 0,
+    this.onSeek,
+    this.showSpeedControl = false,
+    this.currentSpeed = 1.0,
+    this.onSpeedChange,
+    this.isVoiceMessage = true,
+    required this.loadingAnimation,
+    this.primaryColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
+    final playerColor = primaryColor ?? theme.colorScheme.primary;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxWidth: size.width * AudioBubbleConstants.maxWidthFactor,
+        minWidth: AudioBubbleConstants.minWidth,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AudioBubbleConstants.horizontalPadding,
+        vertical: AudioBubbleConstants.verticalPadding,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Play/Pause button
+          _PlayPauseButton(
+            messageId: messageId,
+            filePath: filePath,
+            url: url,
+            isVoiceMessage: isVoiceMessage,
+            loadingAnimation: loadingAnimation,
+            color: playerColor,
+          ),
+          const SizedBox(width: AudioBubbleConstants.spacing),
+
+          // Waveform and duration
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _AudioWaveformSection(
+                  messageId: messageId,
+                  filePath: filePath,
+                  url: url,
+                  waveform: waveform,
+                  durationInSeconds: durationInSeconds,
+                  onSeek: onSeek,
+                ),
+                if (fileSize > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      formatFileSize(fileSize),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Speed control
+          if (showSpeedControl) ...[
+            const SizedBox(width: 8),
+            _SpeedChip(
+              speed: currentSpeed,
+              onTap: onSpeedChange,
+              color: playerColor,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Animated play/pause button with loading indicator.
+class _PlayPauseButton extends StatelessWidget {
+  final String messageId;
+  final String? filePath;
+  final String? url;
+  final bool isVoiceMessage;
+  final AnimationController loadingAnimation;
+  final Color color;
+
+  const _PlayPauseButton({
+    required this.messageId,
+    this.filePath,
+    this.url,
+    this.isVoiceMessage = true,
+    required this.loadingAnimation,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final audioPlayer = AudioPlayerFactory.create(
+      messageId,
+      filePath: filePath,
+      url: url,
+    );
+
+    return StreamBuilder<PlayerState>(
+      stream: audioPlayer.playerStateStream,
+      builder: (context, snapshot) {
+        final playerState = snapshot.data;
+        final processingState = playerState?.processingState;
+        final isPlaying = (playerState?.playing ?? false) &&
+            processingState != ProcessingState.completed;
+        final isLoading = processingState == ProcessingState.loading ||
+            processingState == ProcessingState.buffering;
+
+        if (processingState == ProcessingState.completed) {
+          AudioPlayerFactory.pause(messageId);
+          audioPlayer.seek(Duration.zero);
+        }
+
+        return GestureDetector(
+          onTap: isLoading
+              ? null
+              : () {
+                  if (isPlaying) {
+                    AudioPlayerFactory.pause(messageId);
+                  } else {
+                    AudioPlayerFactory.play(
+                      messageId,
+                      filePath: filePath,
+                      url: url,
+                    );
+                  }
+                },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: AudioBubbleConstants.playButtonSize,
+            height: AudioBubbleConstants.playButtonSize,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              boxShadow: isPlaying
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      )
+                    ]
+                  : null,
+            ),
+            child: isLoading
+                ? _LoadingIndicator(
+                    animation: loadingAnimation,
+                    icon: isVoiceMessage ? Icons.mic : Icons.audiotrack,
+                  )
+                : _AnimatedPlayPauseIcon(isPlaying: isPlaying),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Animated play/pause icon with smooth transition.
+class _AnimatedPlayPauseIcon extends StatelessWidget {
+  final bool isPlaying;
+
+  const _AnimatedPlayPauseIcon({required this.isPlaying});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      transitionBuilder: (child, animation) {
+        return ScaleTransition(
+          scale: animation,
+          child: child,
+        );
+      },
+      child: Icon(
+        isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+        key: ValueKey(isPlaying),
+        color: Colors.white,
+        size: AudioBubbleConstants.playIconSize,
+      ),
+    );
+  }
+}
+
+/// Loading indicator with rotating ring.
+class _LoadingIndicator extends StatelessWidget {
+  final AnimationController animation;
+  final IconData icon;
+
+  const _LoadingIndicator({
+    required this.animation,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: _LoadingRingPainter(
+            progress: animation.value,
+            color: Colors.white,
+          ),
+          child: child,
+        );
+      },
+      child: Center(
+        child: Icon(icon, color: Colors.white, size: 16),
+      ),
+    );
+  }
+}
+
+/// Painter for the loading ring animation.
+class _LoadingRingPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+
+  _LoadingRingPainter({required this.progress, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - 6) / 2;
+
+    // Background ring
+    final bgPaint = Paint()
+      ..color = color.withValues(alpha: 0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+    canvas.drawCircle(center, radius, bgPaint);
+
+    // Active ring segment
+    final activePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+
+    final sweepAngle = math.pi * 0.6;
+    final startAngle = 2 * math.pi * progress - math.pi / 2;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweepAngle,
+      false,
+      activePaint,
     );
   }
 
-  Widget _buildEmptyState(ChatThemeData chatTheme, String label) {
+  @override
+  bool shouldRepaint(covariant _LoadingRingPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
+
+/// Speed control chip widget.
+class _SpeedChip extends StatelessWidget {
+  final double speed;
+  final VoidCallback? onTap;
+  final Color color;
+
+  const _SpeedChip({
+    required this.speed,
+    this.onTap,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          '${speed}x',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Empty state widget when audio is not available.
+class _AudioEmptyState extends StatelessWidget {
+  final ChatThemeData chatTheme;
+
+  const _AudioEmptyState({required this.chatTheme});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: chatTheme.colors.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
@@ -124,14 +511,16 @@ class _AudioBubbleState extends State<AudioBubble> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.mic_none, size: 18, color: chatTheme.colors.primary),
-          const SizedBox(width: 6),
+          Icon(
+            Icons.mic_off_rounded,
+            size: 20,
+            color: chatTheme.colors.error,
+          ),
+          const SizedBox(width: 8),
           Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            'Audio not available',
             style: chatTheme.typography.bodySmall.copyWith(
-              color: chatTheme.colors.onSurface,
+              color: chatTheme.colors.onSurface.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -151,7 +540,7 @@ String formatDuration(int seconds) {
   if (hours > 0) {
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
-  return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  return '${minutes}:${remainingSeconds.toString().padLeft(2, '0')}';
 }
 
 /// Helper function to format file size.
