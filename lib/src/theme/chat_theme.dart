@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:text_preview/text_preview.dart';
+import 'package:super_interactive_text/super_interactive_text.dart';
 
 /// Comprehensive chat theme data containing all styling components for chat UI
 class ChatThemeData extends ThemeExtension<ChatThemeData> {
@@ -56,7 +56,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
   final InputTheme input;
 
   /// Text preview styling configuration
-  final TextPreviewTheme textPreview;
+  final SuperInteractiveTextPreviewTheme textPreview;
 
   /// Image bubble specific styling
   final ImageBubbleTheme imageBubble;
@@ -83,7 +83,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
     PollTheme? poll,
     LocationTheme? location,
     InputTheme? input,
-    TextPreviewTheme? textPreview,
+    SuperInteractiveTextPreviewTheme? textPreview,
     ImageBubbleTheme? imageBubble,
     AudioBubbleTheme? audioBubble,
     VideoBubbleTheme? videoBubble,
@@ -131,8 +131,8 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
                 : const InputTheme.dark()),
         textPreview = textPreview ??
             (brightness == Brightness.light
-                ? TextPreviewTheme.light()
-                : TextPreviewTheme.dark()),
+                ? SuperInteractiveTextPreviewTheme.light()
+                : SuperInteractiveTextPreviewTheme.dark()),
         imageBubble = imageBubble ??
             (brightness == Brightness.light
                 ? const ImageBubbleTheme.light()
@@ -165,7 +165,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
           poll: const PollTheme.light(),
           location: const LocationTheme.standard(),
           input: const InputTheme.light(),
-          textPreview: TextPreviewTheme.light(textTheme),
+          textPreview: SuperInteractiveTextPreviewTheme.light(textTheme),
           imageBubble: const ImageBubbleTheme.light(),
           audioBubble: const AudioBubbleTheme.light(),
           videoBubble: const VideoBubbleTheme.light(),
@@ -187,7 +187,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
           poll: const PollTheme.dark(),
           location: const LocationTheme.standard(),
           input: const InputTheme.dark(),
-          textPreview: TextPreviewTheme.dark(textTheme),
+          textPreview: SuperInteractiveTextPreviewTheme.dark(textTheme),
           imageBubble: const ImageBubbleTheme.dark(),
           audioBubble: const AudioBubbleTheme.dark(),
           videoBubble: const VideoBubbleTheme.dark(),
@@ -208,7 +208,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
         poll: const PollTheme.light(),
         location: const LocationTheme.standard(),
         input: const InputTheme.light(),
-        textPreview: TextPreviewTheme.light(),
+        textPreview: SuperInteractiveTextPreviewTheme.light(),
         imageBubble: const ImageBubbleTheme.light(),
         audioBubble: const AudioBubbleTheme.light(),
         videoBubble: const VideoBubbleTheme.light(),
@@ -229,7 +229,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
     PollTheme? poll,
     LocationTheme? location,
     InputTheme? input,
-    TextPreviewTheme? textPreview,
+    SuperInteractiveTextPreviewTheme? textPreview,
     ImageBubbleTheme? imageBubble,
     AudioBubbleTheme? audioBubble,
     VideoBubbleTheme? videoBubble,

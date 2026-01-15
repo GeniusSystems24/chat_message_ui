@@ -685,6 +685,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  super_interactive_text:
+    dependency: "direct main"
+    description:
+      name: super_interactive_text
+      sha256: bde13102e80cd57cc0251f74df89927727757bc752711ae71eb6a840f67c39e8
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
   synchronized:
     dependency: transitive
     description:
@@ -709,13 +717,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.7"
-  text_preview:
-    dependency: "direct main"
-    description:
-      path: "../text_preview"
-      relative: true
-    source: path
-    version: "1.0.0"
   tooltip_card:
     dependency: "direct main"
     description:

@@ -21,7 +21,7 @@
         "recase",
         "record",
         "smart_pagination",
-        "text_preview",
+        "super_interactive_text",
         "tooltip_card",
         "url_launcher",
         "video_player"
@@ -121,8 +121,8 @@
       ]
     },
     {
-      "name": "text_preview",
-      "version": "1.0.0",
+      "name": "super_interactive_text",
+      "version": "1.1.0",
       "dependencies": [
         "flutter",
         "url_launcher"

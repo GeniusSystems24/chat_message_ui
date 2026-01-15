@@ -524,6 +524,12 @@
       "languageVersion": "3.1"
     },
     {
+      "name": "super_interactive_text",
+      "rootUri": "file:///C:/Users/Al-saiary/AppData/Local/Pub/Cache/hosted/pub.dev/super_interactive_text-1.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "synchronized",
       "rootUri": "file:///C:/Users/Al-saiary/AppData/Local/Pub/Cache/hosted/pub.dev/synchronized-3.4.0",
       "packageUri": "lib/",
@@ -540,12 +546,6 @@
       "rootUri": "file:///C:/Users/Al-saiary/AppData/Local/Pub/Cache/hosted/pub.dev/test_api-0.7.7",
       "packageUri": "lib/",
       "languageVersion": "3.5"
-    },
-    {
-      "name": "text_preview",
-      "rootUri": "../../text_preview",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
     },
     {
       "name": "tooltip_card",

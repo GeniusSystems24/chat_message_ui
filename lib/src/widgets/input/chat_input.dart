@@ -9,16 +9,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'package:record/record.dart';
-import 'package:text_preview/text_preview.dart';
+import 'package:super_interactive_text/super_interactive_text.dart';
 
-import '../../adapters/adapters.dart';
-import '../common/flow_shader.dart';
-import '../common/lottie_animation.dart';
-import '../reply/reply_preview_widget.dart';
-import 'attachment_source_selector.dart';
 import 'chat_input_mixins.dart';
 import 'floating_suggestion_card.dart';
-import 'input_models.dart';
 import 'text_data_preview_card.dart';
 
 part 'voice_recorder.dart';
@@ -150,7 +144,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
       ValueNotifier(52.0);
 
   // Text data preview state
-  final ValueNotifier<TextData?> _textDataPreview = ValueNotifier(null);
+  final ValueNotifier<SuperInteractiveTextData?> _textDataPreview = ValueNotifier(null);
 
   // TextField key
   final GlobalKey _inputKey = GlobalKey(debugLabel: "ChatInput TextField Key");
@@ -243,7 +237,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
 
   /// Handle text data preview
   void _handleTextDataPreview(String text) {
-    final parsedData = TextData.parse(text);
+    final parsedData = SuperInteractiveTextDataParser.parse(text);
 
     final textData = parsedData.firstWhereOrNull(
       (element) =>
@@ -418,7 +412,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
           ),
 
         // Text data preview
-        ValueListenableBuilder<TextData?>(
+        ValueListenableBuilder<SuperInteractiveTextData?>(
           valueListenable: _textDataPreview,
           builder: (context, textData, child) {
             if (textData == null || !widget.enableTextDataPreview) {
@@ -610,7 +604,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
         // Input row
         Row(
           children: [
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             // Text input field
             if (!_isRecordingLocked)
               Expanded(
@@ -700,7 +694,6 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                 }
               },
             ),
-            const SizedBox(width: 8),
           ],
         ),
       ],

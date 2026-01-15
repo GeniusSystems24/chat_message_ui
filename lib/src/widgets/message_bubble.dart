@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:text_preview/text_preview.dart';
+import 'package:super_interactive_text/super_interactive_text.dart';
 
 import '../theme/chat_theme.dart';
 import '../adapters/adapters.dart';
