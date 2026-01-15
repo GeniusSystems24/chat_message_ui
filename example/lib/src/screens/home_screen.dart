@@ -6,70 +6,230 @@ import 'input_features_example.dart';
 import 'message_types_example.dart';
 import 'reactions_example.dart';
 import 'theming_example.dart';
+import 'bubbles/bubbles.dart';
+import 'features/features.dart';
 
-/// Home screen showcasing all available examples.
+/// Home screen showcasing all available examples with modern design.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chat Message UI Showcase'),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Header
-          _buildHeader(context),
-          const SizedBox(height: 24),
+      body: CustomScrollView(
+        slivers: [
+          // Modern App Bar
+          SliverAppBar(
+            expandedHeight: 200,
+            pinned: true,
+            stretch: true,
+            backgroundColor: theme.colorScheme.surface,
+            surfaceTintColor: Colors.transparent,
+            flexibleSpace: FlexibleSpaceBar(
+              stretchModes: const [
+                StretchMode.zoomBackground,
+                StretchMode.blurBackground,
+              ],
+              background: _HeroHeader(),
+            ),
+          ),
 
-          // Quick start
-          _buildSectionTitle(context, 'Quick Start'),
-          const SizedBox(height: 12),
-          _buildQuickStart(context),
-          const SizedBox(height: 32),
+          // Content
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Quick Start Section
+                _buildSectionTitle(context, 'Quick Start', Icons.rocket_launch_outlined),
+                const SizedBox(height: 12),
+                _QuickStartCard(),
+                const SizedBox(height: 28),
 
-          // Features grid
-          _buildSectionTitle(context, 'Interactive Demos'),
-          const SizedBox(height: 12),
-          _buildExampleGrid(context),
+                // Bubble Examples Section
+                _buildSectionTitle(context, 'Message Bubbles', Icons.chat_bubble_outline),
+                const SizedBox(height: 12),
+                _BubblesGrid(),
+                const SizedBox(height: 28),
 
-          const SizedBox(height: 32),
+                // Features Section
+                _buildSectionTitle(context, 'Features', Icons.widgets_outlined),
+                const SizedBox(height: 12),
+                _FeaturesGrid(context),
+                const SizedBox(height: 28),
 
-          // Features list
-          _buildSectionTitle(context, 'Key Capabilities'),
-          const SizedBox(height: 12),
-          _buildFeaturesList(context),
+                // Complete Examples Section
+                _buildSectionTitle(context, 'Complete Examples', Icons.apps_outlined),
+                const SizedBox(height: 12),
+                _CompleteExamplesGrid(context),
+                const SizedBox(height: 28),
 
-          const SizedBox(height: 32),
+                // Capabilities Section
+                _buildSectionTitle(context, 'Key Capabilities', Icons.star_outline),
+                const SizedBox(height: 12),
+                _CapabilitiesList(),
+                const SizedBox(height: 28),
 
-          // Footer
-          _buildFooter(context),
+                // Footer
+                _Footer(),
+                const SizedBox(height: 16),
+              ]),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildSectionTitle(BuildContext context, String title, IconData icon) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: theme.colorScheme.onPrimaryContainer,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
             theme.colorScheme.primary,
             theme.colorScheme.secondary,
+            theme.colorScheme.tertiary,
           ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
         ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.chat_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'chat_message_ui',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'v1.0.0',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                'Production-ready chat UI components',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.95),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildChip('Flutter'),
+                  _buildChip('Material 3'),
+                  _buildChip('Null-safe'),
+                  _buildChip('Customizable'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickStartCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,124 +237,24 @@ class HomeScreen extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.chat_bubble_rounded,
-                color: theme.colorScheme.onPrimary,
-                size: 40,
+                Icons.code,
+                size: 18,
+                color: theme.colorScheme.primary,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Text(
-                'chat_message_ui',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: theme.colorScheme.onPrimary,
+                'Get Started',
+                style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            'Production-ready chat components for Flutter. Build full chat '
-            'experiences or compose from fine-grained widgets with adapters, '
-            'themes, and smart input.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onPrimary.withOpacity(0.9),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildTag(context, 'Flutter'),
-              _buildTag(context, 'Chat UI'),
-              _buildTag(context, 'Messages'),
-              _buildTag(context, 'Customizable'),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _buildStat(context, 'v1.0.0'),
-              _buildStat(context, 'Material 3'),
-              _buildStat(context, 'Null-safe'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTag(BuildContext context, String label) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.onPrimary.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onPrimary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStat(BuildContext context, String label) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.onPrimary.withOpacity(0.16),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onPrimary,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    final theme = Theme.of(context);
-
-    return Text(
-      title,
-      style: theme.textTheme.titleLarge?.copyWith(
-        fontWeight: FontWeight.bold,
-      ),
-    );
-  }
-
-  Widget _buildQuickStart(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Use the ready-made `ChatScreen` or build with `MessageBubble`, '
-            '`ChatInputWidget`, and `ChatMessageList`.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 12),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(10),
@@ -202,15 +262,15 @@ class HomeScreen extends StatelessWidget {
                 color: theme.colorScheme.outlineVariant,
               ),
             ),
-            child: Text(
+            child: SelectableText(
               'ChatScreen(\n'
               '  messagesCubit: cubit,\n'
               '  currentUserId: userId,\n'
               '  onSendMessage: sendText,\n'
-              ');',
+              ')',
               style: theme.textTheme.bodySmall?.copyWith(
                 fontFamily: 'monospace',
-                height: 1.4,
+                height: 1.5,
               ),
             ),
           ),
@@ -218,130 +278,447 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildExampleGrid(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
+class _BubblesGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final bubbles = [
+      _BubbleItem('Text', Icons.text_fields, Colors.blue, const TextBubbleExample()),
+      _BubbleItem('Image', Icons.image_outlined, Colors.green, const ImageBubbleExample()),
+      _BubbleItem('Video', Icons.videocam_outlined, Colors.red, const VideoBubbleExample()),
+      _BubbleItem('Audio', Icons.audiotrack_outlined, Colors.orange, const AudioBubbleExample()),
+      _BubbleItem('Document', Icons.description_outlined, Colors.indigo, const DocumentBubbleExample()),
+      _BubbleItem('Contact', Icons.contact_phone_outlined, Colors.teal, const ContactBubbleExample()),
+      _BubbleItem('Location', Icons.location_on_outlined, Colors.pink, const LocationBubbleExample()),
+      _BubbleItem('Poll', Icons.poll_outlined, Colors.purple, const PollBubbleExample()),
+    ];
+
+    return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.3,
-      children: [
-        _ExampleCard(
-          title: 'Basic Chat',
-          description: 'Simple chat with text messages',
-          icon: Icons.chat_outlined,
-          color: Colors.blue,
-          onTap: () => _navigateTo(context, const BasicChatExample()),
-        ),
-        _ExampleCard(
-          title: 'Message Types',
-          description: 'All supported message types',
-          icon: Icons.category_outlined,
-          color: Colors.green,
-          onTap: () => _navigateTo(context, const MessageTypesExample()),
-        ),
-        _ExampleCard(
-          title: 'Theming',
-          description: 'Custom themes and styling',
-          icon: Icons.palette_outlined,
-          color: Colors.purple,
-          onTap: () => _navigateTo(context, const ThemingExample()),
-        ),
-        _ExampleCard(
-          title: 'Input Features',
-          description: 'Chat input with all options',
-          icon: Icons.keyboard_outlined,
-          color: Colors.orange,
-          onTap: () => _navigateTo(context, const InputFeaturesExample()),
-        ),
-        _ExampleCard(
-          title: 'Reactions',
-          description: 'Message reactions & status',
-          icon: Icons.add_reaction_outlined,
-          color: Colors.pink,
-          onTap: () => _navigateTo(context, const ReactionsExample()),
-        ),
-        _ExampleCard(
-          title: 'Full Chat',
-          description: 'Complete chat experience',
-          icon: Icons.forum_outlined,
-          color: Colors.teal,
-          onTap: () => _navigateTo(context, const FullChatExample()),
-        ),
-      ],
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 0.9,
+      ),
+      itemCount: bubbles.length,
+      itemBuilder: (context, index) => _BubbleCard(bubble: bubbles[index]),
     );
   }
+}
 
-  Widget _buildFeaturesList(BuildContext context) {
+class _BubbleItem {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final Widget screen;
+
+  _BubbleItem(this.title, this.icon, this.color, this.screen);
+}
+
+class _BubbleCard extends StatelessWidget {
+  final _BubbleItem bubble;
+
+  const _BubbleCard({required this.bubble});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => bubble.screen),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: bubble.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  bubble.icon,
+                  color: bubble.color,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                bubble.title,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeaturesGrid extends StatelessWidget {
+  final BuildContext context;
+
+  const _FeaturesGrid(this.context);
+
+  @override
+  Widget build(BuildContext context) {
     final features = [
-      _Feature(
-        icon: Icons.extension_outlined,
-        title: 'Unified Data Interface',
-        description: 'Platform-agnostic via IChatMessageData adapter',
+      _FeatureItem('Chat Input', 'Text, attachments, voice', Icons.keyboard_outlined, Colors.blue, const ChatInputExample()),
+      _FeatureItem('App Bar', 'Title, avatar, actions', Icons.web_asset_outlined, Colors.green, const AppBarExample()),
+      _FeatureItem('Replies', 'Reply preview & context', Icons.reply_outlined, Colors.orange, const ReplyExample()),
+      _FeatureItem('Search', 'Find messages', Icons.search_outlined, Colors.purple, const SearchExample()),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 2.2,
       ),
-      _Feature(
-        icon: Icons.image_outlined,
-        title: 'Rich Message Support',
-        description:
-            'Text, Image, Video, Audio, Document, Poll, Location, Contact',
+      itemCount: features.length,
+      itemBuilder: (context, index) => _FeatureCard(feature: features[index]),
+    );
+  }
+}
+
+class _FeatureItem {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final Widget screen;
+
+  _FeatureItem(this.title, this.subtitle, this.icon, this.color, this.screen);
+}
+
+class _FeatureCard extends StatelessWidget {
+  final _FeatureItem feature;
+
+  const _FeatureCard({required this.feature});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => feature.screen),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: feature.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  feature.icon,
+                  color: feature.color,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      feature.title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      feature.subtitle,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
       ),
-      _Feature(
-        icon: Icons.color_lens_outlined,
-        title: 'Customizable Theming',
-        description: 'Full theme control with ChatThemeData',
+    );
+  }
+}
+
+class _CompleteExamplesGrid extends StatelessWidget {
+  final BuildContext context;
+
+  const _CompleteExamplesGrid(this.context);
+
+  @override
+  Widget build(BuildContext context) {
+    final examples = [
+      _ExampleItem('Basic Chat', 'Simple text messaging', Icons.chat_outlined, Colors.blue, const BasicChatExample()),
+      _ExampleItem('Message Types', 'All bubble types', Icons.category_outlined, Colors.green, const MessageTypesExample()),
+      _ExampleItem('Theming', 'Custom themes', Icons.palette_outlined, Colors.purple, const ThemingExample()),
+      _ExampleItem('Input Features', 'Advanced input', Icons.keyboard_outlined, Colors.orange, const InputFeaturesExample()),
+      _ExampleItem('Reactions', 'Emoji reactions', Icons.add_reaction_outlined, Colors.pink, const ReactionsExample()),
+      _ExampleItem('Full Chat', 'Complete experience', Icons.forum_outlined, Colors.teal, const FullChatExample()),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1.4,
       ),
-      _Feature(
-        icon: Icons.emoji_emotions_outlined,
-        title: 'Reactions & Status',
-        description: 'Emoji reactions plus delivery state indicators',
+      itemCount: examples.length,
+      itemBuilder: (context, index) => _ExampleCard(example: examples[index]),
+    );
+  }
+}
+
+class _ExampleItem {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final Widget screen;
+
+  _ExampleItem(this.title, this.subtitle, this.icon, this.color, this.screen);
+}
+
+class _ExampleCard extends StatelessWidget {
+  final _ExampleItem example;
+
+  const _ExampleCard({required this.example});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(14),
+      elevation: 0,
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => example.screen),
+        ),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: example.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  example.icon,
+                  color: example.color,
+                  size: 22,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                example.title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                example.subtitle,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ),
-      _Feature(
-        icon: Icons.reply_outlined,
-        title: 'Replies & Selection',
-        description: 'Reply previews, multi-select, and actions',
-      ),
-      _Feature(
-        icon: Icons.search_outlined,
-        title: 'Search View',
-        description: 'Filter messages with ChatMessageSearchView',
-      ),
-      _Feature(
-        icon: Icons.mic_outlined,
-        title: 'Smart Input',
-        description: 'Attachments, recording, suggestions, link previews',
-      ),
-      _Feature(
-        icon: Icons.auto_awesome_outlined,
-        title: 'Composable Widgets',
-        description: 'Use ChatScreen or compose with smaller widgets',
-      ),
+    );
+  }
+}
+
+class _CapabilitiesList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final capabilities = [
+      _Capability(Icons.extension_outlined, 'Platform-agnostic', 'IChatMessageData adapter interface'),
+      _Capability(Icons.image_outlined, 'Rich Media', 'Text, Image, Video, Audio, Document, Poll, Location, Contact'),
+      _Capability(Icons.color_lens_outlined, 'Theming', 'Full customization with ChatThemeData'),
+      _Capability(Icons.emoji_emotions_outlined, 'Reactions', 'Emoji reactions and status indicators'),
+      _Capability(Icons.reply_outlined, 'Replies', 'Reply preview and quoted messages'),
+      _Capability(Icons.mic_outlined, 'Voice Input', 'Recording with waveform visualization'),
+      _Capability(Icons.auto_awesome_outlined, 'Suggestions', '@mentions, #hashtags, /commands'),
+      _Capability(Icons.search_outlined, 'Search', 'Message filtering and search'),
     ];
 
     return Column(
-      children: features.map((feature) {
-        return _FeatureTile(feature: feature);
-      }).toList(),
+      children: capabilities.map((cap) => _CapabilityTile(capability: cap)).toList(),
     );
   }
+}
 
-  Widget _buildFooter(BuildContext context) {
+class _Capability {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  _Capability(this.icon, this.title, this.description);
+}
+
+class _CapabilityTile extends StatelessWidget {
+  final _Capability capability;
+
+  const _CapabilityTile({required this.capability});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              capability.icon,
+              color: theme.colorScheme.onPrimaryContainer,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  capability.title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  capability.description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+            theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
-          Text(
-            'chat_message_ui v1.0.0',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.chat_rounded,
+                color: theme.colorScheme.primary,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'chat_message_ui',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -349,158 +726,49 @@ class HomeScreen extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.code,
-                size: 16,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'MIT License',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                ),
-              ),
+              _FooterChip(Icons.code, 'MIT License'),
+              const SizedBox(width: 12),
+              _FooterChip(Icons.verified, 'v1.0.0'),
             ],
           ),
         ],
       ),
     );
   }
-
-  void _navigateTo(BuildContext context, Widget page) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => page),
-    );
-  }
 }
 
-class _ExampleCard extends StatelessWidget {
-  final String title;
-  final String description;
+class _FooterChip extends StatelessWidget {
   final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
+  final String label;
 
-  const _ExampleCard({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
+  const _FooterChip(this.icon, this.label);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const Spacer(),
-              Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Feature {
-  final IconData icon;
-  final String title;
-  final String description;
-
-  const _Feature({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-}
-
-class _FeatureTile extends StatelessWidget {
-  final _Feature feature;
-
-  const _FeatureTile({required this.feature});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              feature.icon,
+          Icon(icon, size: 14, color: theme.colorScheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  feature.title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  feature.description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
