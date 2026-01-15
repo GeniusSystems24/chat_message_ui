@@ -49,6 +49,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - File name and size display in top bar
   - Share and download action buttons
   - Loading progress with percentage
+- New `VideoPlayerFactory` for centralized video management
+  - `VideoPlaybackState` enum for tracking playback state
+  - `VideoQuality` enum for quality selection
+  - `VideoPlayerConfig` class for configuration options
+  - `VideoPlayerState` class with state snapshot and helpers
+  - Play/pause/stop/togglePlayPause controls
+  - Seek controls (seek, seekForward, seekBackward, seekToPercent)
+  - Volume controls (setVolume, setGlobalVolume, mute, unmute, toggleMute)
+  - Speed controls (setSpeed, setGlobalSpeed) with 0.25x - 2.0x range
+  - Loop control (setLooping, toggleLooping)
+  - Stream-based state notifications
+  - Preload support for buffering
+  - Automatic resource cleanup
+- Enhanced `VideoBubble` widget
+  - Shimmer loading placeholder animation
+  - Blurred thumbnail preview while loading
+  - Buffering progress indicator with percentage
+  - Tap animation feedback (scale effect)
+  - Mini player inline option (`showMiniPlayer`)
+  - Auto-play support (`autoPlay`)
+  - Muted by default option (`muted`)
+  - Play/pause/long press callbacks
+  - Enhanced full-screen player with controls toggle
+  - Top bar with title and close button
+  - Bottom actions bar with share/download buttons
+  - Gradient overlays for better UI contrast
+  - Video info chips (duration, file size)
 
 ### Changed
 - Improved duration formatting with proper zero-padding (MM:SS format)
