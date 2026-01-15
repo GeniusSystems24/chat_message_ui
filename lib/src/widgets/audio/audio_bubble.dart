@@ -7,6 +7,7 @@ import 'package:transfer_kit/transfer_kit.dart';
 
 import '../../theme/chat_theme.dart';
 import '../../adapters/chat_message_data.dart';
+import '../../config/chat_message_ui_config.dart';
 import '../../transfer/media_transfer_controller.dart';
 import 'audio_player_factory.dart';
 
@@ -44,6 +45,9 @@ class AudioBubble extends StatefulWidget {
   /// Custom primary color for the player
   final Color? primaryColor;
 
+  /// Auto-download policy for network media.
+  final AutoDownloadPolicy autoDownloadPolicy;
+
   const AudioBubble({
     super.key,
     required this.message,
@@ -52,6 +56,7 @@ class AudioBubble extends StatefulWidget {
     this.showSpeedControl = false,
     this.isVoiceMessage = true,
     this.primaryColor,
+    this.autoDownloadPolicy = AutoDownloadPolicy.never,
   });
 
   String get messageId => message.id;
@@ -80,6 +85,7 @@ class _AudioBubbleState extends State<AudioBubble>
   List<double> _displayWaveform = [];
   double _currentSpeed = 1.0;
   late AnimationController _loadingController;
+  bool _autoStartTriggered = false;
 
   static const List<double> _availableSpeeds = [1.0, 1.25, 1.5, 1.75, 2.0, 0.5, 0.75];
 
@@ -99,6 +105,9 @@ class _AudioBubbleState extends State<AudioBubble>
     if (oldWidget.waveformData != widget.waveformData ||
         oldWidget.duration != widget.duration) {
       _initializeWaveform();
+    }
+    if (oldWidget.audioSource != widget.audioSource) {
+      _autoStartTriggered = false;
     }
   }
 
@@ -207,6 +216,11 @@ class _AudioBubbleState extends State<AudioBubble>
           );
         }
 
+        if (_shouldAutoStart() && !_autoStartTriggered) {
+          _autoStartTriggered = true;
+          controller.startDownload(downloadTask);
+        }
+
         return StreamBuilder(
           initialData: FileTaskController.instance.fileUpdates[downloadTask.url],
           stream: (streamController ??
@@ -246,6 +260,16 @@ class _AudioBubbleState extends State<AudioBubble>
         );
       },
     );
+  }
+
+  bool _shouldAutoStart() {
+    switch (widget.autoDownloadPolicy) {
+      case AutoDownloadPolicy.always:
+        return true;
+      case AutoDownloadPolicy.wifiOnly:
+      case AutoDownloadPolicy.never:
+        return false;
+    }
   }
 
   Widget _buildWaveformLoading(BuildContext context) {

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-
 import '../theme/chat_theme.dart';
 import '../adapters/adapters.dart';
+import '../config/chat_message_ui_config.dart';
+import 'audio/audio_bubble.dart';
+import 'image/image_bubble.dart';
+import 'video/video_bubble.dart';
 import 'location/location_bubble.dart';
 import 'document/document_bubble.dart';
 
@@ -13,6 +15,7 @@ class AttachmentBuilder extends StatelessWidget {
   final bool isMyMessage;
   final VoidCallback? onTap;
   final Widget Function(ChatMediaData media)? customBuilder;
+  final ChatAutoDownloadConfig? autoDownloadConfig;
 
   const AttachmentBuilder({
     super.key,
@@ -21,6 +24,7 @@ class AttachmentBuilder extends StatelessWidget {
     required this.isMyMessage,
     this.onTap,
     this.customBuilder,
+    this.autoDownloadConfig,
   });
 
   @override
@@ -29,18 +33,22 @@ class AttachmentBuilder extends StatelessWidget {
       return customBuilder!(message.mediaData!);
     }
 
+    final resolvedAutoDownload =
+        autoDownloadConfig ?? ChatMessageUiConfig.instance.autoDownload;
+
     return switch (message.type) {
       ChatMessageType.image when message.mediaData != null =>
-        _buildImageAttachment(context, message.mediaData!),
+        _buildImageAttachment(context, message.mediaData!, resolvedAutoDownload),
       ChatMessageType.video when message.mediaData != null =>
-        _buildVideoAttachment(context, message.mediaData!),
+        _buildVideoAttachment(context, message.mediaData!, resolvedAutoDownload),
       ChatMessageType.audio when message.mediaData != null =>
-        _buildAudioAttachment(context, message.mediaData!),
+        _buildAudioAttachment(context, message.mediaData!, resolvedAutoDownload),
       ChatMessageType.document => DocumentBubble(
           message: message,
           chatTheme: chatTheme,
           isMyMessage: isMyMessage,
           onTap: onTap,
+          autoDownloadPolicy: resolvedAutoDownload.document,
         ),
       ChatMessageType.location when message.locationData != null =>
         LocationBubble(
@@ -52,182 +60,45 @@ class AttachmentBuilder extends StatelessWidget {
     };
   }
 
-  Widget _buildImageAttachment(BuildContext context, ChatMediaData media) {
-    return GestureDetector(
+  Widget _buildImageAttachment(
+    BuildContext context,
+    ChatMediaData media,
+    ChatAutoDownloadConfig config,
+  ) {
+    return ImageBubble(
+      message: message,
+      chatTheme: chatTheme,
+      isMyMessage: isMyMessage,
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(chatTheme.imageBubble.borderRadius),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: chatTheme.imageBubble.maxWidth,
-            maxHeight: chatTheme.imageBubble.maxHeight,
-          ),
-          child: CachedNetworkImage(
-            imageUrl: media.url,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              constraints: BoxConstraints(
-                maxWidth: chatTheme.imageBubble.maxWidth,
-                maxHeight: chatTheme.imageBubble.maxHeight,
-              ),
-              color: chatTheme.colors.surfaceContainerHigh,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => Container(
-              constraints: BoxConstraints(
-                maxWidth: chatTheme.imageBubble.maxWidth,
-                maxHeight: chatTheme.imageBubble.maxHeight,
-              ),
-              color: chatTheme.colors.surfaceContainerHigh,
-              child: Icon(
-                Icons.broken_image,
-                color: chatTheme.colors.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
-        ),
-      ),
+      autoDownloadPolicy: config.image,
     );
   }
 
-  Widget _buildVideoAttachment(BuildContext context, ChatMediaData media) {
+  Widget _buildVideoAttachment(
+    BuildContext context,
+    ChatMediaData media,
+    ChatAutoDownloadConfig config,
+  ) {
     final thumbnailUrl = media.thumbnailUrl ?? media.url;
 
-    return GestureDetector(
+    return VideoBubble(
+      message: message,
+      chatTheme: chatTheme,
+      isMyMessage: isMyMessage,
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(chatTheme.videoBubble.borderRadius),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: chatTheme.videoBubble.maxWidth,
-                maxHeight: chatTheme.videoBubble.maxHeight,
-              ),
-              child: CachedNetworkImage(
-                imageUrl: thumbnailUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  constraints: BoxConstraints(
-                    maxWidth: chatTheme.videoBubble.maxWidth,
-                    maxHeight: chatTheme.videoBubble.maxHeight,
-                  ),
-                  color: chatTheme.colors.surfaceContainerHigh,
-                ),
-                errorWidget: (context, url, error) => Container(
-                  constraints: BoxConstraints(
-                    maxWidth: chatTheme.videoBubble.maxWidth,
-                    maxHeight: chatTheme.videoBubble.maxHeight,
-                  ),
-                  color: chatTheme.colors.surfaceContainerHigh,
-                  child: Icon(
-                    Icons.videocam,
-                    color: chatTheme.colors.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
-            ),
-            // Play button overlay
-            Container(
-              width: chatTheme.videoBubble.playButtonSize,
-              height: chatTheme.videoBubble.playButtonSize,
-              decoration: BoxDecoration(
-                color: chatTheme.videoBubble.playButtonBackgroundColor,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.play_arrow,
-                size: chatTheme.videoBubble.playIconSize,
-                color: chatTheme.videoBubble.playButtonIconColor,
-              ),
-            ),
-            // Duration indicator
-            if (media.duration != null)
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _formatDuration(media.duration!),
-                    style: chatTheme.typography.labelSmall.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+      thumbnailFilePath: thumbnailUrl,
+      autoDownloadPolicy: config.video,
     );
   }
 
-  Widget _buildAudioAttachment(BuildContext context, ChatMediaData media) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: EdgeInsets.all(chatTheme.audioBubble.padding),
-      decoration: BoxDecoration(
-        color: isMyMessage
-            ? chatTheme.audioBubble.senderBackgroundColor
-            : chatTheme.audioBubble.receiverBackgroundColor,
-        borderRadius: BorderRadius.circular(chatTheme.audioBubble.borderRadius),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Play/pause button
-          GestureDetector(
-            onTap: onTap,
-            child: Container(
-              width: chatTheme.audioBubble.playButtonSize,
-              height: chatTheme.audioBubble.playButtonSize,
-              decoration: BoxDecoration(
-                color: chatTheme.audioBubble.playButtonColor ??
-                    chatTheme.colors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.play_arrow,
-                size: chatTheme.audioBubble.playIconSize,
-                color: chatTheme.audioBubble.playIconColor,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Waveform placeholder
-          Expanded(
-            child: Container(
-              height: chatTheme.audioBubble.waveformHeight,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-          if (media.duration != null) ...[
-            const SizedBox(width: 8),
-            Text(
-              _formatDuration(media.duration!),
-              style: chatTheme.typography.labelSmall.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-          ],
-        ],
-      ),
+  Widget _buildAudioAttachment(
+    BuildContext context,
+    ChatMediaData media,
+    ChatAutoDownloadConfig config,
+  ) {
+    return AudioBubble(
+      message: message,
+      autoDownloadPolicy: config.audio,
     );
-  }
-
-  String _formatDuration(int seconds) {
-    final minutes = seconds ~/ 60;
-    final secs = seconds % 60;
-    return '$minutes:${secs.toString().padLeft(2, '0')}';
   }
 }

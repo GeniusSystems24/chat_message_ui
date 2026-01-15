@@ -3,6 +3,7 @@ import 'package:super_interactive_text/super_interactive_text.dart';
 
 import '../theme/chat_theme.dart';
 import '../adapters/adapters.dart';
+import '../config/chat_message_ui_config.dart';
 import '../utils/messages_grouping.dart';
 import 'message_bubble_layout.dart';
 import 'message_content_builder.dart';
@@ -63,6 +64,9 @@ class MessageBubble extends StatelessWidget {
   /// Custom builder for deleted message content.
   final Widget Function(BuildContext context)? deletedMessageBuilder;
 
+  /// Auto-download settings for media attachments.
+  final ChatAutoDownloadConfig? autoDownloadConfig;
+
   const MessageBubble({
     super.key,
     required this.message,
@@ -81,6 +85,7 @@ class MessageBubble extends StatelessWidget {
     this.onLinkTap,
     this.onAttachmentTap,
     this.deletedMessageBuilder,
+    this.autoDownloadConfig,
   });
 
   /// Whether this message was sent by the current user.
@@ -195,6 +200,7 @@ class MessageBubble extends StatelessWidget {
           message: message,
           chatTheme: chatTheme,
           isMyMessage: isMyMessage,
+          autoDownloadConfig: autoDownloadConfig,
           onRouteTap: onRouteTap,
           onLinkTap: onLinkTap,
           onAttachmentTap: onAttachmentTap,

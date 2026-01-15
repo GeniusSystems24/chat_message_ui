@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:transfer_kit/transfer_kit.dart' hide ImageViewerFullScreen;
 
 import '../../adapters/adapters.dart';
+import '../../config/chat_message_ui_config.dart';
 import '../../theme/chat_theme.dart';
 import '../../transfer/media_transfer_controller.dart';
 import 'full_screen_image_viewer.dart';
@@ -60,6 +61,9 @@ class ImageBubble extends StatefulWidget {
   /// Callback for long press
   final VoidCallback? onLongPress;
 
+  /// Auto-download policy for network media.
+  final AutoDownloadPolicy autoDownloadPolicy;
+
   const ImageBubble({
     super.key,
     required this.message,
@@ -73,6 +77,7 @@ class ImageBubble extends StatefulWidget {
     this.galleryCount = 1,
     this.galleryIndex = 0,
     this.onLongPress,
+    this.autoDownloadPolicy = AutoDownloadPolicy.never,
   });
 
   /// Returns the URL from mediaData if it's a network URL
@@ -117,6 +122,7 @@ class ImageBubble extends StatefulWidget {
 class _ImageBubbleState extends State<ImageBubble>
     with SingleTickerProviderStateMixin {
   bool _isPressed = false;
+  bool _autoStartTriggered = false;
 
   void _handleTapDown(TapDownDetails details) {
     setState(() => _isPressed = true);
@@ -128,6 +134,14 @@ class _ImageBubbleState extends State<ImageBubble>
 
   void _handleTapCancel() {
     setState(() => _isPressed = false);
+  }
+
+  @override
+  void didUpdateWidget(ImageBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url) {
+      _autoStartTriggered = false;
+    }
   }
 
   @override
@@ -195,6 +209,11 @@ class _ImageBubbleState extends State<ImageBubble>
             return _LocalImage(path: filePath, chatTheme: widget.chatTheme);
           }
 
+          if (_shouldAutoStart() && !_autoStartTriggered) {
+            _autoStartTriggered = true;
+            controller.startDownload(downloadTask);
+          }
+
           return StreamBuilder(
             initialData:
                 FileTaskController.instance.fileUpdates[downloadTask.url],
@@ -230,6 +249,16 @@ class _ImageBubbleState extends State<ImageBubble>
     }
 
     return _ImageErrorWidget(chatTheme: widget.chatTheme);
+  }
+
+  bool _shouldAutoStart() {
+    switch (widget.autoDownloadPolicy) {
+      case AutoDownloadPolicy.always:
+        return true;
+      case AutoDownloadPolicy.wifiOnly:
+      case AutoDownloadPolicy.never:
+        return false;
+    }
   }
 
   void _showFullScreenImage(BuildContext context) {

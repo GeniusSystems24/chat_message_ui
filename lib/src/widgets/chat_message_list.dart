@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:smart_pagination/pagination.dart';
 
 import '../adapters/chat_message_data.dart';
+import '../config/chat_message_ui_config.dart';
 import '../utils/messages_grouping.dart';
 import '../utils/message_utils.dart';
 import 'message_bubble.dart';
@@ -70,6 +71,9 @@ class ChatMessageList extends StatelessWidget {
   /// Available reaction emojis.
   final List<String> availableReactions;
 
+  /// Auto-download settings for media attachments.
+  final ChatAutoDownloadConfig? autoDownloadConfig;
+
   const ChatMessageList({
     super.key,
     required this.cubit,
@@ -90,6 +94,7 @@ class ChatMessageList extends StatelessWidget {
     this.loadMoreBuilder,
     this.padding = const EdgeInsets.all(12),
     this.availableReactions = const ['👍', '❤️', '😂', '😮', '😢', '😡'],
+    this.autoDownloadConfig,
   });
 
   @override
@@ -157,6 +162,7 @@ class ChatMessageList extends StatelessWidget {
             showAvatar: showAvatar,
             currentUserId: currentUserId,
             messageGroupStatus: groupStatus,
+            autoDownloadConfig: autoDownloadConfig,
             onLongPress: onMessageLongPress != null
                 ? () => onMessageLongPress!(message)
                 : null,

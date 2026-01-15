@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:tooltip_card/tooltip_card.dart';
 
 import 'package:record/record.dart';
 import 'package:super_interactive_text/super_interactive_text.dart';
@@ -133,6 +134,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   late final FocusNode _focusNode;
   bool _isRecordingLocked = false;
   bool _isRecording = false;
+  final TooltipCardController _suggestionTooltipController =
+      TooltipCardController();
+  double _suggestionCardWidth = 0;
 
   // Floating suggestions state
   final ValueNotifier<FloatingSuggestionType?> _currentSuggestionType =
@@ -170,6 +174,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     _currentSuggestions.dispose();
     _currentSuggestionItemHeight.dispose();
     _textDataPreview.dispose();
+    _suggestionTooltipController.dispose();
 
     if (widget.controller == null) {
       _textController.dispose();
@@ -266,6 +271,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     _currentSuggestionItemHeight.value = itemHeight;
     _currentSuggestions.value =
         suggestions.cast<FloatingSuggestionItem<dynamic>>();
+    _updateSuggestionTooltip();
   }
 
   /// Show floating username suggestions
@@ -366,6 +372,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     _currentSuggestionQuery.value = '';
     _currentSuggestions.value = const [];
     _currentSuggestionItemHeight.value = 52.0;
+    if (_suggestionTooltipController.isOpen) {
+      _suggestionTooltipController.close();
+    }
   }
 
   /// Handle suggestion selection
@@ -373,6 +382,32 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     replaceWordUnderCursor(_textController, value);
     _hideFloatingSuggestions();
     _focusNode.requestFocus();
+  }
+
+  void _updateSuggestionTooltip() {
+    if (!widget.enableFloatingSuggestions) return;
+    final type = _currentSuggestionType.value;
+    final suggestions = _currentSuggestions.value;
+    if (type == null || suggestions.isEmpty) {
+      if (_suggestionTooltipController.isOpen) {
+        _suggestionTooltipController.close();
+      }
+      return;
+    }
+
+    final payload = TooltipSuggestionPayload(
+      type: type,
+      query: _currentSuggestionQuery.value,
+      suggestions: suggestions,
+      itemHeight: _currentSuggestionItemHeight.value,
+      width: _suggestionCardWidth,
+    );
+
+    if (_suggestionTooltipController.isOpen) {
+      _suggestionTooltipController.updateData(payload);
+    } else {
+      _suggestionTooltipController.open(data: payload);
+    }
   }
 
   /// Show attachment source selection bottom sheet
@@ -392,6 +427,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    _suggestionCardWidth = MediaQuery.of(context).size.width - 20;
 
     return Column(
       children: [
@@ -515,186 +551,134 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
               ],
             ),
           ),
-        ValueListenableBuilder<List<FloatingSuggestionItem<dynamic>>>(
-          valueListenable: _currentSuggestions,
-          builder: (context, suggestions, child) {
-            if (!widget.enableFloatingSuggestions ||
-                suggestions.isEmpty ||
-                _currentSuggestionType.value == null) {
-              return const SizedBox.shrink();
-            }
-
-            final width = MediaQuery.of(context).size.width - 20;
-            final query = _currentSuggestionQuery.value;
-            final itemHeight = _currentSuggestionItemHeight.value;
-
-            switch (_currentSuggestionType.value) {
-              case FloatingSuggestionType.username:
-                return FloatingSuggestionCard<ChatUserSuggestion>(
-                  width: width,
-                  itemHeight: itemHeight,
-                  query: query,
-                  type: FloatingSuggestionType.username,
-                  suggestions: suggestions
-                      .cast<FloatingSuggestionItem<ChatUserSuggestion>>(),
-                  onSelected: (item) =>
-                      _onSuggestionSelected(item.value.mentionText),
-                  onFilter: (item, query) {
-                    final lowered = query.toLowerCase();
-                    return item.label.toLowerCase().contains(lowered) ||
-                        (item.subtitle?.toLowerCase().contains(lowered) ??
-                            false);
-                  },
-                  onClose: _hideFloatingSuggestions,
-                );
-              case FloatingSuggestionType.hashtag:
-                return FloatingSuggestionCard<Hashtag>(
-                  width: width,
-                  itemHeight: itemHeight,
-                  query: query,
-                  type: FloatingSuggestionType.hashtag,
-                  suggestions:
-                      suggestions.cast<FloatingSuggestionItem<Hashtag>>(),
-                  onSelected: (item) => _onSuggestionSelected(
-                    FloatingSuggestionType.hashtag.symbol + item.value.hashtag,
-                  ),
-                  onClose: _hideFloatingSuggestions,
-                  onFilter: (item, query) => item.value.hashtag
-                      .toLowerCase()
-                      .startsWith(query.toLowerCase()),
-                );
-              case FloatingSuggestionType.quickReply:
-                return FloatingSuggestionCard<QuickReply>(
-                  width: width,
-                  itemHeight: itemHeight,
-                  query: query,
-                  type: FloatingSuggestionType.quickReply,
-                  suggestions:
-                      suggestions.cast<FloatingSuggestionItem<QuickReply>>(),
-                  onSelected: (item) =>
-                      _onSuggestionSelected(item.value.response),
-                  onClose: _hideFloatingSuggestions,
-                  onFilter: (item, query) => item.value.response
-                      .toLowerCase()
-                      .startsWith(query.toLowerCase()),
-                );
-              case FloatingSuggestionType.clubChatTask:
-                return FloatingSuggestionCard<dynamic>(
-                  width: width,
-                  itemHeight: itemHeight,
-                  query: query,
-                  type: FloatingSuggestionType.clubChatTask,
-                  suggestions: suggestions,
-                  onSelected: (item) {
-                    _onSuggestionSelected(
-                      FloatingSuggestionType.clubChatTask.symbol +
-                          item.value.toString(),
-                    );
-                  },
-                  onClose: _hideFloatingSuggestions,
-                  onFilter: (item, query) =>
-                      item.label.toLowerCase().contains(query.toLowerCase()),
-                );
-              case null:
-                return const SizedBox.shrink();
-            }
-          },
-        ),
-
         // Input row
-        Row(
-          children: [
-            const SizedBox(width: 4),
-            // Text input field
-            if (!_isRecordingLocked)
-              Expanded(
-                child: TextField(
-                  key: _inputKey,
-                  controller: _textController,
-                  focusNode: _focusNode,
-                  decoration: (widget.inputDecoration ??
-                          InputDecoration(
-                            hintText: _isRecording
-                                ? 'Recording audio...'
-                                : widget.hintText,
-                            filled: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            hintStyle: TextStyle(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ))
-                      .copyWith(
-                    prefixIcon: widget.enableAttachments && !_isRecording
-                        ? IconButton(
-                            style: IconButton.styleFrom(
-                              foregroundColor: theme.colorScheme.primary,
-                              iconSize: 24,
-                            ),
-                            icon: const Icon(Icons.attach_file),
-                            onPressed: _showAttachmentSourceSelector,
-                          )
-                        : null,
-                  ),
-                  maxLines: 5,
-                  minLines: 1,
-                  enabled: !_isRecording,
-                ),
-              ),
-            const SizedBox(width: 4),
-            // Record/Send button
-            ValueListenableBuilder(
-              valueListenable: _textController,
-              builder: (context, value, child) {
-                if (widget.enableAudioRecording && value.text.trim().isEmpty) {
-                  // WhatsApp-style voice recorder
-                  return WhatsAppVoiceRecorder(
-                    size: 40,
-                    onRecordingStart: () {
-                      setState(() {
-                        _isRecording = true;
-                      });
-                      widget.onRecordingStart?.call();
-                    },
-                    onRecordingComplete: (path, duration, {waveform}) async {
-                      setState(() {
-                        _isRecording = false;
-                      });
-                      if (widget.onRecordingComplete != null) {
-                        await widget.onRecordingComplete!(path, duration);
-                      }
-                      return null;
-                    },
-                    onRecordingCancel: () {
-                      setState(() {
-                        _isRecording = false;
-                      });
-                      widget.onRecordingCancel?.call();
-                    },
-                    getRecordingPath: widget.getRecordingPath,
-                    onRecordingLockedChanged: (locked) {
-                      widget.onRecordingLockedChanged?.call(locked);
-                      setState(() {
-                        _isRecordingLocked = locked;
-                      });
-                    },
-                  );
-                } else {
-                  // Send button
-                  return IconButton.filled(
-                    style: IconButton.styleFrom(
-                      foregroundColor: theme.colorScheme.onPrimary,
+        TooltipCard.builder(
+          controller: _suggestionTooltipController,
+          useRootOverlay: false,
+          fitToViewport: true,
+          autoFlipIfZeroSpace: true,
+          wrapContentInScrollView: false,
+          whenContentVisible: WhenContentVisible.pressButton,
+          whenContentHide: WhenContentHide.pressOutSide,
+          dismissOnPointerMoveAway: false,
+          placementSide: TooltipCardPlacementSide.top,
+          beakEnabled: false,
+          awaySpace: 0,
+          elevation: 2,
+          borderRadius: BorderRadius.circular(12),
+          flyoutBackgroundColor: theme.colorScheme.surface,
+          borderColor: theme.colorScheme.outline.withValues(alpha: 0.3),
+          borderWidth: 1,
+          padding: EdgeInsets.zero,
+          constraints: BoxConstraints.tightFor(width: _suggestionCardWidth),
+          child: Row(
+            children: [
+              const SizedBox(width: 4),
+              // Text input field
+              if (!_isRecordingLocked)
+                Expanded(
+                  child: TextField(
+                    key: _inputKey,
+                    controller: _textController,
+                    focusNode: _focusNode,
+                    decoration: (widget.inputDecoration ??
+                            InputDecoration(
+                              hintText: _isRecording
+                                  ? 'Recording audio...'
+                                  : widget.hintText,
+                              filled: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              hintStyle: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ))
+                        .copyWith(
+                      prefixIcon: widget.enableAttachments && !_isRecording
+                          ? IconButton(
+                              style: IconButton.styleFrom(
+                                foregroundColor: theme.colorScheme.primary,
+                                iconSize: 24,
+                              ),
+                              icon: const Icon(Icons.attach_file),
+                              onPressed: _showAttachmentSourceSelector,
+                            )
+                          : null,
                     ),
-                    icon: const Icon(Icons.send),
-                    onPressed:
-                        value.text.trim().isNotEmpty ? _sendMessage : null,
-                  );
-                }
+                    maxLines: 5,
+                    minLines: 1,
+                    enabled: !_isRecording,
+                  ),
+                ),
+              const SizedBox(width: 4),
+              // Record/Send button
+              ValueListenableBuilder(
+                valueListenable: _textController,
+                builder: (context, value, child) {
+                  if (widget.enableAudioRecording &&
+                      value.text.trim().isEmpty) {
+                    // WhatsApp-style voice recorder
+                    return WhatsAppVoiceRecorder(
+                      size: 40,
+                      onRecordingStart: () {
+                        setState(() {
+                          _isRecording = true;
+                        });
+                        widget.onRecordingStart?.call();
+                      },
+                      onRecordingComplete: (path, duration, {waveform}) async {
+                        setState(() {
+                          _isRecording = false;
+                        });
+                        if (widget.onRecordingComplete != null) {
+                          await widget.onRecordingComplete!(path, duration);
+                        }
+                        return null;
+                      },
+                      onRecordingCancel: () {
+                        setState(() {
+                          _isRecording = false;
+                        });
+                        widget.onRecordingCancel?.call();
+                      },
+                      getRecordingPath: widget.getRecordingPath,
+                      onRecordingLockedChanged: (locked) {
+                        widget.onRecordingLockedChanged?.call(locked);
+                        setState(() {
+                          _isRecordingLocked = locked;
+                        });
+                      },
+                    );
+                  } else {
+                    // Send button
+                    return IconButton.filled(
+                      style: IconButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onPrimary,
+                      ),
+                      icon: const Icon(Icons.send),
+                      onPressed:
+                          value.text.trim().isNotEmpty ? _sendMessage : null,
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+          builder: (context, close) {
+            final payload = _suggestionTooltipController
+                .dataAs<TooltipSuggestionPayload>();
+            if (payload == null) return const SizedBox.shrink();
+            return buildSuggestionContent(
+              payload: payload,
+              onValueSelected: _onSuggestionSelected,
+              onClose: () {
+                close();
+                _hideFloatingSuggestions();
               },
-            ),
-          ],
+            );
+          },
         ),
       ],
     );

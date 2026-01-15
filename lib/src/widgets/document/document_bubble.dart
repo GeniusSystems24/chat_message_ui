@@ -5,16 +5,18 @@ import 'package:transfer_kit/transfer_kit.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../adapters/adapters.dart';
+import '../../config/chat_message_ui_config.dart';
 import '../../theme/chat_theme.dart';
 import '../../transfer/media_transfer_controller.dart';
 import 'file_icon.dart';
 
 /// Widget to display a document attachment in a message bubble.
-class DocumentBubble extends StatelessWidget {
+class DocumentBubble extends StatefulWidget {
   final IChatMessageData message;
   final ChatThemeData chatTheme;
   final bool isMyMessage;
   final VoidCallback? onTap;
+  final AutoDownloadPolicy autoDownloadPolicy;
 
   const DocumentBubble({
     super.key,
@@ -22,15 +24,31 @@ class DocumentBubble extends StatelessWidget {
     required this.chatTheme,
     required this.isMyMessage,
     this.onTap,
+    this.autoDownloadPolicy = AutoDownloadPolicy.never,
   });
 
+  @override
+  State<DocumentBubble> createState() => _DocumentBubbleState();
+}
+
+class _DocumentBubbleState extends State<DocumentBubble> {
+  bool _autoStartTriggered = false;
+
   String? get fileName =>
-      message.mediaData?.resolvedFileName ?? message.textContent;
-  String? get url => message.mediaData?.url;
-  int get fileSize => message.mediaData?.resolvedFileSize ?? 0;
-  int? get pageCount => message.mediaData?.pageCount;
+      widget.message.mediaData?.resolvedFileName ?? widget.message.textContent;
+  String? get url => widget.message.mediaData?.url;
+  int get fileSize => widget.message.mediaData?.resolvedFileSize ?? 0;
+  int? get pageCount => widget.message.mediaData?.pageCount;
   String? get localPath =>
       url != null && !(url!.startsWith('http')) ? url : null;
+
+  @override
+  void didUpdateWidget(DocumentBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message.mediaData?.url != widget.message.mediaData?.url) {
+      _autoStartTriggered = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +58,7 @@ class DocumentBubble extends StatelessWidget {
 
     final fileUrl = url;
     if (fileUrl == null) {
-      return _DocumentErrorWidget(chatTheme: chatTheme);
+      return _DocumentErrorWidget(chatTheme: widget.chatTheme);
     }
 
     final controller = MediaTransferController.instance;
@@ -59,6 +77,11 @@ class DocumentBubble extends StatelessWidget {
 
         if (filePath != null) {
           return _documentTileBuild(context, filePath);
+        }
+
+        if (_shouldAutoStart() && !_autoStartTriggered) {
+          _autoStartTriggered = true;
+          controller.startDownload(downloadTask);
         }
 
         return StreamBuilder(
@@ -84,7 +107,7 @@ class DocumentBubble extends StatelessWidget {
                   _documentTileBuild(context, item.filePath),
               loadingBuilder: (context, item) => _documentInfoBuild(context),
               errorBuilder: (context, item, error) =>
-                  _DocumentErrorWidget(chatTheme: chatTheme),
+                  _DocumentErrorWidget(chatTheme: widget.chatTheme),
             );
           },
         );
@@ -92,19 +115,29 @@ class DocumentBubble extends StatelessWidget {
     );
   }
 
+  bool _shouldAutoStart() {
+    switch (widget.autoDownloadPolicy) {
+      case AutoDownloadPolicy.always:
+        return true;
+      case AutoDownloadPolicy.wifiOnly:
+      case AutoDownloadPolicy.never:
+        return false;
+    }
+  }
+
   Widget _documentTileBuild(BuildContext context, String filePath) {
     return GestureDetector(
-      onTap: onTap ?? () => _openLocalFile(context, filePath),
+      onTap: widget.onTap ?? () => _openLocalFile(context, filePath),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 280),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isMyMessage
-              ? chatTheme.colors.primary.withValues(alpha: 0.1)
-              : chatTheme.colors.surfaceContainerHigh,
+          color: widget.isMyMessage
+              ? widget.chatTheme.colors.primary.withValues(alpha: 0.1)
+              : widget.chatTheme.colors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: chatTheme.colors.onSurface.withValues(alpha: 0.1),
+            color: widget.chatTheme.colors.onSurface.withValues(alpha: 0.1),
           ),
         ),
         child: Row(
@@ -116,7 +149,7 @@ class DocumentBubble extends StatelessWidget {
             Icon(
               Icons.open_in_new_rounded,
               size: 20,
-              color: chatTheme.colors.primary,
+              color: widget.chatTheme.colors.primary,
             ),
           ],
         ),
@@ -148,7 +181,7 @@ class DocumentBubble extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontWeight: FontWeight.w500,
-            color: chatTheme.colors.onSurface,
+            color: widget.chatTheme.colors.onSurface,
           ),
         ),
         const SizedBox(height: 4),
@@ -158,7 +191,7 @@ class DocumentBubble extends StatelessWidget {
               _formatFileSize(fileSize),
               style: TextStyle(
                 fontSize: 12,
-                color: chatTheme.colors.onSurface.withValues(alpha: 0.6),
+                color: widget.chatTheme.colors.onSurface.withValues(alpha: 0.6),
               ),
             ),
             if (pageCount != null) ...[
@@ -167,7 +200,7 @@ class DocumentBubble extends StatelessWidget {
                 '${pageCount!} pages',
                 style: TextStyle(
                   fontSize: 12,
-                  color: chatTheme.colors.onSurface.withValues(alpha: 0.6),
+                  color: widget.chatTheme.colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],

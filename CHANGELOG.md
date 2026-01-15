@@ -5,9 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-01-15
+
+### Added
+
+- TransferKit bridge initialization helpers and a shared transfer controller
+  for cache-first media downloads and upload task handling.
+- Configurable auto-download policies per media type with defaults
+  (image/video/document: never, audio: always).
+- Cache-first download flows in image, video, audio, and document bubbles
+  with TransferKit download cards and local file open support.
+- `ChatMediaData.metadata` support with fallback getters for file details
+  (file name, size, duration, aspect ratio, thumbnail, waveform, page count).
+- `ChatMessageUiConfig` with global defaults and per-screen overrides for
+  suggestions, text preview, pagination, and bubble theme.
+- TooltipCard-driven floating suggestions anchored to the input row with a
+  unified payload builder.
+
+### Changed
+
+- Suggestion rendering now uses a single TooltipCard around the input row.
+- `ChatScreen` accepts optional UI configuration and forwards settings to
+  input and message list widgets.
+
 ## [1.1.0] - 2026-01-15
 
 ### Added
+
 - Real-time waveform visualization during audio recording
   - `RecordingWaveform` widget for live amplitude display
   - `LockedRecordingWaveform` widget for locked recording state
@@ -78,6 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Video info chips (duration, file size)
 
 ### Changed
+
 - Improved duration formatting with proper zero-padding (MM:SS format)
 - Enhanced locked recording UI with full waveform history display
 - Better resource cleanup in voice recorder
@@ -85,12 +110,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Better error states with rounded icons
 
 ### Fixed
+
 - Added `mounted` check before setState in async callbacks
 - Proper cleanup of amplitude stream subscriptions
 
 ## [1.0.0] - Initial Release
 
 ### Added
+
 - Complete chat UI library with support for multiple message types
 - Audio playback with waveform visualization
 - WhatsApp-style voice recording with lock, pause, and cancel features

@@ -13,6 +13,8 @@ A comprehensive, feature-rich Chat UI library for Flutter. Platform-agnostic int
 - ⚡ **Smart Pagination** - Efficient list rendering with `smart_pagination` integration
 - 💬 **Interactive Features** - Reactions, swipe-to-reply, message selection
 - 🔄 **Adapter Pattern** - Easily integrate with any data source
+- 📦 **Cache-First Media** - TransferKit-based download and open flows
+- 💡 **Tooltip Suggestions** - Anchored floating suggestions with `TooltipCard`
 - 🎯 **Production Ready** - Battle-tested components
 
 ## Installation
@@ -34,7 +36,7 @@ import 'package:chat_message_ui/chat_message_ui.dart';
 ### TransferKit Setup (Required for Media Downloads)
 
 Initialize TransferKit once in your app startup to enable cache-first
-media downloads and upload helpers used by the widgets:
+media downloads used by the widgets:
 
 ```dart
 void main() async {
@@ -151,6 +153,21 @@ enum ChatMessageType {
 | `ChatLocationData` | Location coordinates and name |
 | `ChatContactData` | Contact information |
 
+`ChatMediaData` supports attaching rich media details from TransferKit:
+
+```dart
+ChatMediaData(
+  url: mediaUrl,
+  mediaType: ChatMessageType.image,
+  metadata: MediaMetadata(
+    fileName: 'photo.jpg',
+    fileSize: 1024 * 1024,
+    aspectRatio: 1.33,
+    thumbnail: ThumbnailData(base64: '...'),
+  ),
+);
+```
+
 ---
 
 ## Screens
@@ -178,10 +195,50 @@ ChatScreen(
   onDelete: (messages) {
     // Delete selected messages
   },
+  config: ChatMessageUiConfig(
+    enableSuggestions: true,
+    enableTextPreview: true,
+    pagination: ChatPaginationConfig(
+      listPadding: const EdgeInsets.all(16),
+    ),
+  ),
   showAvatar: true,
   appBar: AppBar(title: Text('Chat')),
 )
 ```
+
+### UI Configuration
+
+Global defaults can be set via `ChatMessageUiConfig.instance`, with optional
+per-screen overrides:
+
+```dart
+ChatMessageUiConfig.instance = ChatMessageUiConfig(
+  enableSuggestions: true,
+  enableTextPreview: true,
+  autoDownload: ChatAutoDownloadConfig(
+    image: AutoDownloadPolicy.never,
+    video: AutoDownloadPolicy.never,
+    audio: AutoDownloadPolicy.always,
+    document: AutoDownloadPolicy.never,
+  ),
+);
+
+ChatScreen(
+  messagesCubit: mySmartPaginationCubit,
+  currentUserId: 'user123',
+  config: ChatMessageUiConfig.instance.copyWith(
+    enableSuggestions: false,
+    autoDownload: ChatMessageUiConfig.instance.autoDownload.copyWith(
+      audio: AutoDownloadPolicy.never,
+    ),
+  ),
+)
+```
+
+`AutoDownloadPolicy.wifiOnly` is available for future network-aware behavior.
+Currently, only `always` triggers auto-start; `wifiOnly` behaves like manual
+until the host app enforces connectivity constraints.
 
 ### ChatMessageSearchView
 
@@ -515,16 +572,6 @@ ChatInputWidget(
   onRecordingComplete: (path, duration) async {
     // Send voice message
   },
-  recordingUploadDestinationPathBuilder: (localPath) {
-    // Firebase storage destination path (example)
-    return 'uploads/voice/${DateTime.now().millisecondsSinceEpoch}.m4a';
-  },
-  onRecordingUploadProgress: (task) {
-    // Track upload progress
-  },
-  onRecordingUploadComplete: (task) {
-    // Use task.downloadUrl
-  },
   controller: textController,
   focusNode: focusNode,
   replyMessage: replyNotifier,
@@ -756,6 +803,7 @@ dependencies:
   flutter: sdk
   cached_network_image: any
   transfer_kit: any
+  tooltip_card: any
   url_launcher: any
   intl: any
   lottie: any

@@ -3,6 +3,7 @@ import 'package:super_interactive_text/super_interactive_text.dart';
 
 import '../theme/chat_theme.dart';
 import '../adapters/adapters.dart';
+import '../config/chat_message_ui_config.dart';
 import 'attachment_builder.dart';
 import 'contact/contact_bubble.dart';
 
@@ -20,6 +21,7 @@ class MessageContentBuilder extends StatelessWidget {
   final Function(PhoneNumberTextData)? onPhoneTap;
   final VoidCallback? onAttachmentTap;
   final Widget Function(ChatMediaData media)? customAttachmentBuilder;
+  final ChatAutoDownloadConfig? autoDownloadConfig;
 
   const MessageContentBuilder({
     super.key,
@@ -32,6 +34,7 @@ class MessageContentBuilder extends StatelessWidget {
     this.onPhoneTap,
     this.onAttachmentTap,
     this.customAttachmentBuilder,
+    this.autoDownloadConfig,
   });
 
   @override
@@ -60,6 +63,7 @@ class MessageContentBuilder extends StatelessWidget {
             isMyMessage: isMyMessage,
             onTap: onAttachmentTap,
             customBuilder: customAttachmentBuilder,
+            autoDownloadConfig: autoDownloadConfig,
           ),
         if (hasText) _buildTextContent(context, text),
       ],

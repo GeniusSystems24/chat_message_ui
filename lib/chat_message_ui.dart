@@ -41,6 +41,9 @@ export 'src/adapters/adapters.dart';
 // Theme - Styling configuration
 export 'src/theme/theme.dart';
 
+// Config - Global and per-screen settings
+export 'src/config/chat_message_ui_config.dart';
+
 // Widgets - UI components
 export 'src/widgets/widgets.dart';
 

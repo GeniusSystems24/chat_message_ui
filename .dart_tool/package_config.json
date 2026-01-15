@@ -747,7 +747,7 @@
     },
     {
       "name": "transfer_kit",
-      "rootUri": "../../transfer_kit",
+      "rootUri": "file:///C:/Users/Al-saiary/AppData/Local/Pub/Cache/hosted/pub.dev/transfer_kit-2.1.0+1",
       "packageUri": "lib/",
       "languageVersion": "3.0"
     },

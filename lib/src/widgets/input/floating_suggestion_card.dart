@@ -5,8 +5,26 @@ import 'input_models.dart';
 /// Callback for handling suggestion selection
 typedef OnSuggestionSelected<T> = void Function(FloatingSuggestionItem<T> item);
 
+class TooltipSuggestionPayload {
+  final FloatingSuggestionType type;
+  final String query;
+  final List<FloatingSuggestionItem<dynamic>> suggestions;
+  final double itemHeight;
+  final double? width;
+  final double maxHeight;
+
+  const TooltipSuggestionPayload({
+    required this.type,
+    required this.query,
+    required this.suggestions,
+    required this.itemHeight,
+    this.width,
+    this.maxHeight = 200.0,
+  });
+}
+
 /// Floating suggestion card widget
-class FloatingSuggestionCard<T> extends StatefulWidget {
+class FloatingSuggestionCard<T> extends StatelessWidget {
   /// Current input text
   final String query;
 
@@ -52,76 +70,25 @@ class FloatingSuggestionCard<T> extends StatefulWidget {
     this.itemBuilder,
   });
 
-  @override
-  State<FloatingSuggestionCard<T>> createState() =>
-      _FloatingSuggestionCardState<T>();
-}
-
-class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
-  late List<FloatingSuggestionItem<T>> _filteredSuggestions;
-  final TooltipCardController _tooltipController = TooltipCardController();
-
-  @override
-  void initState() {
-    super.initState();
-    _filterSuggestions();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncTooltipState());
-  }
-
-  @override
-  void didUpdateWidget(FloatingSuggestionCard<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.query != widget.query ||
-        oldWidget.suggestions != widget.suggestions) {
-      _filterSuggestions();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _syncTooltipState());
-    }
-  }
-
-  @override
-  void dispose() {
-    if (_tooltipController.isOpen) {
-      _tooltipController.close();
-    }
-    _tooltipController.dispose();
-    super.dispose();
-  }
-
-  void _syncTooltipState() {
-    if (!mounted) return;
-    if (_filteredSuggestions.isEmpty) {
-      if (_tooltipController.isOpen) {
-        _tooltipController.close();
-      }
-    } else if (_tooltipController.isOpen) {
-      _tooltipController.updateData(_filteredSuggestions);
-    } else {
-      _tooltipController.open(data: _filteredSuggestions);
-    }
-  }
-
   /// Filter suggestions based on input text
-  void _filterSuggestions() {
+  List<FloatingSuggestionItem<T>> _filterSuggestions() {
     final query = _getCleanQuery();
     if (query.isEmpty) {
-      _filteredSuggestions = widget.suggestions;
-    } else {
-      _filteredSuggestions = widget.suggestions
-          .where((item) => widget.onFilter(item, query))
-          .toList();
+      return suggestions;
     }
+    return suggestions
+        .where((item) => onFilter(item, query))
+        .toList();
   }
 
   /// Get clean query (without special symbols)
   String _getCleanQuery() {
-    return widget.query.startsWith(widget.type.symbol)
-        ? widget.query.substring(1)
-        : widget.query;
+    return query.startsWith(type.symbol) ? query.substring(1) : query;
   }
 
   /// Get suggestion type icon
   Widget _getTypeIcon() {
-    switch (widget.type) {
+    switch (type) {
       case FloatingSuggestionType.username:
         return const Icon(Icons.person, size: 16);
       case FloatingSuggestionType.hashtag:
@@ -135,7 +102,7 @@ class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
 
   /// Get suggestion type title
   String _getTypeTitle() {
-    switch (widget.type) {
+    switch (type) {
       case FloatingSuggestionType.username:
         return 'Mentions';
       case FloatingSuggestionType.hashtag:
@@ -150,54 +117,28 @@ class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final filteredSuggestions = _filterSuggestions();
 
-    if (_filteredSuggestions.isEmpty) {
+    if (filteredSuggestions.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final cardHeight = (_filteredSuggestions.length * widget.itemHeight).clamp(
+    final cardHeight = (filteredSuggestions.length * itemHeight).clamp(
       0.0,
-      widget.maxHeight,
+      maxHeight,
     );
+    final closeCallback = onClose;
 
-    final closeCallback = () {
-      _tooltipController.close();
-      widget.onClose?.call();
-    };
-
-    return TooltipCard.builder(
-      controller: _tooltipController,
-      useRootOverlay: false,
-      fitToViewport: false,
-      autoFlipIfZeroSpace: false,
-      wrapContentInScrollView: false,
-      whenContentVisible: WhenContentVisible.pressButton,
-      whenContentHide: WhenContentHide.pressOutSide,
-      dismissOnPointerMoveAway: false,
-      placementSide: TooltipCardPlacementSide.bottom,
-      beakEnabled: false,
-      awaySpace: 0,
-      elevation: 2,
-      borderRadius: BorderRadius.circular(12),
-      flyoutBackgroundColor: theme.colorScheme.surface,
-      borderColor: theme.colorScheme.outline.withValues(alpha: 0.3),
-      borderWidth: 1,
-      padding: EdgeInsets.zero,
-      constraints: BoxConstraints.tightFor(
-        width: widget.width,
-        height: cardHeight + 50,
+    return Container(
+      width: width,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
+        ),
       ),
-      onClose: widget.onClose == null ? null : closeCallback,
-      child: SizedBox(width: widget.width ?? 0, height: 0),
-      builder: (context, close) {
-        final suggestions = _tooltipController
-                .dataAs<List<FloatingSuggestionItem<T>>>() ??
-            _filteredSuggestions;
-
-        final contentHeight =
-            (suggestions.length * widget.itemHeight).clamp(0.0, widget.maxHeight);
-
-        return TooltipCardContent(
+      child: TooltipCardContent(
         icon: _getTypeIcon(),
         iconSize: 16,
         title: _getTypeTitle(),
@@ -206,14 +147,13 @@ class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
         ),
         padding: EdgeInsets.zero,
         spacing: 0,
-        onClose: widget.onClose == null ? null : closeCallback,
+        onClose: closeCallback,
         content: SizedBox(
-          width: widget.width,
-          height: contentHeight,
-          child: _buildSuggestionsList(suggestions),
+          width: width,
+          height: cardHeight,
+          child: _buildSuggestionsList(filteredSuggestions),
         ),
-        );
-      },
+      ),
     );
   }
 
@@ -225,13 +165,13 @@ class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
       itemBuilder: (context, index) {
         final item = suggestions[index];
         return Container(
-          height: widget.itemHeight,
+          height: itemHeight,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: InkWell(
-            onTap: widget.onSelected == null
+            onTap: onSelected == null
                 ? null
-                : () => widget.onSelected?.call(item),
-            child: widget.itemBuilder?.call(context, item) ??
+                : () => onSelected?.call(item),
+            child: itemBuilder?.call(context, item) ??
                 _buildSuggestionItem(context, item),
           ),
         );
@@ -248,7 +188,7 @@ class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
     return Row(
       children: [
         // Item icon or default
-        item.icon ?? _getDefaultItemIcon(item.type),
+        item.icon ?? _getDefaultItemIcon(context, item.type),
         const SizedBox(width: 12),
         // Item content
         Expanded(
@@ -283,7 +223,10 @@ class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
   }
 
   /// Get default item icon
-  Widget _getDefaultItemIcon(FloatingSuggestionType type) {
+  Widget _getDefaultItemIcon(
+    BuildContext context,
+    FloatingSuggestionType type,
+  ) {
     final theme = Theme.of(context);
 
     switch (type) {
@@ -328,5 +271,75 @@ class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
           child: Icon(Icons.task, size: 16, color: theme.colorScheme.tertiary),
         );
     }
+  }
+}
+
+Widget buildSuggestionContent({
+  required TooltipSuggestionPayload payload,
+  required void Function(String value) onValueSelected,
+  VoidCallback? onClose,
+}) {
+  switch (payload.type) {
+    case FloatingSuggestionType.username:
+      return FloatingSuggestionCard<ChatUserSuggestion>(
+        width: payload.width,
+        itemHeight: payload.itemHeight,
+        query: payload.query,
+        type: FloatingSuggestionType.username,
+        suggestions:
+            payload.suggestions.cast<FloatingSuggestionItem<ChatUserSuggestion>>(),
+        onSelected: (item) => onValueSelected(item.value.mentionText),
+        onFilter: (item, query) {
+          final lowered = query.toLowerCase();
+          return item.label.toLowerCase().contains(lowered) ||
+              (item.subtitle?.toLowerCase().contains(lowered) ?? false);
+        },
+        onClose: onClose,
+        maxHeight: payload.maxHeight,
+      );
+    case FloatingSuggestionType.hashtag:
+      return FloatingSuggestionCard<Hashtag>(
+        width: payload.width,
+        itemHeight: payload.itemHeight,
+        query: payload.query,
+        type: FloatingSuggestionType.hashtag,
+        suggestions: payload.suggestions.cast<FloatingSuggestionItem<Hashtag>>(),
+        onSelected: (item) => onValueSelected(
+          '${FloatingSuggestionType.hashtag.symbol}${item.value.hashtag}',
+        ),
+        onClose: onClose,
+        onFilter: (item, query) =>
+            item.value.hashtag.toLowerCase().startsWith(query.toLowerCase()),
+        maxHeight: payload.maxHeight,
+      );
+    case FloatingSuggestionType.quickReply:
+      return FloatingSuggestionCard<QuickReply>(
+        width: payload.width,
+        itemHeight: payload.itemHeight,
+        query: payload.query,
+        type: FloatingSuggestionType.quickReply,
+        suggestions:
+            payload.suggestions.cast<FloatingSuggestionItem<QuickReply>>(),
+        onSelected: (item) => onValueSelected(item.value.response),
+        onClose: onClose,
+        onFilter: (item, query) =>
+            item.value.response.toLowerCase().startsWith(query.toLowerCase()),
+        maxHeight: payload.maxHeight,
+      );
+    case FloatingSuggestionType.clubChatTask:
+      return FloatingSuggestionCard<dynamic>(
+        width: payload.width,
+        itemHeight: payload.itemHeight,
+        query: payload.query,
+        type: FloatingSuggestionType.clubChatTask,
+        suggestions: payload.suggestions,
+        onSelected: (item) => onValueSelected(
+          '${FloatingSuggestionType.clubChatTask.symbol}${item.value}',
+        ),
+        onClose: onClose,
+        onFilter: (item, query) =>
+            item.label.toLowerCase().contains(query.toLowerCase()),
+        maxHeight: payload.maxHeight,
+      );
   }
 }

@@ -3,6 +3,7 @@ import 'package:smart_pagination/pagination.dart';
 
 import '../adapters/chat_message_data.dart';
 import '../adapters/chat_data_models.dart';
+import '../config/chat_message_ui_config.dart';
 import '../widgets/widgets.dart';
 
 /// A complete chat screen widget with message list and input area.
@@ -61,6 +62,9 @@ class ChatScreen extends StatefulWidget {
   /// Empty state message.
   final String emptyMessage;
 
+  /// Optional UI configuration override.
+  final ChatMessageUiConfig? config;
+
   const ChatScreen({
     super.key,
     required this.messagesCubit,
@@ -77,6 +81,7 @@ class ChatScreen extends StatefulWidget {
     this.replyMessage,
     this.listPadding = const EdgeInsets.all(12),
     this.emptyMessage = 'No messages yet',
+    this.config,
   });
 
   @override
@@ -177,6 +182,55 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final uiConfig = widget.config ?? ChatMessageUiConfig.instance;
+
+    final content = Column(
+      children: [
+        Expanded(
+          child: ChatMessageList(
+            cubit: widget.messagesCubit,
+            scrollController: _scrollController,
+            currentUserId: widget.currentUserId,
+            onRefresh: _handleRefresh,
+            showAvatar: widget.showAvatar,
+            selectedMessages: _selectedMessages,
+            onMessageLongPress: _handleMessageLongPress,
+            onReplyTap: _handleReplyTap,
+            onReactionTap: widget.onReactionTap,
+            focusedMessageId: _focusedMessageId,
+            onSelectionChanged: () => setState(() {}),
+            padding: uiConfig.pagination.listPadding ?? widget.listPadding,
+            availableReactions: uiConfig.pagination.availableReactions ??
+                const ['👍', '❤️', '😂', '😮', '😢', '😡'],
+            autoDownloadConfig: uiConfig.autoDownload,
+            emptyBuilder: (context) => ChatEmptyDisplay(
+              message: widget.emptyMessage,
+            ),
+          ),
+        ),
+        ChatInputWidget(
+          onSendText: _handleSendMessage,
+          onAttachmentSelected: widget.onAttachmentSelected,
+          replyMessage: widget.replyMessage,
+          controller: _textController,
+          focusNode: _focusNode,
+          enableFloatingSuggestions: uiConfig.enableSuggestions,
+          enableTextDataPreview: uiConfig.enableTextPreview,
+          inputDecoration: uiConfig.inputDecoration,
+        ),
+      ],
+    );
+
+    final body = uiConfig.bubbleTheme == null
+        ? content
+        : Theme(
+            data: theme.copyWith(
+              extensions: <ThemeExtension<dynamic>>[
+                uiConfig.bubbleTheme!,
+              ],
+            ),
+            child: content,
+          );
 
     return Scaffold(
       appBar: _buildAppBar(context),
@@ -188,36 +242,7 @@ class _ChatScreenState extends State<ChatScreen> {
               onPressed: _scrollToBottom,
               child: const Icon(Icons.arrow_downward),
             ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ChatMessageList(
-              cubit: widget.messagesCubit,
-              scrollController: _scrollController,
-              currentUserId: widget.currentUserId,
-              onRefresh: _handleRefresh,
-              showAvatar: widget.showAvatar,
-              selectedMessages: _selectedMessages,
-              onMessageLongPress: _handleMessageLongPress,
-              onReplyTap: _handleReplyTap,
-              onReactionTap: widget.onReactionTap,
-              focusedMessageId: _focusedMessageId,
-              onSelectionChanged: () => setState(() {}),
-              padding: widget.listPadding,
-              emptyBuilder: (context) => ChatEmptyDisplay(
-                message: widget.emptyMessage,
-              ),
-            ),
-          ),
-          ChatInputWidget(
-            onSendText: _handleSendMessage,
-            onAttachmentSelected: widget.onAttachmentSelected,
-            replyMessage: widget.replyMessage,
-            controller: _textController,
-            focusNode: _focusNode,
-          ),
-        ],
-      ),
+      body: body,
     );
   }
 

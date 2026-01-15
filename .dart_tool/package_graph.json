@@ -123,7 +123,7 @@
     },
     {
       "name": "transfer_kit",
-      "version": "2.1.0",
+      "version": "2.1.0+1",
       "dependencies": [
         "awesome_notifications",
         "background_downloader",

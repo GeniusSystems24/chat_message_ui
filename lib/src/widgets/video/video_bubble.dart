@@ -11,6 +11,7 @@ import 'package:transfer_kit/transfer_kit.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../adapters/adapters.dart';
+import '../../config/chat_message_ui_config.dart';
 import '../../theme/chat_theme.dart';
 import '../../transfer/media_transfer_controller.dart';
 
@@ -69,6 +70,9 @@ class VideoBubble extends StatefulWidget {
   /// Callback for long press
   final VoidCallback? onLongPress;
 
+  /// Auto-download policy for network media.
+  final AutoDownloadPolicy autoDownloadPolicy;
+
   const VideoBubble({
     super.key,
     required this.message,
@@ -83,6 +87,7 @@ class VideoBubble extends StatefulWidget {
     this.onPlay,
     this.onPause,
     this.onLongPress,
+    this.autoDownloadPolicy = AutoDownloadPolicy.never,
   });
 
   @override
@@ -101,6 +106,7 @@ class _VideoBubbleState extends State<VideoBubble>
   double _loadingProgress = 0.0;
   String? _downloadedPath;
   String? _currentFilePath;
+  bool _autoStartTriggered = false;
 
   String? get url {
     if (widget.filePath != null) return null;
@@ -148,6 +154,14 @@ class _VideoBubbleState extends State<VideoBubble>
 
     if (widget.autoPlay) {
       _initializeVideo();
+    }
+  }
+
+  @override
+  void didUpdateWidget(VideoBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message.mediaData?.url != widget.message.mediaData?.url) {
+      _autoStartTriggered = false;
     }
   }
 
@@ -474,6 +488,11 @@ class _VideoBubbleState extends State<VideoBubble>
           return _buildVideoContent(context);
         }
 
+        if (_shouldAutoStart() && !_autoStartTriggered) {
+          _autoStartTriggered = true;
+          controller.startDownload(downloadTask);
+        }
+
         return StreamBuilder(
           initialData: FileTaskController.instance.fileUpdates[downloadTask.url],
           stream: (streamController ??
@@ -511,6 +530,16 @@ class _VideoBubbleState extends State<VideoBubble>
         _downloadedPath = filePath;
       });
     });
+  }
+
+  bool _shouldAutoStart() {
+    switch (widget.autoDownloadPolicy) {
+      case AutoDownloadPolicy.always:
+        return true;
+      case AutoDownloadPolicy.wifiOnly:
+      case AutoDownloadPolicy.never:
+        return false;
+    }
   }
 
   Widget _buildPlaceholder() {
