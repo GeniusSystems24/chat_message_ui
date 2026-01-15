@@ -549,6 +549,10 @@ class ChatColors {
         surfaceContainerLow,
         surfaceContainerHigh,
       );
+
+  Color? get onErrorContainer => null;
+
+  Color? get errorContainer => null;
 }
 
 class ChatTypography {

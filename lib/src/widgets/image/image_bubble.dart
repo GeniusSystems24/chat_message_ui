@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -9,14 +10,26 @@ import 'full_screen_image_viewer.dart';
 
 /// Constants for image bubble styling and configuration.
 abstract class ImageBubbleConstants {
-  static const double borderRadius = 8.0;
+  static const double borderRadius = 12.0;
   static const double errorIconSize = 40.0;
   static const double errorSpacing = 8.0;
   static const String heroTagPrefix = 'internal-image-';
+  static const double maxAspectRatio = 0.8;
+  static const double minAspectRatio = 0.5;
+  static const double tapScale = 0.97;
+  static const Duration tapAnimationDuration = Duration(milliseconds: 100);
 }
 
 /// Widget to display an image attachment in a message bubble.
-class ImageBubble extends StatelessWidget {
+///
+/// Features:
+/// - Smooth loading with blur placeholder
+/// - Tap animation feedback
+/// - Progress indicator for network images
+/// - File size overlay
+/// - Full-screen viewer with zoom
+/// - Support for multiple images (gallery indicator)
+class ImageBubble extends StatefulWidget {
   final IChatMessageData message;
   final ChatThemeData chatTheme;
   final bool isMyMessage;
@@ -28,6 +41,21 @@ class ImageBubble extends StatelessWidget {
   /// Optional thumbnail file path for placeholder
   final String? thumbnailFilePath;
 
+  /// Whether to show file size overlay
+  final bool showFileSize;
+
+  /// Whether to show download progress
+  final bool showProgress;
+
+  /// Number of images in gallery (shows indicator if > 1)
+  final int galleryCount;
+
+  /// Index of this image in gallery
+  final int galleryIndex;
+
+  /// Callback for long press
+  final VoidCallback? onLongPress;
+
   const ImageBubble({
     super.key,
     required this.message,
@@ -36,13 +64,16 @@ class ImageBubble extends StatelessWidget {
     this.onTap,
     this.filePath,
     this.thumbnailFilePath,
+    this.showFileSize = false,
+    this.showProgress = true,
+    this.galleryCount = 1,
+    this.galleryIndex = 0,
+    this.onLongPress,
   });
 
   /// Returns the URL from mediaData if it's a network URL
   String? get url {
-    // If filePath is provided, don't use URL
     if (filePath != null) return null;
-
     final mediaUrl = message.mediaData?.url;
     if (mediaUrl != null && mediaUrl.startsWith('http')) {
       return mediaUrl;
@@ -50,12 +81,9 @@ class ImageBubble extends StatelessWidget {
     return null;
   }
 
-  /// Returns the local file path (priority: filePath > mediaData.url if local)
+  /// Returns the local file path
   String? get localPath {
-    // Priority 1: Explicit filePath parameter
     if (filePath != null) return filePath;
-
-    // Priority 2: mediaData.url if it's a local path
     final mediaUrl = message.mediaData?.url;
     if (mediaUrl != null && !mediaUrl.startsWith('http')) {
       return mediaUrl;
@@ -63,105 +91,128 @@ class ImageBubble extends StatelessWidget {
     return null;
   }
 
-  /// Returns the thumbnail path (priority: thumbnailFilePath > thumbnailUrl)
   String? get thumbnailPath => thumbnailFilePath;
   String? get thumbnailUrl => message.mediaData?.thumbnailUrl;
+  int get fileSize => message.mediaData?.fileSize ?? 0;
 
   String get heroTag => '${ImageBubbleConstants.heroTagPrefix}${message.id}';
 
   double get aspectRatio {
-    const double maxAspectRatio = 0.8;
-    double ratio = message.mediaData?.aspectRatio ?? maxAspectRatio;
-    if (ratio < maxAspectRatio) ratio = maxAspectRatio;
-    return ratio;
+    double ratio = message.mediaData?.aspectRatio ?? ImageBubbleConstants.maxAspectRatio;
+    return ratio.clamp(
+      ImageBubbleConstants.minAspectRatio,
+      ImageBubbleConstants.maxAspectRatio,
+    );
+  }
+
+  @override
+  State<ImageBubble> createState() => _ImageBubbleState();
+}
+
+class _ImageBubbleState extends State<ImageBubble>
+    with SingleTickerProviderStateMixin {
+  bool _isPressed = false;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final child = _ImageContainer(
-      heroTag: heroTag,
-      borderRadius: chatTheme.imageBubble.borderRadius,
-      child: _buildImageContent(context),
+    return AspectRatio(
+      aspectRatio: widget.aspectRatio,
+      child: GestureDetector(
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        onTap: widget.onTap ?? () => _showFullScreenImage(context),
+        onLongPress: widget.onLongPress,
+        child: AnimatedScale(
+          scale: _isPressed ? ImageBubbleConstants.tapScale : 1.0,
+          duration: ImageBubbleConstants.tapAnimationDuration,
+          child: _ImageContainer(
+            heroTag: widget.heroTag,
+            borderRadius: widget.chatTheme.imageBubble.borderRadius,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _buildImageContent(context),
+                if (widget.showFileSize && widget.fileSize > 0)
+                  _FileSizeOverlay(fileSize: widget.fileSize),
+                if (widget.galleryCount > 1)
+                  _GalleryIndicator(
+                    count: widget.galleryCount,
+                    index: widget.galleryIndex,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
-
-    return AspectRatio(aspectRatio: aspectRatio, child: child);
   }
 
   Widget _buildImageContent(BuildContext context) {
     // Priority 1: Local file path
-    if (localPath != null) {
-      return GestureDetector(
-        onTap: onTap ?? () => _showFullScreenImage(context, localPath!, false),
-        child: Image.file(
-          File(localPath!),
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) =>
-              _ImageErrorWidget(chatTheme: chatTheme),
-        ),
+    if (widget.localPath != null) {
+      return _LocalImage(
+        path: widget.localPath!,
+        chatTheme: widget.chatTheme,
       );
     }
 
-    // Priority 2: Network URL with optional thumbnail
-    if (url != null) {
-      return GestureDetector(
-        onTap: onTap ?? () => _showFullScreenImage(context, url!, true),
-        child: CachedNetworkImage(
-          imageUrl: url!,
-          fit: BoxFit.cover,
-          placeholder: (context, url) => _buildPlaceholder(),
-          errorWidget: (context, url, error) =>
-              _ImageErrorWidget(chatTheme: chatTheme),
-        ),
+    // Priority 2: Network URL
+    if (widget.url != null) {
+      return _NetworkImage(
+        url: widget.url!,
+        thumbnailPath: widget.thumbnailPath,
+        thumbnailUrl: widget.thumbnailUrl,
+        chatTheme: widget.chatTheme,
+        showProgress: widget.showProgress,
       );
     }
 
-    return _ImageErrorWidget(chatTheme: chatTheme);
+    return _ImageErrorWidget(chatTheme: widget.chatTheme);
   }
 
-  Widget _buildPlaceholder() {
-    // Use thumbnail file if available
-    if (thumbnailPath != null) {
-      return Image.file(
-        File(thumbnailPath!),
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _defaultPlaceholder(),
-      );
-    }
+  void _showFullScreenImage(BuildContext context) {
+    final path = widget.localPath ?? widget.url;
+    if (path == null) return;
 
-    // Use thumbnail URL if available
-    if (thumbnailUrl != null) {
-      return CachedNetworkImage(
-        imageUrl: thumbnailUrl!,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => _defaultPlaceholder(),
-        errorWidget: (context, url, error) => _defaultPlaceholder(),
-      );
-    }
-
-    return _defaultPlaceholder();
-  }
-
-  Widget _defaultPlaceholder() {
-    return Container(
-      color: chatTheme.colors.surfaceContainerHigh,
-      child: const Center(child: CircularProgressIndicator()),
-    );
-  }
-
-  void _showFullScreenImage(BuildContext context, String path, bool isUrl) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => ImageViewerFullScreen(
-          imagePath: path,
-          isUrl: isUrl,
-          heroTag: heroTag,
-        ),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return ImageViewerFullScreen(
+            imagePath: path,
+            isUrl: widget.localPath == null,
+            heroTag: widget.heroTag,
+            fileName: widget.message.mediaData?.fileName,
+            fileSize: widget.fileSize,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+        reverseTransitionDuration: const Duration(milliseconds: 250),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
       ),
     );
   }
 }
 
+/// Container with hero animation and border radius.
 class _ImageContainer extends StatelessWidget {
   final String heroTag;
   final Widget child;
@@ -177,11 +228,337 @@ class _ImageContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: Hero(tag: heroTag, child: child),
+      child: Hero(
+        tag: heroTag,
+        child: Material(
+          color: Colors.transparent,
+          child: child,
+        ),
+      ),
     );
   }
 }
 
+/// Local image widget.
+class _LocalImage extends StatelessWidget {
+  final String path;
+  final ChatThemeData chatTheme;
+
+  const _LocalImage({
+    required this.path,
+    required this.chatTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.file(
+      File(path),
+      fit: BoxFit.cover,
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded || frame != null) {
+          return child;
+        }
+        return _ShimmerPlaceholder(chatTheme: chatTheme);
+      },
+      errorBuilder: (context, error, stackTrace) {
+        return _ImageErrorWidget(chatTheme: chatTheme);
+      },
+    );
+  }
+}
+
+/// Network image widget with progress and placeholder.
+class _NetworkImage extends StatelessWidget {
+  final String url;
+  final String? thumbnailPath;
+  final String? thumbnailUrl;
+  final ChatThemeData chatTheme;
+  final bool showProgress;
+
+  const _NetworkImage({
+    required this.url,
+    this.thumbnailPath,
+    this.thumbnailUrl,
+    required this.chatTheme,
+    this.showProgress = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => _buildPlaceholder(),
+      progressIndicatorBuilder: showProgress
+          ? (context, url, progress) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  _buildPlaceholder(),
+                  Center(
+                    child: _DownloadProgress(
+                      progress: progress.progress ?? 0,
+                    ),
+                  ),
+                ],
+              );
+            }
+          : null,
+      errorWidget: (context, url, error) {
+        return _ImageErrorWidget(chatTheme: chatTheme);
+      },
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    // Use thumbnail file if available
+    if (thumbnailPath != null) {
+      return _BlurredThumbnail(
+        child: Image.file(
+          File(thumbnailPath!),
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+
+    // Use thumbnail URL if available
+    if (thumbnailUrl != null) {
+      return _BlurredThumbnail(
+        child: CachedNetworkImage(
+          imageUrl: thumbnailUrl!,
+          fit: BoxFit.cover,
+          errorWidget: (_, __, ___) => _ShimmerPlaceholder(chatTheme: chatTheme),
+        ),
+      );
+    }
+
+    return _ShimmerPlaceholder(chatTheme: chatTheme);
+  }
+}
+
+/// Blurred thumbnail placeholder.
+class _BlurredThumbnail extends StatelessWidget {
+  final Widget child;
+
+  const _BlurredThumbnail({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        child,
+        ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.1),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Shimmer loading placeholder.
+class _ShimmerPlaceholder extends StatefulWidget {
+  final ChatThemeData chatTheme;
+
+  const _ShimmerPlaceholder({required this.chatTheme});
+
+  @override
+  State<_ShimmerPlaceholder> createState() => _ShimmerPlaceholderState();
+}
+
+class _ShimmerPlaceholderState extends State<_ShimmerPlaceholder>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+    _animation = Tween<double>(begin: -2, end: 2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final baseColor = widget.chatTheme.colors.surfaceContainerHigh;
+    final highlightColor = widget.chatTheme.colors.surfaceContainerHigh;
+
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(_animation.value, 0),
+              end: Alignment(_animation.value + 1, 0),
+              colors: [
+                baseColor,
+                highlightColor,
+                baseColor,
+              ],
+            ),
+          ),
+          child: Center(
+            child: Icon(
+              Icons.image_outlined,
+              size: 40,
+              color: widget.chatTheme.colors.onSurface.withValues(alpha: 0.2),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Circular download progress indicator.
+class _DownloadProgress extends StatelessWidget {
+  final double progress;
+
+  const _DownloadProgress({required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.5),
+        shape: BoxShape.circle,
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: CircularProgressIndicator(
+              value: progress,
+              strokeWidth: 3,
+              backgroundColor: Colors.white.withValues(alpha: 0.3),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ),
+          Text(
+            '${(progress * 100).toInt()}%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// File size overlay widget.
+class _FileSizeOverlay extends StatelessWidget {
+  final int fileSize;
+
+  const _FileSizeOverlay({required this.fileSize});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 8,
+      right: 8,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          _formatFileSize(fileSize),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes <= 0) return '';
+    const suffixes = ['B', 'KB', 'MB', 'GB'];
+    var i = 0;
+    double size = bytes.toDouble();
+    while (size >= 1024 && i < suffixes.length - 1) {
+      size /= 1024;
+      i++;
+    }
+    return '${size.toStringAsFixed(i == 0 ? 0 : 1)} ${suffixes[i]}';
+  }
+}
+
+/// Gallery indicator for multiple images.
+class _GalleryIndicator extends StatelessWidget {
+  final int count;
+  final int index;
+
+  const _GalleryIndicator({
+    required this.count,
+    required this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 8,
+      right: 8,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.photo_library_rounded,
+              color: Colors.white,
+              size: 14,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '${index + 1}/$count',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Error widget when image fails to load.
 class _ImageErrorWidget extends StatelessWidget {
   final ChatThemeData chatTheme;
 
@@ -196,9 +573,9 @@ class _ImageErrorWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.broken_image,
+            Icons.broken_image_rounded,
             color: chatTheme.imageBubble.errorColor ??
-                chatTheme.colors.onSurface.withValues(alpha: 0.5),
+                chatTheme.colors.onSurface.withValues(alpha: 0.4),
             size: ImageBubbleConstants.errorIconSize,
           ),
           const SizedBox(height: ImageBubbleConstants.errorSpacing),
@@ -206,7 +583,7 @@ class _ImageErrorWidget extends StatelessWidget {
             'Image not available',
             style: TextStyle(
               color: chatTheme.imageBubble.errorColor ??
-                  chatTheme.colors.onSurface.withValues(alpha: 0.5),
+                  chatTheme.colors.onSurface.withValues(alpha: 0.4),
               fontSize: 12,
             ),
           ),

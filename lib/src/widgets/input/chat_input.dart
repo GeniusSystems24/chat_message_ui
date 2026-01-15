@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:chat_message_ui/chat_message_ui.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,6 +22,7 @@ import 'input_models.dart';
 import 'text_data_preview_card.dart';
 
 part 'voice_recorder.dart';
+part 'recording_waveform.dart';
 
 /// Callback type for text message sending
 typedef OnSendText = Future<void> Function(String text);
@@ -40,9 +42,12 @@ class ChatInputWidget extends StatefulWidget {
   /// Callback when attachment is selected
   final OnAttachmentSelected? onAttachmentSelected;
 
-  /// Callback when audio recording is complete
-  final Future<void> Function(String filePath, int durationInSeconds)?
-      onRecordingComplete;
+  /// Callback when audio recording is complete with optional waveform data
+  final Future<void> Function(
+    String filePath,
+    int durationInSeconds, {
+    List<double>? waveform,
+  })? onRecordingComplete;
 
   /// Callback when audio recording starts
   final VoidCallback? onRecordingStart;
@@ -455,18 +460,67 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Recording... ${formatDuration(widget.recordingDuration)}',
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w500,
-                  ),
+                const SizedBox(width: 4),
+                // Record/Send button
+                ValueListenableBuilder(
+                  valueListenable: _textController,
+                  builder: (context, value, child) {
+                    if (widget.enableAudioRecording &&
+                        value.text.trim().isEmpty) {
+                      // WhatsApp-style voice recorder with waveform
+                      return WhatsAppVoiceRecorder(
+                        size: 40,
+                        showWaveform: true,
+                        onRecordingStart: () {
+                          setState(() {
+                            _isRecording = true;
+                          });
+                          widget.onRecordingStart?.call();
+                        },
+                        onRecordingComplete: (path, duration,
+                            {waveform}) async {
+                          setState(() {
+                            _isRecording = false;
+                          });
+                          if (widget.onRecordingComplete != null) {
+                            await widget.onRecordingComplete!(
+                              path,
+                              duration,
+                              waveform: waveform,
+                            );
+                          }
+                        },
+                        onRecordingCancel: () {
+                          setState(() {
+                            _isRecording = false;
+                          });
+                          widget.onRecordingCancel?.call();
+                        },
+                        getRecordingPath: widget.getRecordingPath,
+                        onRecordingLockedChanged: (locked) {
+                          widget.onRecordingLockedChanged?.call(locked);
+                          setState(() {
+                            _isRecordingLocked = locked;
+                          });
+                        },
+                      );
+                    } else {
+                      // Send button
+                      return IconButton.filled(
+                        style: IconButton.styleFrom(
+                          foregroundColor: theme.colorScheme.onPrimary,
+                        ),
+                        icon: const Icon(Icons.send),
+                        onPressed:
+                            value.text.trim().isNotEmpty ? _sendMessage : null,
+                      );
+                    }
+                  },
                 ),
+                const SizedBox(width: 8),
               ],
             ),
           ),
-
         ValueListenableBuilder<List<FloatingSuggestionItem<dynamic>>>(
           valueListenable: _currentSuggestions,
           builder: (context, suggestions, child) {
@@ -610,13 +664,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                       });
                       widget.onRecordingStart?.call();
                     },
-                    onRecordingComplete: (path, duration) async {
+                    onRecordingComplete: (path, duration, {waveform}) async {
                       setState(() {
                         _isRecording = false;
                       });
                       if (widget.onRecordingComplete != null) {
                         await widget.onRecordingComplete!(path, duration);
                       }
+                      return null;
                     },
                     onRecordingCancel: () {
                       setState(() {
