@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tooltip_card/tooltip_card.dart';
 import 'input_models.dart';
 
 /// Callback for handling suggestion selection
@@ -58,11 +59,13 @@ class FloatingSuggestionCard<T> extends StatefulWidget {
 
 class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
   late List<FloatingSuggestionItem<T>> _filteredSuggestions;
+  final TooltipCardController _tooltipController = TooltipCardController();
 
   @override
   void initState() {
     super.initState();
     _filterSuggestions();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncTooltipState());
   }
 
   @override
@@ -71,6 +74,29 @@ class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
     if (oldWidget.query != widget.query ||
         oldWidget.suggestions != widget.suggestions) {
       _filterSuggestions();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _syncTooltipState());
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_tooltipController.isOpen) {
+      _tooltipController.close();
+    }
+    _tooltipController.dispose();
+    super.dispose();
+  }
+
+  void _syncTooltipState() {
+    if (!mounted) return;
+    if (_filteredSuggestions.isEmpty) {
+      if (_tooltipController.isOpen) {
+        _tooltipController.close();
+      }
+    } else if (_tooltipController.isOpen) {
+      _tooltipController.updateData(_filteredSuggestions);
+    } else {
+      _tooltipController.open(data: _filteredSuggestions);
     }
   }
 
@@ -134,75 +160,70 @@ class _FloatingSuggestionCardState<T> extends State<FloatingSuggestionCard<T>> {
       widget.maxHeight,
     );
 
-    return Material(
+    final closeCallback = () {
+      _tooltipController.close();
+      widget.onClose?.call();
+    };
+
+    return TooltipCard.builder(
+      controller: _tooltipController,
+      useRootOverlay: false,
+      fitToViewport: false,
+      autoFlipIfZeroSpace: false,
+      wrapContentInScrollView: false,
+      whenContentVisible: WhenContentVisible.pressButton,
+      whenContentHide: WhenContentHide.pressOutSide,
+      dismissOnPointerMoveAway: false,
+      placementSide: TooltipCardPlacementSide.bottom,
+      beakEnabled: false,
+      awaySpace: 0,
       elevation: 2,
       borderRadius: BorderRadius.circular(12),
-      child: Container(
+      flyoutBackgroundColor: theme.colorScheme.surface,
+      borderColor: theme.colorScheme.outline.withValues(alpha: 0.3),
+      borderWidth: 1,
+      padding: EdgeInsets.zero,
+      constraints: BoxConstraints.tightFor(
         width: widget.width,
-        height: cardHeight + 50, // 50 for header
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: theme.colorScheme.outline.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Card header
-            _buildCardHeader(theme),
-            // Suggestions list
-            Expanded(child: _buildSuggestionsList()),
-          ],
-        ),
+        height: cardHeight + 50,
       ),
-    );
-  }
+      onClose: widget.onClose == null ? null : closeCallback,
+      child: SizedBox(width: widget.width ?? 0, height: 0),
+      builder: (context, close) {
+        final suggestions = _tooltipController
+                .dataAs<List<FloatingSuggestionItem<T>>>() ??
+            _filteredSuggestions;
 
-  /// Build card header
-  Widget _buildCardHeader(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
+        final contentHeight =
+            (suggestions.length * widget.itemHeight).clamp(0.0, widget.maxHeight);
+
+        return TooltipCardContent(
+        icon: _getTypeIcon(),
+        iconSize: 16,
+        title: _getTypeTitle(),
+        titleStyle: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
         ),
-      ),
-      child: Row(
-        children: [
-          _getTypeIcon(),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _getTypeTitle(),
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          if (widget.onClose != null)
-            GestureDetector(
-              onTap: widget.onClose,
-              child: Icon(
-                Icons.close,
-                size: 18,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-        ],
-      ),
+        padding: EdgeInsets.zero,
+        spacing: 0,
+        onClose: widget.onClose == null ? null : closeCallback,
+        content: SizedBox(
+          width: widget.width,
+          height: contentHeight,
+          child: _buildSuggestionsList(suggestions),
+        ),
+        );
+      },
     );
   }
 
   /// Build suggestions list
-  Widget _buildSuggestionsList() {
+  Widget _buildSuggestionsList(List<FloatingSuggestionItem<T>> suggestions) {
     return ListView.builder(
       padding: EdgeInsets.zero,
-      itemCount: _filteredSuggestions.length,
+      itemCount: suggestions.length,
       itemBuilder: (context, index) {
-        final item = _filteredSuggestions[index];
+        final item = suggestions[index];
         return Container(
           height: widget.itemHeight,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

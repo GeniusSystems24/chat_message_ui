@@ -2635,8 +2635,23 @@ class VideoBubbleTheme {
   /// Minimum height
   final double minHeight;
 
+  /// Maximum width
+  final double maxWidth;
+
+  /// Maximum height
+  final double maxHeight;
+
   /// Play button size
   final double playButtonSize;
+
+  /// Play button background color
+  final Color playButtonBackgroundColor;
+
+  /// Play icon size
+  final double playIconSize;
+
+  /// Play button icon color
+  final Color playButtonIconColor;
 
   /// Progress bar height
   final double progressHeight;
@@ -2675,7 +2690,12 @@ class VideoBubbleTheme {
     this.maxWidthFactor = 0.7,
     this.minWidth = 200.0,
     this.minHeight = 150.0,
+    this.maxWidth = 300.0,
+    this.maxHeight = 300.0,
     this.playButtonSize = 50.0,
+    this.playButtonBackgroundColor = const Color(0xCC000000),
+    this.playIconSize = 32.0,
+    this.playButtonIconColor = const Color(0xFFFFFFFF),
     this.progressHeight = 4.0,
     this.captionFontSize = 14.0,
     this.durationFontSize = 12.0,
@@ -2717,6 +2737,11 @@ class VideoBubbleTheme {
             shadowElevation: 1.0,
             showShadow: true,
           ),
+          maxWidth: 300.0,
+          maxHeight: 300.0,
+          playButtonBackgroundColor: const Color(0xCC000000),
+          playIconSize: 32.0,
+          playButtonIconColor: const Color(0xFFFFFFFF),
         );
 
   /// Dark theme for video bubble
@@ -2754,6 +2779,11 @@ class VideoBubbleTheme {
             shadowElevation: 2.0,
             showShadow: true,
           ),
+          maxWidth: 300.0,
+          maxHeight: 300.0,
+          playButtonBackgroundColor: const Color(0xCC000000),
+          playIconSize: 32.0,
+          playButtonIconColor: const Color(0xFFFFFFFF),
         );
 
   VideoBubbleTheme copyWith({
@@ -2764,7 +2794,12 @@ class VideoBubbleTheme {
     double? maxWidthFactor,
     double? minWidth,
     double? minHeight,
+    double? maxWidth,
+    double? maxHeight,
     double? playButtonSize,
+    Color? playButtonBackgroundColor,
+    double? playIconSize,
+    Color? playButtonIconColor,
     double? progressHeight,
     double? captionFontSize,
     double? durationFontSize,
@@ -2778,7 +2813,13 @@ class VideoBubbleTheme {
       maxWidthFactor: maxWidthFactor ?? this.maxWidthFactor,
       minWidth: minWidth ?? this.minWidth,
       minHeight: minHeight ?? this.minHeight,
+      maxWidth: maxWidth ?? this.maxWidth,
+      maxHeight: maxHeight ?? this.maxHeight,
       playButtonSize: playButtonSize ?? this.playButtonSize,
+      playButtonBackgroundColor:
+          playButtonBackgroundColor ?? this.playButtonBackgroundColor,
+      playIconSize: playIconSize ?? this.playIconSize,
+      playButtonIconColor: playButtonIconColor ?? this.playButtonIconColor,
       progressHeight: progressHeight ?? this.progressHeight,
       captionFontSize: captionFontSize ?? this.captionFontSize,
       durationFontSize: durationFontSize ?? this.durationFontSize,
@@ -2800,15 +2841,6 @@ class VideoBubbleTheme {
   int get hashCode =>
       Object.hash(sender, receiver, borderRadius, maxWidthFactor);
 
-  double? get maxHeight => null;
-
-  double? get maxWidth => null;
-
-  Color? get playButtonBackgroundColor => null;
-
-  double? get playIconSize => null;
-
-  Color? get playButtonIconColor => null;
 }
 
 /// Document bubble configuration for either sender or receiver
@@ -2965,6 +2997,21 @@ class DocumentBubbleTheme {
   /// Elevation
   final double elevation;
 
+  /// Backwards compatibility padding
+  final double padding;
+
+  /// Backwards compatibility sender background color
+  final Color senderBackgroundColor;
+
+  /// Backwards compatibility receiver background color
+  final Color receiverBackgroundColor;
+
+  /// Backwards compatibility icon container size
+  final double iconContainerSize;
+
+  /// Backwards compatibility icon background color
+  final Color iconBackgroundColor;
+
   // Backwards compatibility getters
   Color? get backgroundColor =>
       sender.backgroundColor ?? receiver.backgroundColor;
@@ -2992,6 +3039,11 @@ class DocumentBubbleTheme {
     this.progressHeight = 4.0,
     this.containerWidth = 280.0,
     this.elevation = 1.0,
+    this.padding = 12.0,
+    this.senderBackgroundColor = const Color(0x7DFFFFFF),
+    this.receiverBackgroundColor = const Color(0x7DFFFFFF),
+    this.iconContainerSize = 44.0,
+    this.iconBackgroundColor = const Color(0x26974EE9),
   });
 
   /// Light theme for document bubble
@@ -3023,6 +3075,11 @@ class DocumentBubbleTheme {
             shadowElevation: 1.0,
             showShadow: true,
           ),
+          padding: 12.0,
+          senderBackgroundColor: const Color(0x7DFFFFFF),
+          receiverBackgroundColor: const Color(0x7DFFFFFF),
+          iconContainerSize: 44.0,
+          iconBackgroundColor: const Color(0x26974EE9),
         );
 
   /// Dark theme for document bubble
@@ -3054,6 +3111,11 @@ class DocumentBubbleTheme {
             shadowElevation: 2.0,
             showShadow: true,
           ),
+          padding: 12.0,
+          senderBackgroundColor: const Color(0x24FFFFFF),
+          receiverBackgroundColor: const Color(0x24FFFFFF),
+          iconContainerSize: 44.0,
+          iconBackgroundColor: const Color(0x26974EE9),
         );
 
   DocumentBubbleTheme copyWith({
@@ -3068,6 +3130,11 @@ class DocumentBubbleTheme {
     double? progressHeight,
     double? containerWidth,
     double? elevation,
+    double? padding,
+    Color? senderBackgroundColor,
+    Color? receiverBackgroundColor,
+    double? iconContainerSize,
+    Color? iconBackgroundColor,
   }) {
     return DocumentBubbleTheme(
       sender: sender ?? this.sender,
@@ -3081,6 +3148,13 @@ class DocumentBubbleTheme {
       progressHeight: progressHeight ?? this.progressHeight,
       containerWidth: containerWidth ?? this.containerWidth,
       elevation: elevation ?? this.elevation,
+      padding: padding ?? this.padding,
+      senderBackgroundColor:
+          senderBackgroundColor ?? this.senderBackgroundColor,
+      receiverBackgroundColor:
+          receiverBackgroundColor ?? this.receiverBackgroundColor,
+      iconContainerSize: iconContainerSize ?? this.iconContainerSize,
+      iconBackgroundColor: iconBackgroundColor ?? this.iconBackgroundColor,
     );
   }
 
@@ -3096,15 +3170,6 @@ class DocumentBubbleTheme {
   @override
   int get hashCode => Object.hash(sender, receiver, borderRadius);
 
-  double? get padding => null;
-
-  Color? get senderBackgroundColor => null;
-
-  Color? get receiverBackgroundColor => null;
-
-  double? get iconContainerSize => null;
-
-  Color? get iconBackgroundColor => null;
 }
 
 /// Image bubble configuration for either sender or receiver
@@ -3249,6 +3314,12 @@ class ImageBubbleTheme {
   /// Minimum height
   final double minHeight;
 
+  /// Maximum width
+  final double maxWidth;
+
+  /// Maximum height
+  final double maxHeight;
+
   /// Caption font size
   final double captionFontSize;
 
@@ -3273,6 +3344,8 @@ class ImageBubbleTheme {
     this.maxWidthFactor = 0.7,
     this.minWidth = 150.0,
     this.minHeight = 150.0,
+    this.maxWidth = 300.0,
+    this.maxHeight = 300.0,
     this.captionFontSize = 14.0,
     this.elevation = 1.0,
   });
@@ -3304,6 +3377,8 @@ class ImageBubbleTheme {
             shadowElevation: 1.0,
             showShadow: true,
           ),
+          maxWidth: 300.0,
+          maxHeight: 300.0,
         );
 
   /// Dark theme for image bubble
@@ -3333,6 +3408,8 @@ class ImageBubbleTheme {
             shadowElevation: 2.0,
             showShadow: true,
           ),
+          maxWidth: 300.0,
+          maxHeight: 300.0,
         );
 
   ImageBubbleTheme copyWith({
@@ -3343,6 +3420,8 @@ class ImageBubbleTheme {
     double? maxWidthFactor,
     double? minWidth,
     double? minHeight,
+    double? maxWidth,
+    double? maxHeight,
     double? captionFontSize,
     double? elevation,
   }) {
@@ -3354,6 +3433,8 @@ class ImageBubbleTheme {
       maxWidthFactor: maxWidthFactor ?? this.maxWidthFactor,
       minWidth: minWidth ?? this.minWidth,
       minHeight: minHeight ?? this.minHeight,
+      maxWidth: maxWidth ?? this.maxWidth,
+      maxHeight: maxHeight ?? this.maxHeight,
       captionFontSize: captionFontSize ?? this.captionFontSize,
       elevation: elevation ?? this.elevation,
     );
@@ -3373,9 +3454,6 @@ class ImageBubbleTheme {
   int get hashCode =>
       Object.hash(sender, receiver, borderRadius, maxWidthFactor);
 
-  double? get maxWidth => null;
-
-  double? get maxHeight => null;
 }
 
 /// Audio bubble configuration for either sender or receiver
@@ -3532,6 +3610,21 @@ class AudioBubbleTheme {
   /// Elevation
   final double elevation;
 
+  /// Backwards compatibility padding
+  final double padding;
+
+  /// Backwards compatibility sender background color
+  final Color senderBackgroundColor;
+
+  /// Backwards compatibility receiver background color
+  final Color receiverBackgroundColor;
+
+  /// Backwards compatibility play icon size
+  final double playIconSize;
+
+  /// Backwards compatibility play icon color
+  final Color playIconColor;
+
   // Backwards compatibility getters
   Color? get backgroundColor =>
       sender.backgroundColor ?? receiver.backgroundColor;
@@ -3557,6 +3650,11 @@ class AudioBubbleTheme {
     this.durationFontSize = 12.0,
     this.containerWidth = 250.0,
     this.elevation = 1.0,
+    this.padding = 12.0,
+    this.senderBackgroundColor = const Color(0xFFF5F5F5),
+    this.receiverBackgroundColor = const Color(0xFFFFFFFF),
+    this.playIconSize = 20.0,
+    this.playIconColor = const Color(0xFFFFFFFF),
   });
 
   /// Light theme for audio bubble
@@ -3586,6 +3684,11 @@ class AudioBubbleTheme {
             shadowElevation: 1.0,
             showShadow: true,
           ),
+          padding: 12.0,
+          senderBackgroundColor: const Color(0xFFF5F5F5),
+          receiverBackgroundColor: const Color(0xFFFFFFFF),
+          playIconSize: 20.0,
+          playIconColor: const Color(0xFFFFFFFF),
         );
 
   /// Dark theme for audio bubble
@@ -3615,6 +3718,11 @@ class AudioBubbleTheme {
             shadowElevation: 2.0,
             showShadow: true,
           ),
+          padding: 12.0,
+          senderBackgroundColor: const Color(0xFF1C1C1E),
+          receiverBackgroundColor: const Color(0xFF2C2C2E),
+          playIconSize: 20.0,
+          playIconColor: const Color(0xFFFFFFFF),
         );
 
   AudioBubbleTheme copyWith({
@@ -3629,6 +3737,11 @@ class AudioBubbleTheme {
     double? durationFontSize,
     double? containerWidth,
     double? elevation,
+    double? padding,
+    Color? senderBackgroundColor,
+    Color? receiverBackgroundColor,
+    double? playIconSize,
+    Color? playIconColor,
   }) {
     return AudioBubbleTheme(
       sender: sender ?? this.sender,
@@ -3642,6 +3755,13 @@ class AudioBubbleTheme {
       durationFontSize: durationFontSize ?? this.durationFontSize,
       containerWidth: containerWidth ?? this.containerWidth,
       elevation: elevation ?? this.elevation,
+      padding: padding ?? this.padding,
+      senderBackgroundColor:
+          senderBackgroundColor ?? this.senderBackgroundColor,
+      receiverBackgroundColor:
+          receiverBackgroundColor ?? this.receiverBackgroundColor,
+      playIconSize: playIconSize ?? this.playIconSize,
+      playIconColor: playIconColor ?? this.playIconColor,
     );
   }
 
@@ -3657,13 +3777,4 @@ class AudioBubbleTheme {
   @override
   int get hashCode => Object.hash(sender, receiver, borderRadius);
 
-  double? get padding => null;
-
-  Color? get senderBackgroundColor => null;
-
-  Color? get receiverBackgroundColor => null;
-
-  double? get playIconSize => null;
-
-  Color? get playIconColor => null;
 }

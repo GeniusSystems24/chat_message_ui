@@ -129,11 +129,7 @@ class ChatInputWidget extends StatefulWidget {
 }
 
 class _ChatInputWidgetState extends State<ChatInputWidget>
-    with
-        TextProcessingMixin,
-        OverlayManagementMixin,
-        PositionCalculationMixin,
-        DurationFormattingMixin {
+    with TextProcessingMixin, DurationFormattingMixin {
   late final TextEditingController _textController;
   late final FocusNode _focusNode;
   bool _isRecordingLocked = false;
@@ -143,15 +139,16 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   final ValueNotifier<FloatingSuggestionType?> _currentSuggestionType =
       ValueNotifier(null);
   final ValueNotifier<String> _currentSuggestionQuery = ValueNotifier('');
+  final ValueNotifier<List<FloatingSuggestionItem<dynamic>>>
+      _currentSuggestions = ValueNotifier(const []);
+  final ValueNotifier<double> _currentSuggestionItemHeight =
+      ValueNotifier(52.0);
 
   // Text data preview state
   final ValueNotifier<TextData?> _textDataPreview = ValueNotifier(null);
 
   // TextField key
   final GlobalKey _inputKey = GlobalKey(debugLabel: "ChatInput TextField Key");
-
-  // Links for positioning floating cards
-  final LayerLink _inputLayerLink = LayerLink();
 
   @override
   void initState() {
@@ -169,9 +166,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     _textController.removeListener(_listenToTextChanges);
 
     // Clean up resources
-    removeSuggestionOverlay();
     _currentSuggestionType.dispose();
     _currentSuggestionQuery.dispose();
+    _currentSuggestions.dispose();
+    _currentSuggestionItemHeight.dispose();
     _textDataPreview.dispose();
 
     if (widget.controller == null) {
@@ -258,61 +256,17 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     }
   }
 
-  /// Create overlay for username suggestions
-  void _createUsernamesSuggestionOverlay(
-    List<FloatingSuggestionItem<ChatUserSuggestion>> suggestions,
-  ) {
-    removeSuggestionOverlay();
-
-    final query = _currentSuggestionQuery.value;
-
-    if (suggestions.isEmpty) return;
-
-    suggestionOverlay = OverlayEntry(
-      builder: (context) {
-        assert(debugCheckHasMediaQuery(context));
-
-        final boxContext = _inputKey.currentContext;
-        if (boxContext == null) return const SizedBox.shrink();
-        final box = boxContext.findRenderObject() as RenderBox;
-
-        // Calculate available space above the input
-        final overlayY = box.localToGlobal(Offset.zero).dy;
-        final maxHeight = (overlayY - MediaQuery.viewPaddingOf(context).top)
-            .clamp(0.0, 250.0);
-
-        return PositionedDirectional(
-          width: MediaQuery.of(context).size.width - 20,
-          child: CompositedTransformFollower(
-            link: _inputLayerLink,
-            showWhenUnlinked: false,
-            offset: Offset(
-              0,
-              -getPosition(box.globalToLocal(Offset.zero).dy.toInt()) - 4,
-            ), // Above input field
-            followerAnchor: Alignment.bottomCenter,
-            targetAnchor: Alignment.bottomCenter,
-            child: FloatingSuggestionCard<ChatUserSuggestion>(
-              maxHeight: maxHeight,
-              itemHeight: 58,
-              query: query,
-              type: FloatingSuggestionType.username,
-              suggestions: suggestions,
-              onSelected: (item) =>
-                  _onSuggestionSelected(item.value.mentionText),
-              onFilter: (item, query) {
-                final lowered = query.toLowerCase();
-                return item.label.toLowerCase().contains(lowered) ||
-                    (item.subtitle?.toLowerCase().contains(lowered) ?? false);
-              },
-              onClose: _hideFloatingSuggestions,
-            ),
-          ),
-        );
-      },
-    );
-
-    Overlay.of(context).insert(suggestionOverlay!);
+  void _setFloatingSuggestions<T>({
+    required FloatingSuggestionType type,
+    required String query,
+    required List<FloatingSuggestionItem<T>> suggestions,
+    double itemHeight = 52.0,
+  }) {
+    _currentSuggestionType.value = type;
+    _currentSuggestionQuery.value = query;
+    _currentSuggestionItemHeight.value = itemHeight;
+    _currentSuggestions.value =
+        suggestions.cast<FloatingSuggestionItem<dynamic>>();
   }
 
   /// Show floating username suggestions
@@ -329,66 +283,15 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     }
 
     if (suggestions.isNotEmpty) {
-      _createUsernamesSuggestionOverlay(suggestions);
+      _setFloatingSuggestions<ChatUserSuggestion>(
+        type: FloatingSuggestionType.username,
+        query: query,
+        suggestions: suggestions,
+        itemHeight: 58,
+      );
     } else {
       _hideFloatingSuggestions();
     }
-  }
-
-  /// Create overlay for hashtag suggestions
-  void _createHashtagsSuggestionOverlay(
-    List<FloatingSuggestionItem<Hashtag>> suggestions,
-  ) {
-    removeSuggestionOverlay();
-
-    final query = _currentSuggestionQuery.value;
-
-    if (suggestions.isEmpty) return;
-
-    suggestionOverlay = OverlayEntry(
-      builder: (context) {
-        assert(debugCheckHasMediaQuery(context));
-
-        final boxContext = _inputKey.currentContext;
-        if (boxContext == null) return const SizedBox.shrink();
-        final box = boxContext.findRenderObject() as RenderBox;
-
-        // Calculate available space above the input
-        var localToGlobal = box.localToGlobal(Offset.zero);
-        final overlayY = localToGlobal.dy;
-        final maxHeight = (overlayY - MediaQuery.viewPaddingOf(context).top)
-            .clamp(0.0, 250.0);
-
-        return PositionedDirectional(
-          width: MediaQuery.of(context).size.width - 20,
-          child: CompositedTransformFollower(
-            link: _inputLayerLink,
-            showWhenUnlinked: false,
-            offset: Offset(
-              0,
-              -getPosition(box.globalToLocal(Offset.zero).dy.toInt()) - 4,
-            ), // Above input field
-            followerAnchor: Alignment.bottomCenter,
-            targetAnchor: Alignment.bottomCenter,
-            child: FloatingSuggestionCard<Hashtag>(
-              maxHeight: maxHeight,
-              query: query,
-              type: FloatingSuggestionType.hashtag,
-              suggestions: suggestions,
-              onSelected: (item) => _onSuggestionSelected(
-                FloatingSuggestionType.hashtag.symbol + item.value.hashtag,
-              ),
-              onClose: _hideFloatingSuggestions,
-              onFilter: (item, query) => item.value.hashtag
-                  .toLowerCase()
-                  .startsWith(query.toLowerCase()),
-            ),
-          ),
-        );
-      },
-    );
-
-    Overlay.of(context).insert(suggestionOverlay!);
   }
 
   /// Show floating hashtag suggestions
@@ -405,63 +308,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
     }
 
     if (suggestions.isNotEmpty) {
-      _createHashtagsSuggestionOverlay(suggestions);
+      _setFloatingSuggestions<Hashtag>(
+        type: FloatingSuggestionType.hashtag,
+        query: query,
+        suggestions: suggestions,
+      );
     } else {
       _hideFloatingSuggestions();
     }
-  }
-
-  /// Create overlay for quick reply suggestions
-  void _createQuickRepliesSuggestionOverlay(
-    List<FloatingSuggestionItem<QuickReply>> suggestions,
-  ) {
-    removeSuggestionOverlay();
-
-    final query = _currentSuggestionQuery.value;
-
-    if (suggestions.isEmpty) return;
-
-    suggestionOverlay = OverlayEntry(
-      builder: (context) {
-        assert(debugCheckHasMediaQuery(context));
-
-        final boxContext = _inputKey.currentContext;
-        if (boxContext == null) return const SizedBox.shrink();
-        final box = boxContext.findRenderObject() as RenderBox;
-
-        // Calculate available space above the input
-        final overlayY = box.localToGlobal(Offset.zero).dy;
-        final maxHeight = (overlayY - MediaQuery.viewPaddingOf(context).top)
-            .clamp(0.0, 250.0);
-
-        return PositionedDirectional(
-          width: MediaQuery.of(context).size.width - 20,
-          child: CompositedTransformFollower(
-            link: _inputLayerLink,
-            showWhenUnlinked: false,
-            offset: Offset(
-              0,
-              -getPosition(box.globalToLocal(Offset.zero).dy.toInt()) - 4,
-            ), // Above input field
-            followerAnchor: Alignment.bottomCenter,
-            targetAnchor: Alignment.bottomCenter,
-            child: FloatingSuggestionCard<QuickReply>(
-              maxHeight: maxHeight,
-              query: query,
-              type: FloatingSuggestionType.quickReply,
-              suggestions: suggestions,
-              onSelected: (item) => _onSuggestionSelected(item.value.response),
-              onClose: _hideFloatingSuggestions,
-              onFilter: (item, query) => item.value.response
-                  .toLowerCase()
-                  .startsWith(query.toLowerCase()),
-            ),
-          ),
-        );
-      },
-    );
-
-    Overlay.of(context).insert(suggestionOverlay!);
   }
 
   /// Show floating quick reply suggestions
@@ -476,70 +330,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
       suggestions = [];
     }
     if (suggestions.isNotEmpty) {
-      _createQuickRepliesSuggestionOverlay(suggestions);
+      _setFloatingSuggestions<QuickReply>(
+        type: FloatingSuggestionType.quickReply,
+        query: query,
+        suggestions: suggestions,
+      );
     } else {
       _hideFloatingSuggestions();
     }
-  }
-
-  /// Create overlay for task suggestions (generic)
-  void _createTasksSuggestionOverlay(
-    List<FloatingSuggestionItem<dynamic>> suggestions,
-  ) {
-    removeSuggestionOverlay();
-
-    final query = _currentSuggestionQuery.value;
-
-    if (suggestions.isEmpty) return;
-
-    suggestionOverlay = OverlayEntry(
-      builder: (context) {
-        assert(debugCheckHasMediaQuery(context));
-
-        final boxContext = _inputKey.currentContext;
-        if (boxContext == null) return const SizedBox.shrink();
-        final box = boxContext.findRenderObject() as RenderBox;
-
-        // Calculate available space above the input
-        final overlayY = box.localToGlobal(Offset.zero).dy;
-        final maxHeight = (overlayY - MediaQuery.viewPaddingOf(context).top)
-            .clamp(0.0, 250.0);
-
-        return PositionedDirectional(
-          width: MediaQuery.of(context).size.width - 20,
-          child: CompositedTransformFollower(
-            link: _inputLayerLink,
-            showWhenUnlinked: false,
-            offset: Offset(
-              0,
-              -getPosition(box.globalToLocal(Offset.zero).dy.toInt()) - 4,
-            ), // Above input field
-            followerAnchor: Alignment.bottomCenter,
-            targetAnchor: Alignment.bottomCenter,
-            child: FloatingSuggestionCard<dynamic>(
-              maxHeight: maxHeight,
-              query: query,
-              type: FloatingSuggestionType.clubChatTask,
-              suggestions: suggestions,
-              onSelected: (item) {
-                // Assuming item.value is something we can stringify or logic is here
-                // Default to string representation or assume it's a string ID.
-                // This part needs specific logic if generic.
-                // I will assume item.value has a toString() or logic.
-                _onSuggestionSelected(
-                    FloatingSuggestionType.clubChatTask.symbol +
-                        item.value.toString());
-              },
-              onClose: _hideFloatingSuggestions,
-              onFilter: (item, query) =>
-                  item.label.toLowerCase().contains(query.toLowerCase()),
-            ),
-          ),
-        );
-      },
-    );
-
-    Overlay.of(context).insert(suggestionOverlay!);
   }
 
   /// Show floating task suggestions
@@ -553,7 +351,11 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
       suggestions = [];
     }
     if (suggestions.isNotEmpty) {
-      _createTasksSuggestionOverlay(suggestions);
+      _setFloatingSuggestions<dynamic>(
+        type: FloatingSuggestionType.clubChatTask,
+        query: query,
+        suggestions: suggestions,
+      );
     } else {
       _hideFloatingSuggestions();
     }
@@ -563,7 +365,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   void _hideFloatingSuggestions() {
     _currentSuggestionType.value = null;
     _currentSuggestionQuery.value = '';
-    removeSuggestionOverlay();
+    _currentSuggestions.value = const [];
+    _currentSuggestionItemHeight.value = 52.0;
   }
 
   /// Handle suggestion selection
@@ -591,179 +394,261 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return CompositedTransformTarget(
-      link: _inputLayerLink,
-      child: Column(
-        children: [
-          if (widget.replyMessage != null)
-            // Reply preview
-            ValueListenableBuilder<ChatReplyData?>(
-              valueListenable: widget.replyMessage!,
-              builder: (context, replyMessage, child) {
-                if (replyMessage == null) return const SizedBox.shrink();
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 4.0),
-                  child: ReplyPreviewWidget(
-                    replyMessage: replyMessage,
-                    onCancel: () => widget.replyMessage!.value = null,
-                  ),
-                );
-              },
-            ),
-
-          // Text data preview
-          ValueListenableBuilder<TextData?>(
-            valueListenable: _textDataPreview,
-            builder: (context, textData, child) {
-              if (textData == null || !widget.enableTextDataPreview) {
-                return const SizedBox.shrink();
-              }
+    return Column(
+      children: [
+        if (widget.replyMessage != null)
+          // Reply preview
+          ValueListenableBuilder<ChatReplyData?>(
+            valueListenable: widget.replyMessage!,
+            builder: (context, replyMessage, child) {
+              if (replyMessage == null) return const SizedBox.shrink();
               return Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                child: TextDataPreviewCard(
-                  textData: textData,
-                  constraints:
-                      const BoxConstraints(maxHeight: 250, minHeight: 100),
+                margin: const EdgeInsets.only(bottom: 4.0),
+                child: ReplyPreviewWidget(
+                  replyMessage: replyMessage,
+                  onCancel: () => widget.replyMessage!.value = null,
                 ),
               );
             },
           ),
 
-          // Recording indicator
-          if (_isRecording)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
+        // Text data preview
+        ValueListenableBuilder<TextData?>(
+          valueListenable: _textDataPreview,
+          builder: (context, textData, child) {
+            if (textData == null || !widget.enableTextDataPreview) {
+              return const SizedBox.shrink();
+            }
+            return Container(
+              margin: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
               ),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
+              child: TextDataPreviewCard(
+                textData: textData,
+                constraints:
+                    const BoxConstraints(maxHeight: 250, minHeight: 100),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Recording... ${formatDuration(widget.recordingDuration)}',
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            );
+          },
+        ),
 
-          // Input row
-          Row(
-            children: [
-              const SizedBox(width: 8),
-              // Text input field
-              if (!_isRecordingLocked)
-                Expanded(
-                  child: TextField(
-                    key: _inputKey,
-                    controller: _textController,
-                    focusNode: _focusNode,
-                    decoration: (widget.inputDecoration ??
-                            InputDecoration(
-                              hintText: _isRecording
-                                  ? 'Recording audio...'
-                                  : widget.hintText,
-                              filled: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              hintStyle: TextStyle(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ))
-                        .copyWith(
-                      prefixIcon: widget.enableAttachments && !_isRecording
-                          ? IconButton(
-                              style: IconButton.styleFrom(
-                                foregroundColor: theme.colorScheme.primary,
-                                iconSize: 24,
-                              ),
-                              icon: const Icon(Icons.attach_file),
-                              onPressed: _showAttachmentSourceSelector,
-                            )
-                          : null,
-                    ),
-                    maxLines: 5,
-                    minLines: 1,
-                    enabled: !_isRecording,
+        // Recording indicator
+        if (_isRecording)
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
                   ),
                 ),
-              const SizedBox(width: 4),
-              // Record/Send button
-              ValueListenableBuilder(
-                valueListenable: _textController,
-                builder: (context, value, child) {
-                  if (widget.enableAudioRecording &&
-                      value.text.trim().isEmpty) {
-                    // WhatsApp-style voice recorder
-                    return WhatsAppVoiceRecorder(
-                      size: 40,
-                      onRecordingStart: () {
-                        setState(() {
-                          _isRecording = true;
-                        });
-                        widget.onRecordingStart?.call();
-                      },
-                      onRecordingComplete: (path, duration) async {
-                        setState(() {
-                          _isRecording = false;
-                        });
-                        if (widget.onRecordingComplete != null) {
-                          await widget.onRecordingComplete!(path, duration);
-                        }
-                      },
-                      onRecordingCancel: () {
-                        setState(() {
-                          _isRecording = false;
-                        });
-                        widget.onRecordingCancel?.call();
-                      },
-                      getRecordingPath: widget.getRecordingPath,
-                      onRecordingLockedChanged: (locked) {
-                        widget.onRecordingLockedChanged?.call(locked);
-                        setState(() {
-                          _isRecordingLocked = locked;
-                        });
-                      },
-                    );
-                  } else {
-                    // Send button
-                    return IconButton.filled(
-                      style: IconButton.styleFrom(
-                        foregroundColor: theme.colorScheme.onPrimary,
-                      ),
-                      icon: const Icon(Icons.send),
-                      onPressed:
-                          value.text.trim().isNotEmpty ? _sendMessage : null,
-                    );
-                  }
-                },
-              ),
-              const SizedBox(width: 8),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  'Recording... ${formatDuration(widget.recordingDuration)}',
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+
+        ValueListenableBuilder<List<FloatingSuggestionItem<dynamic>>>(
+          valueListenable: _currentSuggestions,
+          builder: (context, suggestions, child) {
+            if (!widget.enableFloatingSuggestions ||
+                suggestions.isEmpty ||
+                _currentSuggestionType.value == null) {
+              return const SizedBox.shrink();
+            }
+
+            final width = MediaQuery.of(context).size.width - 20;
+            final query = _currentSuggestionQuery.value;
+            final itemHeight = _currentSuggestionItemHeight.value;
+
+            switch (_currentSuggestionType.value) {
+              case FloatingSuggestionType.username:
+                return FloatingSuggestionCard<ChatUserSuggestion>(
+                  width: width,
+                  itemHeight: itemHeight,
+                  query: query,
+                  type: FloatingSuggestionType.username,
+                  suggestions: suggestions
+                      .cast<FloatingSuggestionItem<ChatUserSuggestion>>(),
+                  onSelected: (item) =>
+                      _onSuggestionSelected(item.value.mentionText),
+                  onFilter: (item, query) {
+                    final lowered = query.toLowerCase();
+                    return item.label.toLowerCase().contains(lowered) ||
+                        (item.subtitle?.toLowerCase().contains(lowered) ??
+                            false);
+                  },
+                  onClose: _hideFloatingSuggestions,
+                );
+              case FloatingSuggestionType.hashtag:
+                return FloatingSuggestionCard<Hashtag>(
+                  width: width,
+                  itemHeight: itemHeight,
+                  query: query,
+                  type: FloatingSuggestionType.hashtag,
+                  suggestions:
+                      suggestions.cast<FloatingSuggestionItem<Hashtag>>(),
+                  onSelected: (item) => _onSuggestionSelected(
+                    FloatingSuggestionType.hashtag.symbol + item.value.hashtag,
+                  ),
+                  onClose: _hideFloatingSuggestions,
+                  onFilter: (item, query) => item.value.hashtag
+                      .toLowerCase()
+                      .startsWith(query.toLowerCase()),
+                );
+              case FloatingSuggestionType.quickReply:
+                return FloatingSuggestionCard<QuickReply>(
+                  width: width,
+                  itemHeight: itemHeight,
+                  query: query,
+                  type: FloatingSuggestionType.quickReply,
+                  suggestions:
+                      suggestions.cast<FloatingSuggestionItem<QuickReply>>(),
+                  onSelected: (item) =>
+                      _onSuggestionSelected(item.value.response),
+                  onClose: _hideFloatingSuggestions,
+                  onFilter: (item, query) => item.value.response
+                      .toLowerCase()
+                      .startsWith(query.toLowerCase()),
+                );
+              case FloatingSuggestionType.clubChatTask:
+                return FloatingSuggestionCard<dynamic>(
+                  width: width,
+                  itemHeight: itemHeight,
+                  query: query,
+                  type: FloatingSuggestionType.clubChatTask,
+                  suggestions: suggestions,
+                  onSelected: (item) {
+                    _onSuggestionSelected(
+                      FloatingSuggestionType.clubChatTask.symbol +
+                          item.value.toString(),
+                    );
+                  },
+                  onClose: _hideFloatingSuggestions,
+                  onFilter: (item, query) =>
+                      item.label.toLowerCase().contains(query.toLowerCase()),
+                );
+              case null:
+                return const SizedBox.shrink();
+            }
+          },
+        ),
+
+        // Input row
+        Row(
+          children: [
+            const SizedBox(width: 8),
+            // Text input field
+            if (!_isRecordingLocked)
+              Expanded(
+                child: TextField(
+                  key: _inputKey,
+                  controller: _textController,
+                  focusNode: _focusNode,
+                  decoration: (widget.inputDecoration ??
+                          InputDecoration(
+                            hintText: _isRecording
+                                ? 'Recording audio...'
+                                : widget.hintText,
+                            filled: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            hintStyle: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ))
+                      .copyWith(
+                    prefixIcon: widget.enableAttachments && !_isRecording
+                        ? IconButton(
+                            style: IconButton.styleFrom(
+                              foregroundColor: theme.colorScheme.primary,
+                              iconSize: 24,
+                            ),
+                            icon: const Icon(Icons.attach_file),
+                            onPressed: _showAttachmentSourceSelector,
+                          )
+                        : null,
+                  ),
+                  maxLines: 5,
+                  minLines: 1,
+                  enabled: !_isRecording,
+                ),
+              ),
+            const SizedBox(width: 4),
+            // Record/Send button
+            ValueListenableBuilder(
+              valueListenable: _textController,
+              builder: (context, value, child) {
+                if (widget.enableAudioRecording && value.text.trim().isEmpty) {
+                  // WhatsApp-style voice recorder
+                  return WhatsAppVoiceRecorder(
+                    size: 40,
+                    onRecordingStart: () {
+                      setState(() {
+                        _isRecording = true;
+                      });
+                      widget.onRecordingStart?.call();
+                    },
+                    onRecordingComplete: (path, duration) async {
+                      setState(() {
+                        _isRecording = false;
+                      });
+                      if (widget.onRecordingComplete != null) {
+                        await widget.onRecordingComplete!(path, duration);
+                      }
+                    },
+                    onRecordingCancel: () {
+                      setState(() {
+                        _isRecording = false;
+                      });
+                      widget.onRecordingCancel?.call();
+                    },
+                    getRecordingPath: widget.getRecordingPath,
+                    onRecordingLockedChanged: (locked) {
+                      widget.onRecordingLockedChanged?.call(locked);
+                      setState(() {
+                        _isRecordingLocked = locked;
+                      });
+                    },
+                  );
+                } else {
+                  // Send button
+                  return IconButton.filled(
+                    style: IconButton.styleFrom(
+                      foregroundColor: theme.colorScheme.onPrimary,
+                    ),
+                    icon: const Icon(Icons.send),
+                    onPressed:
+                        value.text.trim().isNotEmpty ? _sendMessage : null,
+                  );
+                }
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+      ],
     );
   }
 }

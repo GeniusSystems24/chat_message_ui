@@ -115,24 +115,24 @@ mixin OverlayManagementMixin {
   }
 }
 
-/// Mixin for position calculations
-mixin PositionCalculationMixin {
-  /// Calculate position based on dy value
-  double getPosition(int dy) {
-    Logger().w('dy: $dy');
+// /// Mixin for position calculations
+// mixin PositionCalculationMixin {
+//   /// Calculate position based on dy value
+//   double getPosition(int dy) {
+//     // Logger().w('dy: $dy');
 
-    dy = dy.abs();
+//     dy = dy.abs();
 
-    if (dy >= 450.0 && dy <= 465.0) return 48;
-    if (dy >= 435.0 && dy <= 445.0) return 48 + 19;
-    if (dy >= 410.0 && dy == 422.0) return 48 + 19 + 22;
-    if (dy >= 390.0 && dy < 396.0) return 48 + 19 + 22 + 22;
-    if (dy >= 370.0 && dy < 376.0) return 48 + 19 + 22 + 22 + 22;
-    if (dy >= 348.0 && dy >= 354.0) return 48 + 19 + 22 + 22 + 22 + 22;
-    if (dy >= 326.0 && dy <= 336.0) return 48 + 19 + 22 + 22 + 22 + 22 + 22;
-    return 0;
-  }
-}
+//     if (dy >= 450.0 && dy <= 465.0) return 48;
+//     if (dy >= 435.0 && dy <= 445.0) return 48 + 19;
+//     if (dy >= 410.0 && dy == 422.0) return 48 + 19 + 22;
+//     if (dy >= 390.0 && dy < 396.0) return 48 + 19 + 22 + 22;
+//     if (dy >= 370.0 && dy < 376.0) return 48 + 19 + 22 + 22 + 22;
+//     if (dy >= 348.0 && dy >= 354.0) return 48 + 19 + 22 + 22 + 22 + 22;
+//     if (dy >= 326.0 && dy <= 336.0) return 48 + 19 + 22 + 22 + 22 + 22 + 22;
+//     return 0;
+//   }
+// }
 
 /// Mixin for duration formatting
 mixin DurationFormattingMixin {
