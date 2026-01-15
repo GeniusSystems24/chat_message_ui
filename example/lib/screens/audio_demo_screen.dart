@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:chat_message_ui/chat_message_ui.dart';
 
+import '../data/mock_message.dart';
 import '../data/sample_data.dart';
 
 /// Demo screen for audio features.
@@ -15,6 +16,13 @@ class _AudioDemoScreenState extends State<AudioDemoScreen> {
   String? _currentPlayingId;
   double _globalVolume = 1.0;
   double _globalSpeed = 1.0;
+
+  // Waveform extraction state
+  final WaveformExtractor _waveformExtractor = WaveformExtractor();
+  List<double>? _extractedWaveform;
+  bool _isExtracting = false;
+  double _extractionProgress = 0.0;
+  String? _extractionError;
 
   @override
   void dispose() {
@@ -134,9 +142,18 @@ class _AudioDemoScreenState extends State<AudioDemoScreen> {
           _AudioBubbleDemo(
             title: 'Standard Audio Bubble',
             child: AudioBubble(
-              audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-              duration: 185,
-              isMe: false,
+              message: MockChatMessage(
+                id: 'audio-demo-1',
+                chatId: 'demo-chat',
+                senderId: 'user_2',
+                type: ChatMessageType.audio,
+                mediaData: const ChatMediaData(
+                  url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+                  mediaType: ChatMessageType.audio,
+                  duration: 185,
+                  fileSize: 1024 * 1024 * 3,
+                ),
+              ),
               showSpeedControl: true,
             ),
           ),
@@ -145,9 +162,17 @@ class _AudioDemoScreenState extends State<AudioDemoScreen> {
           _AudioBubbleDemo(
             title: 'Voice Message Style',
             child: AudioBubble(
-              audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-              duration: 45,
-              isMe: true,
+              message: MockChatMessage(
+                id: 'audio-demo-2',
+                chatId: 'demo-chat',
+                senderId: currentUserId,
+                type: ChatMessageType.audio,
+                mediaData: const ChatMediaData(
+                  url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+                  mediaType: ChatMessageType.audio,
+                  duration: 45,
+                ),
+              ),
               isVoiceMessage: true,
               waveformData: sampleWaveformData,
             ),
@@ -157,9 +182,17 @@ class _AudioDemoScreenState extends State<AudioDemoScreen> {
           _AudioBubbleDemo(
             title: 'Custom Primary Color',
             child: AudioBubble(
-              audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-              duration: 120,
-              isMe: false,
+              message: MockChatMessage(
+                id: 'audio-demo-3',
+                chatId: 'demo-chat',
+                senderId: 'user_2',
+                type: ChatMessageType.audio,
+                mediaData: const ChatMediaData(
+                  url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+                  mediaType: ChatMessageType.audio,
+                  duration: 120,
+                ),
+              ),
               primaryColor: Colors.purple,
               showSpeedControl: true,
             ),
@@ -169,14 +202,127 @@ class _AudioDemoScreenState extends State<AudioDemoScreen> {
           _AudioBubbleDemo(
             title: 'With File Size Display',
             child: AudioBubble(
-              audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-              duration: 200,
-              fileSize: 1024 * 1024 * 3, // 3 MB
-              isMe: true,
+              message: MockChatMessage(
+                id: 'audio-demo-4',
+                chatId: 'demo-chat',
+                senderId: currentUserId,
+                type: ChatMessageType.audio,
+                mediaData: const ChatMediaData(
+                  url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+                  mediaType: ChatMessageType.audio,
+                  duration: 200,
+                  fileSize: 1024 * 1024 * 3,
+                ),
+              ),
               showSpeedControl: true,
             ),
           ),
 
+          const SizedBox(height: 24),
+
+          // Waveform Extraction Demo
+          Text(
+            'Waveform Extraction',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Extract waveform from audio URL',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Extraction controls
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isExtracting ? null : _extractWaveformFromUrl,
+                          icon: _isExtracting
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    value: _extractionProgress > 0
+                                        ? _extractionProgress
+                                        : null,
+                                  ),
+                                )
+                              : const Icon(Icons.download),
+                          label: Text(_isExtracting
+                              ? 'Extracting ${(_extractionProgress * 100).toInt()}%'
+                              : 'Extract from URL'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (_extractedWaveform != null)
+                        IconButton(
+                          onPressed: _clearExtractedWaveform,
+                          icon: const Icon(Icons.clear),
+                          tooltip: 'Clear',
+                        ),
+                    ],
+                  ),
+
+                  // Error message
+                  if (_extractionError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _extractionError!,
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+
+                  // Extracted waveform display
+                  if (_extractedWaveform != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Extracted Waveform (${_extractedWaveform!.length} points)',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: CustomPaint(
+                        size: const Size(double.infinity, 60),
+                        painter: _WaveformPainter(
+                          data: _extractedWaveform!,
+                          color: Colors.green,
+                          progress: 1.0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Auto-extraction AudioBubble demo
+          _AudioBubbleDemo(
+            title: 'Auto Waveform Extraction',
+            child: _buildAutoExtractAudioBubble(),
+          ),
           const SizedBox(height: 24),
 
           // Waveform visualization
@@ -222,6 +368,86 @@ class _AudioDemoScreenState extends State<AudioDemoScreen> {
           const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+
+  Future<void> _extractWaveformFromUrl() async {
+    setState(() {
+      _isExtracting = true;
+      _extractionProgress = 0.0;
+      _extractionError = null;
+    });
+
+    try {
+      final result = await _waveformExtractor.extractFromUrl(
+        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+        config: const WaveformConfig(
+          samplesPerSecond: 50,
+          maxPoints: 80,
+        ),
+        onProgress: (progress) {
+          if (mounted) {
+            setState(() => _extractionProgress = progress);
+          }
+        },
+      );
+
+      if (mounted) {
+        setState(() {
+          _extractedWaveform = result.amplitudes;
+          _isExtracting = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Extracted ${result.amplitudes.length} points, '
+              'duration: ${result.durationSeconds}s',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isExtracting = false;
+          _extractionError = e.toString();
+        });
+      }
+    }
+  }
+
+  void _clearExtractedWaveform() {
+    setState(() {
+      _extractedWaveform = null;
+      _extractionError = null;
+    });
+  }
+
+  Widget _buildAutoExtractAudioBubble() {
+    return AudioBubble(
+      message: MockChatMessage(
+        id: 'auto-extract-demo',
+        chatId: 'demo-chat',
+        type: ChatMessageType.audio,
+        senderId: 'demo',
+        mediaData: const ChatMediaData(
+          url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+          mediaType: ChatMessageType.audio,
+          duration: 45,
+        ),
+      ),
+      autoExtractWaveform: true,
+      waveformConfig: WaveformConfig.voiceMessage,
+      showSpeedControl: true,
+      onWaveformExtracted: (waveform) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Waveform extracted: ${waveform.length} points'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
     );
   }
 }

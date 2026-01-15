@@ -33,6 +33,9 @@ library;
 // Adapters - Core data interfaces and models
 export 'src/adapters/adapters.dart';
 
+// Services - Core services
+export 'src/services/services.dart';
+
 // Theme - Styling configuration
 export 'src/theme/theme.dart';
 

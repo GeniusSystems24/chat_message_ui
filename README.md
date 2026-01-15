@@ -405,8 +405,24 @@ AudioBubble(
   messageId: 'msg123',
   chatTheme: ChatThemeData.get(context),
   filePath: '/path/to/audio.m4a', // Optional
-  waveform: [0.2, 0.5, 0.8, 0.3, ...], // Optional waveform data
+  waveformData: [0.2, 0.5, 0.8, 0.3, ...], // Optional waveform data
   duration: 45, // Duration in seconds
+)
+```
+
+##### Auto Waveform Extraction
+
+Automatically extract waveform from audio files:
+
+```dart
+AudioBubble(
+  message: messageData,
+  autoExtractWaveform: true,
+  waveformConfig: WaveformConfig.voiceMessage,
+  onWaveformExtracted: (waveform) {
+    // Cache waveform for future use
+    saveWaveformToDatabase(messageData.id, waveform);
+  },
 )
 ```
 
@@ -631,6 +647,67 @@ Access theme in widgets:
 
 ```dart
 final chatTheme = ChatThemeData.get(context);
+```
+
+---
+
+## Services
+
+### WaveformExtractor
+
+Extract waveform data from audio files for visualization:
+
+```dart
+final extractor = WaveformExtractor();
+
+// Extract from local file
+final result = await extractor.extractFromFile(
+  '/path/to/audio.mp3',
+  config: WaveformConfig.voiceMessage,
+  onProgress: (progress) => print('Progress: ${progress * 100}%'),
+);
+
+// Extract from network URL
+final networkResult = await extractor.extractFromUrl(
+  'https://example.com/audio.mp3',
+  config: WaveformConfig.musicFile,
+);
+
+// Use the waveform data
+print('Amplitudes: ${result.amplitudes.length} points');
+print('Duration: ${result.durationSeconds} seconds');
+```
+
+#### WaveformConfig Presets
+
+| Preset | Samples/Sec | Max Points | Use Case |
+|--------|-------------|------------|----------|
+| `WaveformConfig.voiceMessage` | 50 | 60 | Short voice messages |
+| `WaveformConfig.musicFile` | 100 | 100 | Music and audio files |
+| `WaveformConfig.highQuality` | 200 | 150 | Detailed visualization |
+
+#### Stream-based Extraction
+
+For real-time progress updates in UI:
+
+```dart
+StreamBuilder<WaveformExtractionProgress>(
+  stream: extractor.extractFromFileStream('/path/to/audio.mp3'),
+  builder: (context, snapshot) {
+    final progress = snapshot.data;
+    if (progress == null) return LoadingWidget();
+
+    if (progress.isComplete) {
+      if (progress.isSuccess) {
+        return WaveformDisplay(data: progress.result!.amplitudes);
+      } else {
+        return ErrorWidget(progress.error!.message);
+      }
+    }
+
+    return LinearProgressIndicator(value: progress.progress);
+  },
+)
 ```
 
 ---

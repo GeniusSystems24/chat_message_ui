@@ -217,6 +217,9 @@ class ChatMediaData {
   final String? fileName;
   final double? aspectRatio;
 
+  /// Waveform data for audio files (normalized amplitudes 0.0-1.0).
+  final List<double>? waveformData;
+
   const ChatMediaData({
     required this.url,
     required this.mediaType,
@@ -225,7 +228,31 @@ class ChatMediaData {
     this.fileSize,
     this.fileName,
     this.aspectRatio,
+    this.waveformData,
   });
+
+  /// Creates a copy with modified values.
+  ChatMediaData copyWith({
+    String? url,
+    String? thumbnailUrl,
+    ChatMessageType? mediaType,
+    int? duration,
+    int? fileSize,
+    String? fileName,
+    double? aspectRatio,
+    List<double>? waveformData,
+  }) {
+    return ChatMediaData(
+      url: url ?? this.url,
+      mediaType: mediaType ?? this.mediaType,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      duration: duration ?? this.duration,
+      fileSize: fileSize ?? this.fileSize,
+      fileName: fileName ?? this.fileName,
+      aspectRatio: aspectRatio ?? this.aspectRatio,
+      waveformData: waveformData ?? this.waveformData,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-01-15
+
+### Added
+- **Waveform Extraction Service** - New `WaveformExtractor` service for extracting waveform data from audio files
+  - Extract waveform from local files using `extractFromFile()`
+  - Extract waveform from network URLs using `extractFromUrl()`
+  - Stream-based extraction with `extractFromFileStream()` for real-time progress updates
+  - Configurable extraction with `WaveformConfig` (samples per second, max points, normalization)
+  - Built-in caching for performance optimization
+  - Progress callbacks for UI updates during extraction
+- **Auto Waveform Extraction in AudioBubble**
+  - New `autoExtractWaveform` parameter to automatically extract waveform from audio source
+  - New `onWaveformExtracted` callback for caching extracted waveform data
+  - New `waveformConfig` parameter for customizing extraction settings
+  - Seamless integration with existing waveform display
+- **ChatMediaData Enhancement**
+  - Added `waveformData` field to store extracted waveform amplitudes
+  - Added `copyWith()` method for easier data manipulation
+- **New Dependencies**
+  - `flutter_audio_toolkit: ^1.0.0` - Native audio processing for waveform extraction
+  - `path_provider: ^2.1.5` - For temporary file storage during network extraction
+
+### Changed
+- `AudioBubble` now prioritizes waveform sources: provided data > mediaData.waveformData > auto-extraction > random generation
+
 ## [1.1.0] - 2026-01-15
 
 ### Added

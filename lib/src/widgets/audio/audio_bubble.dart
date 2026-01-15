@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../theme/chat_theme.dart';
 import '../../adapters/chat_message_data.dart';
+import '../../services/waveform_extractor.dart';
 import 'audio_player_factory.dart';
 
 part 'audio_loading_widget.dart';
@@ -18,10 +19,23 @@ part 'constants.dart';
 ///
 /// Features:
 /// - Real-time waveform visualization with progress indicator
+/// - Automatic waveform extraction from audio files
 /// - Play/pause with loading state
 /// - Optional playback speed control
 /// - Seek by tapping on waveform
 /// - Supports both local files and URLs
+///
+/// Example with automatic waveform extraction:
+/// ```dart
+/// AudioBubble(
+///   message: audioMessage,
+///   autoExtractWaveform: true,
+///   onWaveformExtracted: (waveform) {
+///     // Save waveform for future use
+///     saveWaveformToDatabase(audioMessage.id, waveform);
+///   },
+/// )
+/// ```
 class AudioBubble extends StatefulWidget {
   /// Message model containing audio data.
   final IChatMessageData message;
@@ -29,7 +43,7 @@ class AudioBubble extends StatefulWidget {
   /// Optional direct file path (overrides message.mediaData.url)
   final String? filePath;
 
-  /// Optional custom waveform data (if not provided, generates random)
+  /// Optional custom waveform data (if not provided, generates random or extracts)
   final List<double>? waveformData;
 
   /// Whether to show speed control button
@@ -41,6 +55,18 @@ class AudioBubble extends StatefulWidget {
   /// Custom primary color for the player
   final Color? primaryColor;
 
+  /// Whether to automatically extract waveform from audio file.
+  /// If true and no waveformData is provided, will attempt to extract
+  /// waveform from the audio source.
+  final bool autoExtractWaveform;
+
+  /// Callback when waveform is extracted.
+  /// Useful for caching the waveform data.
+  final ValueChanged<List<double>>? onWaveformExtracted;
+
+  /// Configuration for waveform extraction.
+  final WaveformConfig? waveformConfig;
+
   const AudioBubble({
     super.key,
     required this.message,
@@ -49,6 +75,9 @@ class AudioBubble extends StatefulWidget {
     this.showSpeedControl = false,
     this.isVoiceMessage = true,
     this.primaryColor,
+    this.autoExtractWaveform = false,
+    this.onWaveformExtracted,
+    this.waveformConfig,
   });
 
   String get messageId => message.id;
@@ -77,6 +106,9 @@ class _AudioBubbleState extends State<AudioBubble>
   List<double> _displayWaveform = [];
   double _currentSpeed = 1.0;
   late AnimationController _loadingController;
+  bool _isExtracting = false;
+  double _extractionProgress = 0.0;
+  final WaveformExtractor _waveformExtractor = WaveformExtractor();
 
   static const List<double> _availableSpeeds = [1.0, 1.25, 1.5, 1.75, 2.0, 0.5, 0.75];
 
@@ -94,7 +126,8 @@ class _AudioBubbleState extends State<AudioBubble>
   void didUpdateWidget(AudioBubble oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.waveformData != widget.waveformData ||
-        oldWidget.duration != widget.duration) {
+        oldWidget.duration != widget.duration ||
+        oldWidget.autoExtractWaveform != widget.autoExtractWaveform) {
       _initializeWaveform();
     }
   }
@@ -106,17 +139,93 @@ class _AudioBubbleState extends State<AudioBubble>
   }
 
   void _initializeWaveform() {
+    // Priority 1: Use provided waveform data
     if (widget.waveformData != null && widget.waveformData!.isNotEmpty) {
       _displayWaveform = widget.waveformData!;
-    } else {
-      final pointCount = widget.duration > 0 ? widget.duration : 60;
-      final actualPointCount =
-          pointCount < AudioBubbleConstants.minWaveformPoints
-              ? AudioBubbleConstants.minWaveformPoints
-              : pointCount;
-      _displayWaveform = WaveformDataGenerator.generateRandomWaveform(
-        actualPointCount,
-      );
+      return;
+    }
+
+    // Priority 2: Use waveform from mediaData
+    if (widget.message.mediaData?.waveformData != null &&
+        widget.message.mediaData!.waveformData!.isNotEmpty) {
+      _displayWaveform = widget.message.mediaData!.waveformData!;
+      return;
+    }
+
+    // Priority 3: Auto-extract waveform if enabled
+    if (widget.autoExtractWaveform && widget.audioSource != null) {
+      _extractWaveform();
+      // Show placeholder while extracting
+      _displayWaveform = _generatePlaceholderWaveform();
+      return;
+    }
+
+    // Priority 4: Generate random waveform as fallback
+    _displayWaveform = _generatePlaceholderWaveform();
+  }
+
+  List<double> _generatePlaceholderWaveform() {
+    final pointCount = widget.duration > 0 ? widget.duration : 60;
+    final actualPointCount =
+        pointCount < AudioBubbleConstants.minWaveformPoints
+            ? AudioBubbleConstants.minWaveformPoints
+            : pointCount;
+    return WaveformDataGenerator.generateRandomWaveform(actualPointCount);
+  }
+
+  Future<void> _extractWaveform() async {
+    final source = widget.audioSource;
+    if (source == null) return;
+
+    if (!mounted) return;
+    setState(() {
+      _isExtracting = true;
+      _extractionProgress = 0.0;
+    });
+
+    try {
+      final config = widget.waveformConfig ?? WaveformConfig.voiceMessage;
+      final isUrl = source.startsWith('http') || source.startsWith('https');
+
+      WaveformResult result;
+      if (isUrl) {
+        result = await _waveformExtractor.extractFromUrl(
+          source,
+          config: config,
+          onProgress: (progress) {
+            if (mounted) {
+              setState(() => _extractionProgress = progress);
+            }
+          },
+        );
+      } else {
+        result = await _waveformExtractor.extractFromFile(
+          source,
+          config: config,
+          onProgress: (progress) {
+            if (mounted) {
+              setState(() => _extractionProgress = progress);
+            }
+          },
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          _displayWaveform = result.amplitudes;
+          _isExtracting = false;
+        });
+
+        // Notify parent about extracted waveform
+        widget.onWaveformExtracted?.call(result.amplitudes);
+      }
+    } catch (e) {
+      // On error, keep the placeholder waveform
+      if (mounted) {
+        setState(() {
+          _isExtracting = false;
+        });
+      }
     }
   }
 
