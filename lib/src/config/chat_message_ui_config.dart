@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/messages_grouping.dart';
+
 import '../theme/chat_theme.dart';
 
 enum AutoDownloadPolicy {
@@ -39,19 +41,29 @@ class ChatAutoDownloadConfig {
 class ChatPaginationConfig {
   final EdgeInsets? listPadding;
   final List<String>? availableReactions;
+  final MessagesGroupingMode messagesGroupingMode;
+  final int messagesGroupingTimeoutInSeconds;
 
   const ChatPaginationConfig({
     this.listPadding,
     this.availableReactions,
+    this.messagesGroupingMode = MessagesGroupingMode.sameMinute,
+    this.messagesGroupingTimeoutInSeconds = 300,
   });
 
   ChatPaginationConfig copyWith({
     EdgeInsets? listPadding,
     List<String>? availableReactions,
+    MessagesGroupingMode? messagesGroupingMode,
+    int? messagesGroupingTimeoutInSeconds,
   }) {
     return ChatPaginationConfig(
       listPadding: listPadding ?? this.listPadding,
       availableReactions: availableReactions ?? this.availableReactions,
+      messagesGroupingMode:
+          messagesGroupingMode ?? this.messagesGroupingMode,
+      messagesGroupingTimeoutInSeconds: messagesGroupingTimeoutInSeconds ??
+          this.messagesGroupingTimeoutInSeconds,
     );
   }
 }

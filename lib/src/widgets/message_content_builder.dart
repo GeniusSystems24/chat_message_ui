@@ -20,6 +20,7 @@ class MessageContentBuilder extends StatelessWidget {
   final Function(EmailTextData)? onEmailTap;
   final Function(PhoneNumberTextData)? onPhoneTap;
   final VoidCallback? onAttachmentTap;
+  final Function(String optionId)? onPollVote;
   final Widget Function(ChatMediaData media)? customAttachmentBuilder;
   final ChatAutoDownloadConfig? autoDownloadConfig;
 
@@ -33,6 +34,7 @@ class MessageContentBuilder extends StatelessWidget {
     this.onEmailTap,
     this.onPhoneTap,
     this.onAttachmentTap,
+    this.onPollVote,
     this.customAttachmentBuilder,
     this.autoDownloadConfig,
   });
@@ -64,6 +66,7 @@ class MessageContentBuilder extends StatelessWidget {
             onTap: onAttachmentTap,
             customBuilder: customAttachmentBuilder,
             autoDownloadConfig: autoDownloadConfig,
+            onPollVote: onPollVote,
           ),
         if (hasText) _buildTextContent(context, text),
       ],

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- ChatScreen input callbacks for audio recording lifecycle, polling requests,
+  and suggestion providers.
+- Selection action callbacks for reply, copy, forward, and message info.
+- Optional pinned messages region below the app bar with WhatsApp-style bar.
+- `PinnedMessagesBar` widget and pinned list cycling with `onScrollToMessage`.
+- Message grouping configuration (mode + timeout) in pagination config.
+- Poll bubble rendering support in attachment builder with vote callbacks.
+
+### Changed
+
+- ChatScreen default selection app bar now exposes reply/copy/forward/info hooks.
+- Video bubble supports network streaming when local file is unavailable.
+- Video thumbnails fall back to a default placeholder when none is provided.
+- Video thumbnail file path handling now avoids passing remote URLs as files.
+- Example screens refreshed with pinned messages, grouping configuration,
+  and new input callbacks.
+
+### Fixed
+
+- Recording callbacks now forward waveform data consistently.
+
 ## [1.2.0] - 2026-01-15
 
 ### Added

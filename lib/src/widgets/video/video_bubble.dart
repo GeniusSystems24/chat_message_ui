@@ -73,6 +73,9 @@ class VideoBubble extends StatefulWidget {
   /// Auto-download policy for network media.
   final AutoDownloadPolicy autoDownloadPolicy;
 
+  /// Allow streaming from network URLs when local file is unavailable.
+  final bool allowNetworkStreaming;
+
   const VideoBubble({
     super.key,
     required this.message,
@@ -88,6 +91,7 @@ class VideoBubble extends StatefulWidget {
     this.onPause,
     this.onLongPress,
     this.autoDownloadPolicy = AutoDownloadPolicy.never,
+    this.allowNetworkStreaming = true,
   });
 
   @override
@@ -128,6 +132,7 @@ class _VideoBubbleState extends State<VideoBubble>
 
   String? get videoSource => _downloadedPath ?? localPath;
   bool get isLocalSource => videoSource != null;
+  bool get canStream => widget.allowNetworkStreaming && url != null;
 
   String? get thumbnailPath => widget.thumbnailFilePath;
   String? get thumbnailUrl => widget.message.mediaData?.thumbnailUrl;
@@ -177,7 +182,8 @@ class _VideoBubbleState extends State<VideoBubble>
     if (_isInitializing) return;
 
     final filePath = videoSource;
-    if (filePath == null) {
+    final networkUrl = url;
+    if (filePath == null && networkUrl == null) {
       setState(() => _error = 'Video not available');
       return;
     }
@@ -188,15 +194,17 @@ class _VideoBubbleState extends State<VideoBubble>
     });
 
     try {
-      if (_currentFilePath != filePath) {
+      if (_currentFilePath != (filePath ?? networkUrl)) {
         _chewieController?.dispose();
         _videoPlayerController?.dispose();
         _chewieController = null;
         _videoPlayerController = null;
-        _currentFilePath = filePath;
+        _currentFilePath = filePath ?? networkUrl;
       }
 
-      _videoPlayerController = VideoPlayerController.file(File(filePath));
+      _videoPlayerController = filePath != null
+          ? VideoPlayerController.file(File(filePath))
+          : VideoPlayerController.networkUrl(Uri.parse(networkUrl!));
 
       // Listen for buffering progress
       _videoPlayerController!.addListener(_onVideoProgress);
@@ -311,8 +319,8 @@ class _VideoBubbleState extends State<VideoBubble>
 
   @override
   Widget build(BuildContext context) {
-    final isDownloadOnly = videoSource == null && url != null;
-    final canPlay = videoSource != null;
+    final isDownloadOnly = videoSource == null && url != null && !canStream;
+    final canPlay = videoSource != null || canStream;
 
     return GestureDetector(
       onTapDown: _handleTapDown,
@@ -442,7 +450,7 @@ class _VideoBubbleState extends State<VideoBubble>
     final metadataWidget = _buildMetadataThumbnail();
     if (metadataWidget != null) return metadataWidget;
 
-    return _ShimmerPlaceholder(chatTheme: widget.chatTheme);
+    return _buildPlaceholder();
   }
 
   Widget? _buildMetadataThumbnail() {

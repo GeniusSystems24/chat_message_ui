@@ -61,6 +61,9 @@ class MessageBubble extends StatelessWidget {
   /// Callback for attachment taps.
   final VoidCallback? onAttachmentTap;
 
+  /// Callback for poll option selection.
+  final Function(String optionId)? onPollVote;
+
   /// Custom builder for deleted message content.
   final Widget Function(BuildContext context)? deletedMessageBuilder;
 
@@ -84,6 +87,7 @@ class MessageBubble extends StatelessWidget {
     this.onRouteTap,
     this.onLinkTap,
     this.onAttachmentTap,
+    this.onPollVote,
     this.deletedMessageBuilder,
     this.autoDownloadConfig,
   });
@@ -204,6 +208,7 @@ class MessageBubble extends StatelessWidget {
           onRouteTap: onRouteTap,
           onLinkTap: onLinkTap,
           onAttachmentTap: onAttachmentTap,
+          onPollVote: onPollVote,
         ),
         if (_shouldShowMetadata())
           MessageMetadataBuilder(

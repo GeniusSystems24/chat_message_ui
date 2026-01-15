@@ -168,6 +168,9 @@ ChatMediaData(
 );
 ```
 
+You can also derive `thumbnail`, `waveform`, and other metadata using
+TransferKit utilities before constructing `ChatMediaData`.
+
 ---
 
 ## Screens
@@ -186,8 +189,20 @@ ChatScreen(
   onAttachmentSelected: (source) {
     // Handle attachment selection
   },
+  onRecordingComplete: (path, duration, {waveform}) async {
+    // Send audio message with waveform if available
+  },
   onReactionTap: (message, emoji) {
     // Handle reaction
+  },
+  onForward: (messages) async {
+    // Forward selected messages
+  },
+  onCopy: (messages, resolvedText) async {
+    // Use resolvedText or override copy behavior
+  },
+  onPollVote: (message, optionId) {
+    // Handle poll vote
   },
   onRefresh: () async {
     // Refresh messages
@@ -195,15 +210,96 @@ ChatScreen(
   onDelete: (messages) {
     // Delete selected messages
   },
+  pinnedMessages: pinnedList,
+  onScrollToMessage: (messageId) async {
+    // Scroll to the message and return true on success
+    return true;
+  },
   config: ChatMessageUiConfig(
     enableSuggestions: true,
     enableTextPreview: true,
     pagination: ChatPaginationConfig(
       listPadding: const EdgeInsets.all(16),
+      messagesGroupingMode: MessagesGroupingMode.sameMinute,
+      messagesGroupingTimeoutInSeconds: 300,
     ),
   ),
   showAvatar: true,
   appBar: AppBar(title: Text('Chat')),
+)
+```
+
+### ChatScreen Selection Events
+
+```dart
+ChatScreen(
+  messagesCubit: mySmartPaginationCubit,
+  currentUserId: 'user123',
+  onReply: (message) async {
+    // Set reply message
+  },
+  onMessageInfo: (message) async {
+    // Show message info
+  },
+  onSelectionChanged: (selected) {
+    // Track selection state
+  },
+)
+```
+
+### ChatScreen Pinned Messages
+
+```dart
+ChatScreen(
+  messagesCubit: mySmartPaginationCubit,
+  currentUserId: 'user123',
+  pinnedMessages: pinnedList,
+  onScrollToMessage: (messageId) async {
+    return await scrollToMessage(messageId);
+  },
+  pinnedMessagesBuilder: (context, message, index, total, onTap) {
+    return PinnedMessagesBar(
+      message: message,
+      index: index,
+      total: total,
+      onTap: onTap,
+    );
+  },
+)
+```
+
+### ChatScreen Input Events
+
+```dart
+ChatScreen(
+  messagesCubit: mySmartPaginationCubit,
+  currentUserId: 'user123',
+  enableAttachments: true,
+  enableAudioRecording: true,
+  onPollRequested: () {
+    // Open poll creation flow
+  },
+  usernameProvider: myMentionProvider,
+  hashtagProvider: myHashtagProvider,
+  quickReplyProvider: myQuickReplyProvider,
+  taskProvider: myTaskProvider,
+)
+```
+
+### ChatScreen App Bar (Optional)
+
+```dart
+ChatScreen(
+  messagesCubit: mySmartPaginationCubit,
+  currentUserId: 'user123',
+  appBarData: ChatAppBarData(
+    id: 'chat-1',
+    title: 'Team Chat',
+    subtitle: '5 members',
+  ),
+  onAppBarTitleTap: () {},
+  onMenuSelection: (value) {},
+  onSearch: () {},
 )
 ```
 

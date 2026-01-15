@@ -42,6 +42,12 @@ class ChatMessageList extends StatelessWidget {
   /// Callback when a reaction is tapped.
   final Function(IChatMessageData, String)? onReactionTap;
 
+  /// Callback when an attachment is tapped.
+  final ValueChanged<IChatMessageData>? onAttachmentTap;
+
+  /// Callback when a poll option is tapped.
+  final Function(IChatMessageData, String)? onPollVote;
+
   /// ID of the message to focus/highlight.
   final String? focusedMessageId;
 
@@ -74,6 +80,12 @@ class ChatMessageList extends StatelessWidget {
   /// Auto-download settings for media attachments.
   final ChatAutoDownloadConfig? autoDownloadConfig;
 
+  /// Message grouping mode (time-based grouping).
+  final MessagesGroupingMode messagesGroupingMode;
+
+  /// Time threshold for grouping when using timeDifference mode.
+  final int messagesGroupingTimeoutInSeconds;
+
   const ChatMessageList({
     super.key,
     required this.cubit,
@@ -85,6 +97,8 @@ class ChatMessageList extends StatelessWidget {
     this.onMessageLongPress,
     this.onReplyTap,
     this.onReactionTap,
+    this.onAttachmentTap,
+    this.onPollVote,
     this.focusedMessageId,
     this.onSelectionChanged,
     this.messageBubbleBuilder,
@@ -95,6 +109,8 @@ class ChatMessageList extends StatelessWidget {
     this.padding = const EdgeInsets.all(12),
     this.availableReactions = const ['👍', '❤️', '😂', '😮', '😢', '😡'],
     this.autoDownloadConfig,
+    this.messagesGroupingMode = MessagesGroupingMode.sameMinute,
+    this.messagesGroupingTimeoutInSeconds = 300,
   });
 
   @override
@@ -144,6 +160,8 @@ class ChatMessageList extends StatelessWidget {
     final groupStatus = MessageGroupStatus.resolveGroupStatus(
       items: messages,
       index: index,
+      messagesGroupingMode: messagesGroupingMode,
+      messagesGroupingTimeoutInSeconds: messagesGroupingTimeoutInSeconds,
     );
 
     final messageDate = message.createdAt;
@@ -168,6 +186,12 @@ class ChatMessageList extends StatelessWidget {
                 : null,
             onReactionTap: onReactionTap != null
                 ? (emoji) => onReactionTap!(message, emoji)
+                : null,
+            onAttachmentTap: onAttachmentTap != null
+                ? () => onAttachmentTap!(message)
+                : null,
+            onPollVote: onPollVote != null
+                ? (optionId) => onPollVote!(message, optionId)
                 : null,
             onReplyTap: onReplyTap != null ? () => onReplyTap!(message) : null,
           ),

@@ -53,6 +53,9 @@ class ChatInputWidget extends StatefulWidget {
   /// Callback when audio recording is locked
   final ValueChanged<bool>? onRecordingLockedChanged;
 
+  /// Callback when poll creation is requested
+  final VoidCallback? onPollRequested;
+
   /// Custom input decoration
   final InputDecoration? inputDecoration;
 
@@ -115,6 +118,7 @@ class ChatInputWidget extends StatefulWidget {
     this.focusNode,
     this.onRecordingComplete,
     this.onRecordingLockedChanged,
+    this.onPollRequested,
     this.getRecordingPath,
     this.usernameProvider,
     this.hashtagProvider,
@@ -419,7 +423,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
       builder: (context) => const SelectAttachmentSourceActionButton(),
     );
 
-    if (result != null && widget.onAttachmentSelected != null) {
+    if (result == null) return;
+
+    if (result == AttachmentSource.voting && widget.onPollRequested != null) {
+      widget.onPollRequested!.call();
+      return;
+    }
+
+    if (widget.onAttachmentSelected != null) {
       widget.onAttachmentSelected!(result);
     }
   }
@@ -633,7 +644,11 @@ class _ChatInputWidgetState extends State<ChatInputWidget>
                           _isRecording = false;
                         });
                         if (widget.onRecordingComplete != null) {
-                          await widget.onRecordingComplete!(path, duration);
+                          await widget.onRecordingComplete!(
+                            path,
+                            duration,
+                            waveform: waveform,
+                          );
                         }
                         return null;
                       },

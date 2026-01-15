@@ -41,6 +41,12 @@ class _BasicChatExampleState extends State<BasicChatExample> {
       currentUserId: ExampleSampleData.currentUserId,
       onSendMessage: _controller.sendText,
       onRefresh: _controller.refresh,
+      config: const ChatMessageUiConfig(
+        pagination: ChatPaginationConfig(
+          messagesGroupingMode: MessagesGroupingMode.sameMinute,
+          messagesGroupingTimeoutInSeconds: 300,
+        ),
+      ),
       appBar: AppBar(
         title: const Text('Basic Chat'),
         bottom: PreferredSize(

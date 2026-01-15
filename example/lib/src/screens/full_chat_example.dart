@@ -46,14 +46,68 @@ class _FullChatExampleState extends State<FullChatExample> {
         context,
         'Attachment selected: ${type.name}',
       ),
+      onAttachmentTap: (message) => _showSnackBar(
+        context,
+        'Attachment tapped: ${message.type.name}',
+      ),
       onReactionTap: _controller.toggleReaction,
+      onPollVote: (message, optionId) => _showSnackBar(
+        context,
+        'Voted on ${message.id}: $optionId',
+      ),
       onRefresh: _controller.refresh,
       onDelete: _controller.deleteMessages,
+      onForward: (messages) =>
+          _showSnackBar(context, 'Forwarded ${messages.length} message(s)'),
+      onCopy: (messages, resolvedText) =>
+          _showSnackBar(context, 'Copied ${messages.length} message(s)'),
+      onReply: (message) {
+        _replyNotifier.value = _buildReplyData(message);
+      },
+      onMessageInfo: (message) =>
+          _showSnackBar(context, 'Message info: ${message.id}'),
+      onSelectionChanged: (selected) {
+        if (!mounted) return;
+        setState(() {});
+      },
       replyMessage: _replyNotifier,
       appBarBuilder: _buildAppBar,
       selectionAppBarBuilder: _buildSelectionAppBar,
       emptyMessage: 'All caught up! Send a message to get started.',
+      pinnedMessages: _buildPinnedList(),
+      onScrollToMessage: _scrollToPinnedMessage,
+      onRecordingComplete: (path, duration, {waveform}) async {
+        _showSnackBar(
+          context,
+          'Recorded ${duration}s (waveform: ${waveform?.length ?? 0})',
+        );
+      },
+      onRecordingStart: () => _showSnackBar(context, 'Recording started'),
+      onRecordingCancel: () => _showSnackBar(context, 'Recording cancelled'),
+      onRecordingLockedChanged: (locked) =>
+          _showSnackBar(context, locked ? 'Recording locked' : 'Recording unlocked'),
+      onPollRequested: () => _showSnackBar(context, 'Create poll requested'),
+      config: ChatMessageUiConfig(
+        enableSuggestions: true,
+        enableTextPreview: true,
+        pagination: ChatPaginationConfig(
+          listPadding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          messagesGroupingMode: MessagesGroupingMode.sameMinute,
+          messagesGroupingTimeoutInSeconds: 300,
+        ),
+      ),
     );
+  }
+
+  List<IChatMessageData> _buildPinnedList() {
+    final items = _controller.messagesCubit.currentItems;
+    if (items.isEmpty) return const [];
+    return items.take(3).toList();
+  }
+
+  Future<bool> _scrollToPinnedMessage(String messageId) async {
+    _showSnackBar(context, 'Jump to pinned message: $messageId');
+    return true;
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
@@ -86,7 +140,7 @@ class _FullChatExampleState extends State<FullChatExample> {
                 lines: const [
                   'Full chat experience with selection, reply, and search flows.',
                   'Demonstrates reactions, deletion, and multi-action app bars.',
-                  'Best reference for integrating the library in production screens.',
+                  'Highlights pinned messages, polls, and recording callbacks.',
                 ],
               ),
             ),

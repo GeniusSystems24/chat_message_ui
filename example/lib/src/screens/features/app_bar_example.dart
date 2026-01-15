@@ -50,6 +50,7 @@ class AppBarExample extends StatelessWidget {
                   ),
                   showSearch: false,
                   showMenu: false,
+                  onTitleTap: () => _showSnackBar(context, 'Title tapped'),
                 ),
               ),
             ),

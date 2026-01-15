@@ -1,10 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:smart_pagination/pagination.dart';
 
 import '../adapters/chat_message_data.dart';
 import '../adapters/chat_data_models.dart';
 import '../config/chat_message_ui_config.dart';
 import '../widgets/widgets.dart';
+
+typedef PinnedMessagesBuilder = Widget Function(
+  BuildContext context,
+  IChatMessageData message,
+  int index,
+  int total,
+  VoidCallback onTap,
+);
 
 /// A complete chat screen widget with message list and input area.
 ///
@@ -28,8 +39,14 @@ class ChatScreen extends StatefulWidget {
   /// Callback when an attachment is selected.
   final Function(AttachmentSource type)? onAttachmentSelected;
 
+  /// Callback when an attachment bubble is tapped.
+  final ValueChanged<IChatMessageData>? onAttachmentTap;
+
   /// Callback when a reaction is added to a message.
   final Function(IChatMessageData message, String emoji)? onReactionTap;
+
+  /// Callback when a poll option is selected.
+  final Function(IChatMessageData message, String optionId)? onPollVote;
 
   /// Callback to refresh messages.
   final Future<void> Function()? onRefresh;
@@ -37,11 +54,65 @@ class ChatScreen extends StatefulWidget {
   /// Callback when a message is deleted.
   final Function(Set<IChatMessageData> messages)? onDelete;
 
+  /// Callback when messages are forwarded.
+  final FutureOr<void> Function(Set<IChatMessageData> messages)? onForward;
+
+  /// Callback when messages are copied.
+  final FutureOr<void> Function(
+    Set<IChatMessageData> messages,
+    String resolvedText,
+  )? onCopy;
+
+  /// Callback when reply is requested.
+  final FutureOr<void> Function(IChatMessageData message)? onReply;
+
+  /// Callback when message info is requested.
+  final FutureOr<void> Function(IChatMessageData message)? onMessageInfo;
+
+  /// Callback when selection changes.
+  final ValueChanged<Set<IChatMessageData>>? onSelectionChanged;
+
+  /// Delete time restriction for selection app bar.
+  final int deleteTimeRestrictionHours;
+
   /// Whether to show avatars.
   final bool showAvatar;
 
   /// Custom app bar widget.
   final PreferredSizeWidget? appBar;
+
+  /// Optional chat app bar data (enables ChatAppBar).
+  final ChatAppBarData? appBarData;
+
+  /// App bar title tap callback (ChatAppBar only).
+  final VoidCallback? onAppBarTitleTap;
+
+  /// App bar menu selection callback (ChatAppBar only).
+  final ValueChanged<String>? onMenuSelection;
+
+  /// Custom app bar menu items (ChatAppBar only).
+  final List<PopupMenuItem<String>>? menuItems;
+
+  /// App bar video call callback (ChatAppBar only).
+  final VoidCallback? onVideoCall;
+
+  /// App bar tasks callback (ChatAppBar only).
+  final VoidCallback? onTasks;
+
+  /// App bar search callback (ChatAppBar only).
+  final VoidCallback? onSearch;
+
+  /// Whether to show search action (ChatAppBar only).
+  final bool showSearch;
+
+  /// Whether to show video call action (ChatAppBar only).
+  final bool showVideoCall;
+
+  /// Whether to show tasks action (ChatAppBar only).
+  final bool showTasks;
+
+  /// Whether to show menu action (ChatAppBar only).
+  final bool showMenu;
 
   /// Custom app bar builder (called when not in selection mode).
   final PreferredSizeWidget Function(BuildContext context)? appBarBuilder;
@@ -55,6 +126,61 @@ class ChatScreen extends StatefulWidget {
 
   /// Reply message notifier.
   final ValueNotifier<ChatReplyData?>? replyMessage;
+
+  /// List of pinned messages (ordered by pin time).
+  final List<IChatMessageData> pinnedMessages;
+
+  /// Pinned messages builder (override default WhatsApp-style bar).
+  final PinnedMessagesBuilder? pinnedMessagesBuilder;
+
+  /// Callback to scroll to a specific message id.
+  final Future<bool> Function(String messageId)? onScrollToMessage;
+
+  /// Callback when audio recording completes.
+  final Future<void> Function(
+    String filePath,
+    int durationInSeconds, {
+    List<double>? waveform,
+  })? onRecordingComplete;
+
+  /// Callback when audio recording starts.
+  final VoidCallback? onRecordingStart;
+
+  /// Callback when audio recording is cancelled.
+  final VoidCallback? onRecordingCancel;
+
+  /// Callback when audio recording lock status changes.
+  final ValueChanged<bool>? onRecordingLockedChanged;
+
+  /// Recording path resolver.
+  final String Function()? getRecordingPath;
+
+  /// Attachment enable flag for input.
+  final bool enableAttachments;
+
+  /// Audio recording enable flag for input.
+  final bool enableAudioRecording;
+
+  /// Input hint text.
+  final String hintText;
+
+  /// Recording duration in seconds.
+  final int recordingDuration;
+
+  /// Username suggestions provider.
+  final SuggestionDataProvider<ChatUserSuggestion>? usernameProvider;
+
+  /// Hashtag suggestions provider.
+  final SuggestionDataProvider<Hashtag>? hashtagProvider;
+
+  /// Quick reply suggestions provider.
+  final SuggestionDataProvider<QuickReply>? quickReplyProvider;
+
+  /// Custom task suggestions provider.
+  final SuggestionDataProvider<dynamic>? taskProvider;
+
+  /// Callback when poll creation is requested.
+  final VoidCallback? onPollRequested;
 
   /// Padding for the message list.
   final EdgeInsets listPadding;
@@ -71,14 +197,50 @@ class ChatScreen extends StatefulWidget {
     required this.currentUserId,
     this.onSendMessage,
     this.onAttachmentSelected,
+    this.onAttachmentTap,
     this.onReactionTap,
+    this.onPollVote,
     this.onRefresh,
     this.onDelete,
+    this.onForward,
+    this.onCopy,
+    this.onReply,
+    this.onMessageInfo,
+    this.onSelectionChanged,
+    this.deleteTimeRestrictionHours = 8,
     this.showAvatar = true,
     this.appBar,
+    this.appBarData,
+    this.onAppBarTitleTap,
+    this.onMenuSelection,
+    this.menuItems,
+    this.onVideoCall,
+    this.onTasks,
+    this.onSearch,
+    this.showSearch = true,
+    this.showVideoCall = false,
+    this.showTasks = false,
+    this.showMenu = true,
     this.appBarBuilder,
     this.selectionAppBarBuilder,
     this.replyMessage,
+    this.pinnedMessages = const [],
+    this.pinnedMessagesBuilder,
+    this.onScrollToMessage,
+    this.onRecordingComplete,
+    this.onRecordingStart,
+    this.onRecordingCancel,
+    this.onRecordingLockedChanged,
+    this.getRecordingPath,
+    this.enableAttachments = true,
+    this.enableAudioRecording = true,
+    this.hintText = 'Message',
+    this.recordingDuration = 0,
+    this.usernameProvider,
+    this.hashtagProvider,
+    this.quickReplyProvider,
+    this.taskProvider,
+    this.onPollRequested,
     this.listPadding = const EdgeInsets.all(12),
     this.emptyMessage = 'No messages yet',
     this.config,
@@ -96,11 +258,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
   bool _isAtBottom = true;
   String? _focusedMessageId;
+  int _pinnedIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
+    _syncPinnedIndex();
+  }
+
+  @override
+  void didUpdateWidget(ChatScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pinnedMessages != widget.pinnedMessages) {
+      _syncPinnedIndex();
+    }
   }
 
   @override
@@ -167,10 +339,13 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Future<void> _scrollToMessage(String messageId) async {
-    // This would require finding the index of the message and scrolling to it
-    // For now, this is a placeholder - the implementation depends on how
-    // the cubit exposes its items
+  Future<bool> _scrollToMessage(String messageId) async {
+    if (widget.onScrollToMessage == null) return false;
+    try {
+      return await widget.onScrollToMessage!(messageId);
+    } catch (_) {
+      return false;
+    }
   }
 
   void _clearSelection() {
@@ -179,13 +354,97 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  Future<void> _handleCopyMessages() async {
+    if (_selectedMessages.isEmpty) return;
+    final resolvedText = _buildCopyText(_selectedMessages);
+    if (widget.onCopy != null) {
+      await widget.onCopy!(_selectedMessages, resolvedText);
+    } else {
+      await Clipboard.setData(ClipboardData(text: resolvedText));
+    }
+    _clearSelection();
+  }
+
+  String _buildCopyText(Set<IChatMessageData> messages) {
+    if (messages.length == 1) {
+      return _resolveMessageText(messages.first);
+    }
+    final buffer = StringBuffer();
+    for (final message in messages) {
+      final sender = message.senderData?.displayName ?? message.senderId;
+      buffer.writeln('$sender: ${_resolveMessageText(message)}');
+    }
+    return buffer.toString().trim();
+  }
+
+  String _resolveMessageText(IChatMessageData message) {
+    final text = message.textContent?.trim();
+    if (text != null && text.isNotEmpty) return text;
+    final fileName = message.mediaData?.resolvedFileName;
+    if (fileName != null && fileName.isNotEmpty) return fileName;
+    return message.type.name;
+  }
+
+  Future<void> _handleForwardMessages() async {
+    if (_selectedMessages.isEmpty || widget.onForward == null) return;
+    await widget.onForward!(_selectedMessages);
+    _clearSelection();
+  }
+
+  Future<void> _handleDeleteMessages() async {
+    if (_selectedMessages.isEmpty || widget.onDelete == null) return;
+    widget.onDelete!(_selectedMessages);
+    _clearSelection();
+  }
+
+  IChatMessageData? get _currentPinnedMessage {
+    if (widget.pinnedMessages.isEmpty) return null;
+    final index = _pinnedIndex.clamp(0, widget.pinnedMessages.length - 1);
+    return widget.pinnedMessages[index];
+  }
+
+  void _syncPinnedIndex() {
+    if (widget.pinnedMessages.isEmpty) {
+      _pinnedIndex = 0;
+      return;
+    }
+    _pinnedIndex = widget.pinnedMessages.length - 1;
+  }
+
+  Future<void> _handlePinnedTap() async {
+    final message = _currentPinnedMessage;
+    if (message == null || widget.onScrollToMessage == null) return;
+    final didScroll = await _scrollToMessage(message.id);
+    if (!didScroll || !mounted) return;
+    setState(() {
+      _pinnedIndex = (_pinnedIndex + 1) % widget.pinnedMessages.length;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final uiConfig = widget.config ?? ChatMessageUiConfig.instance;
+    final pinnedMessage = _currentPinnedMessage;
+    final pinnedSection = pinnedMessage == null
+        ? null
+        : (widget.pinnedMessagesBuilder?.call(
+                context,
+                pinnedMessage,
+                _pinnedIndex,
+                widget.pinnedMessages.length,
+                _handlePinnedTap,
+              ) ??
+            PinnedMessagesBar(
+              message: pinnedMessage,
+              index: _pinnedIndex,
+              total: widget.pinnedMessages.length,
+              onTap: _handlePinnedTap,
+            ));
 
     final content = Column(
       children: [
+        if (pinnedSection != null) pinnedSection,
         Expanded(
           child: ChatMessageList(
             cubit: widget.messagesCubit,
@@ -197,12 +456,20 @@ class _ChatScreenState extends State<ChatScreen> {
             onMessageLongPress: _handleMessageLongPress,
             onReplyTap: _handleReplyTap,
             onReactionTap: widget.onReactionTap,
+            onAttachmentTap: widget.onAttachmentTap,
+            onPollVote: widget.onPollVote,
             focusedMessageId: _focusedMessageId,
-            onSelectionChanged: () => setState(() {}),
+            onSelectionChanged: () {
+              setState(() {});
+              widget.onSelectionChanged?.call(_selectedMessages);
+            },
             padding: uiConfig.pagination.listPadding ?? widget.listPadding,
             availableReactions: uiConfig.pagination.availableReactions ??
                 const ['👍', '❤️', '😂', '😮', '😢', '😡'],
             autoDownloadConfig: uiConfig.autoDownload,
+            messagesGroupingMode: uiConfig.pagination.messagesGroupingMode,
+            messagesGroupingTimeoutInSeconds:
+                uiConfig.pagination.messagesGroupingTimeoutInSeconds,
             emptyBuilder: (context) => ChatEmptyDisplay(
               message: widget.emptyMessage,
             ),
@@ -217,6 +484,20 @@ class _ChatScreenState extends State<ChatScreen> {
           enableFloatingSuggestions: uiConfig.enableSuggestions,
           enableTextDataPreview: uiConfig.enableTextPreview,
           inputDecoration: uiConfig.inputDecoration,
+          onRecordingComplete: widget.onRecordingComplete,
+          onRecordingStart: widget.onRecordingStart,
+          onRecordingCancel: widget.onRecordingCancel,
+          onRecordingLockedChanged: widget.onRecordingLockedChanged,
+          getRecordingPath: widget.getRecordingPath,
+          enableAttachments: widget.enableAttachments,
+          enableAudioRecording: widget.enableAudioRecording,
+          hintText: widget.hintText,
+          recordingDuration: widget.recordingDuration,
+          usernameProvider: widget.usernameProvider,
+          hashtagProvider: widget.hashtagProvider,
+          quickReplyProvider: widget.quickReplyProvider,
+          taskProvider: widget.taskProvider,
+          onPollRequested: widget.onPollRequested,
         ),
       ],
     );
@@ -260,27 +541,44 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (widget.appBar != null) return widget.appBar!;
     if (widget.appBarBuilder != null) return widget.appBarBuilder!(context);
+    if (widget.appBarData != null) {
+      return ChatAppBar(
+        chat: widget.appBarData!,
+        onTitleTap: widget.onAppBarTitleTap,
+        onMenuSelection: widget.onMenuSelection,
+        onVideoCall: widget.onVideoCall,
+        onTasks: widget.onTasks,
+        onSearch: widget.onSearch,
+        showSearch: widget.showSearch,
+        showVideoCall: widget.showVideoCall,
+        showTasks: widget.showTasks,
+        showMenu: widget.showMenu,
+        menuItems: widget.menuItems,
+      );
+    }
 
     return AppBar(title: const Text('Chat'));
   }
 
   PreferredSizeWidget _buildDefaultSelectionAppBar(BuildContext context) {
-    return AppBar(
-      leading: IconButton(
-        icon: const Icon(Icons.close),
-        onPressed: _clearSelection,
-      ),
-      title: Text('${_selectedMessages.length} selected'),
-      actions: [
-        if (widget.onDelete != null)
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () {
-              widget.onDelete!(_selectedMessages);
+    return ChatSelectionAppBar(
+      selectedCount: _selectedMessages.length,
+      selectedMessages: _selectedMessages,
+      currentUserId: widget.currentUserId,
+      onClose: _clearSelection,
+      deleteTimeRestrictionHours: widget.deleteTimeRestrictionHours,
+      onReply: widget.onReply != null
+          ? (message) async {
+              await widget.onReply!(message);
               _clearSelection();
-            },
-          ),
-      ],
+            }
+          : null,
+      onCopy: _handleCopyMessages,
+      onInfo: widget.onMessageInfo != null
+          ? (message) async => widget.onMessageInfo!(message)
+          : null,
+      onDelete: widget.onDelete != null ? (_) => _handleDeleteMessages() : null,
+      onForward: widget.onForward != null ? (_) => _handleForwardMessages() : null,
     );
   }
 }

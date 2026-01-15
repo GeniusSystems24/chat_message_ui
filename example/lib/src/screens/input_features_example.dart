@@ -127,6 +127,20 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
                 SnackBar(content: Text('Attachment selected: ${type.name}')),
               );
             },
+            onPollRequested: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Create poll requested')),
+              );
+            },
+            onRecordingComplete: (path, duration, {waveform}) async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Recorded ${duration}s (waveform: ${waveform?.length ?? 0})',
+                  ),
+                ),
+              );
+            },
             replyMessage: _replyNotifier,
             usernameProvider: _usernameProvider,
             hashtagProvider: _hashtagProvider,
@@ -140,7 +154,14 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
 
   Widget _buildHintCard(BuildContext context) {
     final theme = Theme.of(context);
-    final hints = ['@mention', '#hashtag', '/quick', r'$task', 'Paste a link'];
+    final hints = [
+      '@mention',
+      '#hashtag',
+      '/quick',
+      r'$task',
+      'Paste a link',
+      'Polls',
+    ];
 
     return Container(
       padding: const EdgeInsets.all(16),

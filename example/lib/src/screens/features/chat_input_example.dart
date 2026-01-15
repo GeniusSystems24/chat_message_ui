@@ -92,6 +92,11 @@ class _ChatInputExampleState extends State<ChatInputExample> {
                   SnackBar(content: Text('Selected: ${type.name}')),
                 );
               },
+              onPollRequested: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Create poll requested')),
+                );
+              },
               hintText: 'Message',
             ),
           ),
@@ -126,6 +131,13 @@ class _ChatInputExampleState extends State<ChatInputExample> {
                   const SnackBar(content: Text('Recording cancelled')),
                 );
               },
+              onRecordingLockedChanged: (locked) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(locked ? 'Recording locked' : 'Recording unlocked'),
+                  ),
+                );
+              },
               hintText: 'Hold mic to record',
             ),
           ),
@@ -154,6 +166,11 @@ class _ChatInputExampleState extends State<ChatInputExample> {
               onAttachmentSelected: (type) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Attachment: ${type.name}')),
+                );
+              },
+              onPollRequested: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Create poll requested')),
                 );
               },
               hintText: 'Type a message...',
@@ -375,6 +392,18 @@ class _ChatInputExampleState extends State<ChatInputExample> {
             value: 'InputDecoration?',
             description: 'Custom text field decoration',
           ),
+          const SizedBox(height: 8),
+          const PropertyShowcase(
+            property: 'onPollRequested',
+            value: 'VoidCallback?',
+            description: 'Trigger poll creation flow',
+          ),
+          const SizedBox(height: 8),
+          const PropertyShowcase(
+            property: 'onRecordingLockedChanged',
+            value: 'ValueChanged<bool>?',
+            description: 'Listen to lock/unlock state changes',
+          ),
           const SizedBox(height: 24),
 
           // Code Example
@@ -388,6 +417,7 @@ class _ChatInputExampleState extends State<ChatInputExample> {
   enableAudioRecording: true,
   replyMessage: _replyNotifier,
   onAttachmentSelected: (type) => pickAttachment(type),
+  onPollRequested: () => openPollBuilder(),
   onRecordingComplete: (path, duration, {waveform}) async {
     await sendVoiceMessage(path, duration);
   },

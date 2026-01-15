@@ -7,6 +7,7 @@ import 'image/image_bubble.dart';
 import 'video/video_bubble.dart';
 import 'location/location_bubble.dart';
 import 'document/document_bubble.dart';
+import 'poll/poll_bubble.dart';
 
 /// Widget for building media attachments (images, videos, documents, etc.).
 class AttachmentBuilder extends StatelessWidget {
@@ -16,6 +17,7 @@ class AttachmentBuilder extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget Function(ChatMediaData media)? customBuilder;
   final ChatAutoDownloadConfig? autoDownloadConfig;
+  final Function(String optionId)? onPollVote;
 
   const AttachmentBuilder({
     super.key,
@@ -25,6 +27,7 @@ class AttachmentBuilder extends StatelessWidget {
     this.onTap,
     this.customBuilder,
     this.autoDownloadConfig,
+    this.onPollVote,
   });
 
   @override
@@ -49,6 +52,10 @@ class AttachmentBuilder extends StatelessWidget {
           isMyMessage: isMyMessage,
           onTap: onTap,
           autoDownloadPolicy: resolvedAutoDownload.document,
+        ),
+      ChatMessageType.poll when message.pollData != null => PollBubble(
+          message: message,
+          onVote: onPollVote,
         ),
       ChatMessageType.location when message.locationData != null =>
         LocationBubble(
@@ -79,14 +86,20 @@ class AttachmentBuilder extends StatelessWidget {
     ChatMediaData media,
     ChatAutoDownloadConfig config,
   ) {
-    final thumbnailUrl = media.thumbnailUrl ?? media.url;
+    final thumbnailUrl = media.thumbnailUrl;
+    final thumbnailFilePath =
+        thumbnailUrl != null &&
+                !thumbnailUrl.startsWith('http') &&
+                !thumbnailUrl.startsWith('https')
+            ? thumbnailUrl
+            : null;
 
     return VideoBubble(
       message: message,
       chatTheme: chatTheme,
       isMyMessage: isMyMessage,
       onTap: onTap,
-      thumbnailFilePath: thumbnailUrl,
+      thumbnailFilePath: thumbnailFilePath,
       autoDownloadPolicy: config.video,
     );
   }

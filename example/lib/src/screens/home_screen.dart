@@ -651,6 +651,8 @@ class _CapabilitiesList extends StatelessWidget {
       _Capability(Icons.emoji_emotions_outlined, 'Reactions', 'Emoji reactions and status indicators'),
       _Capability(Icons.reply_outlined, 'Replies', 'Reply preview and quoted messages'),
       _Capability(Icons.mic_outlined, 'Voice Input', 'Recording with waveform visualization'),
+      _Capability(Icons.push_pin_outlined, 'Pinned Messages', 'Highlight important threads below the app bar'),
+      _Capability(Icons.view_agenda_outlined, 'Grouping', 'Time-based grouping for clean chat clusters'),
       _Capability(Icons.auto_awesome_outlined, 'Suggestions', '@mentions, #hashtags, /commands'),
       _Capability(Icons.search_outlined, 'Search', 'Message filtering and search'),
     ];
