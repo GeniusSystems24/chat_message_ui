@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../audio/audio_player_factory.dart';
+
 /// Playback state for video players.
 enum VideoPlaybackState {
   /// Video is uninitialized.
@@ -422,6 +424,10 @@ class VideoPlayerFactory {
   // ============ Playback Controls ============
 
   /// Plays a video.
+  ///
+  /// This will automatically:
+  /// - Pause any currently playing audio
+  /// - Pause any other playing video
   static Future<void> play(String id, {String? filePath, String? url}) async {
     var controller = _controllers[id];
 
@@ -429,6 +435,9 @@ class VideoPlayerFactory {
       controller = await create(id, filePath: filePath, url: url);
       if (controller == null) return;
     }
+
+    // Pause all currently playing audio
+    await AudioPlayerFactory.pauseAll();
 
     // Pause current video if different
     if (currentVideoId.value != null && currentVideoId.value != id) {

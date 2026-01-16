@@ -48,3 +48,9 @@ export 'common/common.dart';
 // Audio
 export 'audio/audio_bubble.dart' hide formatDuration, formatFileSize;
 export 'audio/audio_player_factory.dart';
+
+// Video
+export 'video/video_player_factory.dart';
+
+// Media
+export 'media/media_playback_manager.dart';
