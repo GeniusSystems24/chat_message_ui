@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:smart_pagination/pagination.dart';
 
 import '../adapters/chat_message_data.dart';
+import '../config/chat_message_ui_config.dart';
 import '../utils/messages_grouping.dart';
 import '../utils/message_utils.dart';
 import 'message_bubble.dart';
@@ -41,6 +42,12 @@ class ChatMessageList extends StatelessWidget {
   /// Callback when a reaction is tapped.
   final Function(IChatMessageData, String)? onReactionTap;
 
+  /// Callback when an attachment is tapped.
+  final ValueChanged<IChatMessageData>? onAttachmentTap;
+
+  /// Callback when a poll option is tapped.
+  final Function(IChatMessageData, String)? onPollVote;
+
   /// ID of the message to focus/highlight.
   final String? focusedMessageId;
 
@@ -70,6 +77,24 @@ class ChatMessageList extends StatelessWidget {
   /// Available reaction emojis.
   final List<String> availableReactions;
 
+  /// Auto-download settings for media attachments.
+  final ChatAutoDownloadConfig? autoDownloadConfig;
+
+  /// Message grouping mode (time-based grouping).
+  final MessagesGroupingMode messagesGroupingMode;
+
+  /// Time threshold for grouping when using timeDifference mode.
+  final int messagesGroupingTimeoutInSeconds;
+
+  /// Current search query (for highlighting matches in messages).
+  final String? searchQuery;
+
+  /// List of matched message IDs from search.
+  final List<String>? matchedMessageIds;
+
+  /// Current match index in the search results.
+  final int? currentMatchIndex;
+
   const ChatMessageList({
     super.key,
     required this.cubit,
@@ -81,6 +106,8 @@ class ChatMessageList extends StatelessWidget {
     this.onMessageLongPress,
     this.onReplyTap,
     this.onReactionTap,
+    this.onAttachmentTap,
+    this.onPollVote,
     this.focusedMessageId,
     this.onSelectionChanged,
     this.messageBubbleBuilder,
@@ -90,6 +117,12 @@ class ChatMessageList extends StatelessWidget {
     this.loadMoreBuilder,
     this.padding = const EdgeInsets.all(12),
     this.availableReactions = const ['👍', '❤️', '😂', '😮', '😢', '😡'],
+    this.autoDownloadConfig,
+    this.messagesGroupingMode = MessagesGroupingMode.sameMinute,
+    this.messagesGroupingTimeoutInSeconds = 300,
+    this.searchQuery,
+    this.matchedMessageIds,
+    this.currentMatchIndex,
   });
 
   @override
@@ -139,6 +172,8 @@ class ChatMessageList extends StatelessWidget {
     final groupStatus = MessageGroupStatus.resolveGroupStatus(
       items: messages,
       index: index,
+      messagesGroupingMode: messagesGroupingMode,
+      messagesGroupingTimeoutInSeconds: messagesGroupingTimeoutInSeconds,
     );
 
     final messageDate = message.createdAt;
@@ -149,6 +184,15 @@ class ChatMessageList extends StatelessWidget {
     final showDateSeparator = messageDate != null &&
         (nextDate == null || !_isSameDay(messageDate, nextDate));
 
+    // Determine if this message is a search match and if it's the current one
+    final isSearchMatch = searchQuery != null &&
+        matchedMessageIds != null &&
+        matchedMessageIds!.contains(message.id);
+    final isCurrentSearchMatch = isSearchMatch &&
+        currentMatchIndex != null &&
+        currentMatchIndex! < matchedMessageIds!.length &&
+        matchedMessageIds![currentMatchIndex!] == message.id;
+
     final bubble = Padding(
       padding: EdgeInsets.only(top: groupStatus?.isFirst == true ? 10 : 4),
       child: messageBubbleBuilder?.call(context, message, groupStatus) ??
@@ -157,11 +201,20 @@ class ChatMessageList extends StatelessWidget {
             showAvatar: showAvatar,
             currentUserId: currentUserId,
             messageGroupStatus: groupStatus,
+            autoDownloadConfig: autoDownloadConfig,
+            searchQuery: searchQuery,
+            isCurrentSearchMatch: isCurrentSearchMatch,
             onLongPress: onMessageLongPress != null
                 ? () => onMessageLongPress!(message)
                 : null,
             onReactionTap: onReactionTap != null
                 ? (emoji) => onReactionTap!(message, emoji)
+                : null,
+            onAttachmentTap: onAttachmentTap != null
+                ? () => onAttachmentTap!(message)
+                : null,
+            onPollVote: onPollVote != null
+                ? (optionId) => onPollVote!(message, optionId)
                 : null,
             onReplyTap: onReplyTap != null ? () => onReplyTap!(message) : null,
           ),

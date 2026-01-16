@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:text_preview/text_preview.dart';
+import 'package:super_interactive_text/super_interactive_text.dart';
 
 import '../theme/chat_theme.dart';
 import '../adapters/adapters.dart';
+import '../config/chat_message_ui_config.dart';
 import 'attachment_builder.dart';
 import 'contact/contact_bubble.dart';
 
@@ -19,7 +20,15 @@ class MessageContentBuilder extends StatelessWidget {
   final Function(EmailTextData)? onEmailTap;
   final Function(PhoneNumberTextData)? onPhoneTap;
   final VoidCallback? onAttachmentTap;
+  final Function(String optionId)? onPollVote;
   final Widget Function(ChatMediaData media)? customAttachmentBuilder;
+  final ChatAutoDownloadConfig? autoDownloadConfig;
+
+  /// Current search query to highlight.
+  final String? searchQuery;
+
+  /// Whether this message is the current search match.
+  final bool isCurrentSearchMatch;
 
   const MessageContentBuilder({
     super.key,
@@ -31,7 +40,11 @@ class MessageContentBuilder extends StatelessWidget {
     this.onEmailTap,
     this.onPhoneTap,
     this.onAttachmentTap,
+    this.onPollVote,
     this.customAttachmentBuilder,
+    this.autoDownloadConfig,
+    this.searchQuery,
+    this.isCurrentSearchMatch = false,
   });
 
   @override
@@ -60,6 +73,8 @@ class MessageContentBuilder extends StatelessWidget {
             isMyMessage: isMyMessage,
             onTap: onAttachmentTap,
             customBuilder: customAttachmentBuilder,
+            autoDownloadConfig: autoDownloadConfig,
+            onPollVote: onPollVote,
           ),
         if (hasText) _buildTextContent(context, text),
       ],
@@ -73,14 +88,119 @@ class MessageContentBuilder extends StatelessWidget {
         horizontal: chatTheme.messageBubble.contentPadding,
         vertical: chatTheme.messageBubble.contentVerticalPadding,
       ),
-      child: TextPreviewWidget(
+      child: searchQuery != null && searchQuery!.isNotEmpty
+          ? _buildHighlightedText(context, text)
+          : SuperInteractiveTextPreview(
+              text: text,
+              textPreviewTheme: chatTheme.textPreview,
+              onRouteTap: onRouteTap,
+              onLinkTap: onLinkTap,
+              onEmailTap: onEmailTap,
+              onPhoneTap: onPhoneTap,
+            ),
+    );
+  }
+
+  /// Builds text with search highlighting.
+  Widget _buildHighlightedText(BuildContext context, String text) {
+    final searchTheme = chatTheme.searchHighlight;
+    final query = searchQuery!.toLowerCase();
+    final lowerText = text.toLowerCase();
+
+    // Find all matches
+    final matches = <Match>[];
+    int start = 0;
+    while (true) {
+      final index = lowerText.indexOf(query, start);
+      if (index == -1) break;
+      matches.add(_Match(index, index + query.length));
+      start = index + 1;
+    }
+
+    // If no matches, use regular text preview
+    if (matches.isEmpty) {
+      return SuperInteractiveTextPreview(
         text: text,
         textPreviewTheme: chatTheme.textPreview,
         onRouteTap: onRouteTap,
         onLinkTap: onLinkTap,
         onEmailTap: onEmailTap,
         onPhoneTap: onPhoneTap,
+      );
+    }
+
+    // Build text spans with highlighting
+    final spans = <TextSpan>[];
+    int currentPos = 0;
+
+    for (int i = 0; i < matches.length; i++) {
+      final match = matches[i];
+
+      // Add non-highlighted text before match
+      if (currentPos < match.start) {
+        spans.add(TextSpan(
+          text: text.substring(currentPos, match.start),
+        ));
+      }
+
+      // Add highlighted match
+      // For current match, use the current match color (more visible)
+      final isFirstMatch = i == 0 && isCurrentSearchMatch;
+      final backgroundColor = isFirstMatch
+          ? searchTheme.currentMatchColor
+          : searchTheme.highlightColor;
+      final textColor = isFirstMatch
+          ? searchTheme.currentMatchTextColor
+          : searchTheme.highlightTextColor;
+
+      spans.add(TextSpan(
+        text: text.substring(match.start, match.end),
+        style: TextStyle(
+          backgroundColor: backgroundColor,
+          color: textColor,
+        ),
+      ));
+
+      currentPos = match.end;
+    }
+
+    // Add remaining text after last match
+    if (currentPos < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(currentPos),
+      ));
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: chatTheme.typography.bodyMedium.copyWith(
+          color: chatTheme.colors.onSurface,
+        ),
+        children: spans,
       ),
     );
   }
+}
+
+/// Simple match helper class.
+class _Match implements Match {
+  @override
+  final int start;
+  @override
+  final int end;
+
+  _Match(this.start, this.end);
+
+  @override
+  String operator [](int group) => throw UnimplementedError();
+  @override
+  String? group(int group) => throw UnimplementedError();
+  @override
+  int get groupCount => 0;
+  @override
+  List<String?> groups(List<int> groupIndices) => throw UnimplementedError();
+  @override
+  String get input => throw UnimplementedError();
+  @override
+  Pattern get pattern => throw UnimplementedError();
 }

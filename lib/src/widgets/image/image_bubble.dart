@@ -1,11 +1,16 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:transfer_kit/transfer_kit.dart' hide ImageViewerFullScreen;
 
 import '../../adapters/adapters.dart';
+import '../../config/chat_message_ui_config.dart';
 import '../../theme/chat_theme.dart';
+import '../../transfer/media_transfer_controller.dart';
 import 'full_screen_image_viewer.dart';
 
 /// Constants for image bubble styling and configuration.
@@ -56,6 +61,9 @@ class ImageBubble extends StatefulWidget {
   /// Callback for long press
   final VoidCallback? onLongPress;
 
+  /// Auto-download policy for network media.
+  final AutoDownloadPolicy autoDownloadPolicy;
+
   const ImageBubble({
     super.key,
     required this.message,
@@ -69,6 +77,7 @@ class ImageBubble extends StatefulWidget {
     this.galleryCount = 1,
     this.galleryIndex = 0,
     this.onLongPress,
+    this.autoDownloadPolicy = AutoDownloadPolicy.never,
   });
 
   /// Returns the URL from mediaData if it's a network URL
@@ -93,12 +102,13 @@ class ImageBubble extends StatefulWidget {
 
   String? get thumbnailPath => thumbnailFilePath;
   String? get thumbnailUrl => message.mediaData?.thumbnailUrl;
-  int get fileSize => message.mediaData?.fileSize ?? 0;
+  int get fileSize => message.mediaData?.resolvedFileSize ?? 0;
 
   String get heroTag => '${ImageBubbleConstants.heroTagPrefix}${message.id}';
 
   double get aspectRatio {
-    double ratio = message.mediaData?.aspectRatio ?? ImageBubbleConstants.maxAspectRatio;
+    double ratio = message.mediaData?.resolvedAspectRatio ??
+        ImageBubbleConstants.maxAspectRatio;
     return ratio.clamp(
       ImageBubbleConstants.minAspectRatio,
       ImageBubbleConstants.maxAspectRatio,
@@ -112,6 +122,7 @@ class ImageBubble extends StatefulWidget {
 class _ImageBubbleState extends State<ImageBubble>
     with SingleTickerProviderStateMixin {
   bool _isPressed = false;
+  bool _autoStartTriggered = false;
 
   void _handleTapDown(TapDownDetails details) {
     setState(() => _isPressed = true);
@@ -123,6 +134,14 @@ class _ImageBubbleState extends State<ImageBubble>
 
   void _handleTapCancel() {
     setState(() => _isPressed = false);
+  }
+
+  @override
+  void didUpdateWidget(ImageBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url) {
+      _autoStartTriggered = false;
+    }
   }
 
   @override
@@ -169,18 +188,77 @@ class _ImageBubbleState extends State<ImageBubble>
       );
     }
 
-    // Priority 2: Network URL
-    if (widget.url != null) {
-      return _NetworkImage(
-        url: widget.url!,
-        thumbnailPath: widget.thumbnailPath,
-        thumbnailUrl: widget.thumbnailUrl,
-        chatTheme: widget.chatTheme,
-        showProgress: widget.showProgress,
+    // Priority 2: Network URL (cache-first with TransferKit)
+    final url = widget.url;
+    if (url != null) {
+      final controller = MediaTransferController.instance;
+      final downloadTask = controller.buildDownloadTask(
+        url: url,
+        fileName: widget.message.mediaData?.resolvedFileName,
+      );
+
+      return FutureBuilder(
+        future: controller.enqueueOrResume(downloadTask, autoStart: false),
+        builder: (context, asyncSnapshot) {
+          final (
+            String? filePath,
+            StreamController<TaskItem>? streamController
+          ) = asyncSnapshot.data ?? (null, null);
+
+          if (filePath != null) {
+            return _LocalImage(path: filePath, chatTheme: widget.chatTheme);
+          }
+
+          if (_shouldAutoStart() && !_autoStartTriggered) {
+            _autoStartTriggered = true;
+            controller.startDownload(downloadTask);
+          }
+
+          return StreamBuilder(
+            initialData:
+                FileTaskController.instance.fileUpdates[downloadTask.url],
+            stream: (streamController ??
+                    FileTaskController.instance.createFileController(
+                      downloadTask.url,
+                    ))
+                .stream,
+            builder: (context, snapshot) {
+              final taskItem = snapshot.data;
+              return MediaDownloadCard(
+                item: taskItem,
+                onStart: () => controller.startDownload(downloadTask),
+                onPause: controller.pauseDownload,
+                onResume: controller.resumeDownload,
+                onCancel: controller.cancelDownload,
+                onRetry: controller.retryDownload,
+                completedBuilder: (context, item) => _LocalImage(
+                  path: item.filePath,
+                  chatTheme: widget.chatTheme,
+                ),
+                thumbnailWidget: _ThumbnailPreview(
+                  thumbnailPath: widget.thumbnailPath,
+                  thumbnailUrl: widget.thumbnailUrl,
+                  metadataThumbnail: widget.message.mediaData?.thumbnail,
+                  chatTheme: widget.chatTheme,
+                ),
+              );
+            },
+          );
+        },
       );
     }
 
     return _ImageErrorWidget(chatTheme: widget.chatTheme);
+  }
+
+  bool _shouldAutoStart() {
+    switch (widget.autoDownloadPolicy) {
+      case AutoDownloadPolicy.always:
+        return true;
+      case AutoDownloadPolicy.wifiOnly:
+      case AutoDownloadPolicy.never:
+        return false;
+    }
   }
 
   void _showFullScreenImage(BuildContext context) {
@@ -195,7 +273,7 @@ class _ImageBubbleState extends State<ImageBubble>
             imagePath: path,
             isUrl: widget.localPath == null,
             heroTag: widget.heroTag,
-            fileName: widget.message.mediaData?.fileName,
+            fileName: widget.message.mediaData?.resolvedFileName,
             fileSize: widget.fileSize,
           );
         },
@@ -267,51 +345,22 @@ class _LocalImage extends StatelessWidget {
   }
 }
 
-/// Network image widget with progress and placeholder.
-class _NetworkImage extends StatelessWidget {
-  final String url;
+/// Thumbnail preview used during download.
+class _ThumbnailPreview extends StatelessWidget {
   final String? thumbnailPath;
   final String? thumbnailUrl;
+  final ThumbnailData? metadataThumbnail;
   final ChatThemeData chatTheme;
-  final bool showProgress;
 
-  const _NetworkImage({
-    required this.url,
-    this.thumbnailPath,
-    this.thumbnailUrl,
+  const _ThumbnailPreview({
+    required this.thumbnailPath,
+    required this.thumbnailUrl,
+    required this.metadataThumbnail,
     required this.chatTheme,
-    this.showProgress = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      placeholder: (context, url) => _buildPlaceholder(),
-      progressIndicatorBuilder: showProgress
-          ? (context, url, progress) {
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  _buildPlaceholder(),
-                  Center(
-                    child: _DownloadProgress(
-                      progress: progress.progress ?? 0,
-                    ),
-                  ),
-                ],
-              );
-            }
-          : null,
-      errorWidget: (context, url, error) {
-        return _ImageErrorWidget(chatTheme: chatTheme);
-      },
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    // Use thumbnail file if available
     if (thumbnailPath != null) {
       return _BlurredThumbnail(
         child: Image.file(
@@ -321,7 +370,6 @@ class _NetworkImage extends StatelessWidget {
       );
     }
 
-    // Use thumbnail URL if available
     if (thumbnailUrl != null) {
       return _BlurredThumbnail(
         child: CachedNetworkImage(
@@ -332,7 +380,32 @@ class _NetworkImage extends StatelessWidget {
       );
     }
 
+    final metadataWidget = _buildMetadataThumbnail();
+    if (metadataWidget != null) return metadataWidget;
+
     return _ShimmerPlaceholder(chatTheme: chatTheme);
+  }
+
+  Widget? _buildMetadataThumbnail() {
+    if (metadataThumbnail == null) return null;
+    if (metadataThumbnail!.bytes != null) {
+      return _BlurredThumbnail(
+        child: Image.memory(
+          metadataThumbnail!.bytes!,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    if (metadataThumbnail!.base64 != null) {
+      final bytes = base64Decode(metadataThumbnail!.base64!);
+      return _BlurredThumbnail(
+        child: Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    return null;
   }
 }
 
@@ -427,49 +500,7 @@ class _ShimmerPlaceholderState extends State<_ShimmerPlaceholder>
   }
 }
 
-/// Circular download progress indicator.
-class _DownloadProgress extends StatelessWidget {
-  final double progress;
-
-  const _DownloadProgress({required this.progress});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.5),
-        shape: BoxShape.circle,
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: 36,
-            height: 36,
-            child: CircularProgressIndicator(
-              value: progress,
-              strokeWidth: 3,
-              backgroundColor: Colors.white.withValues(alpha: 0.3),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ),
-          Text(
-            '${(progress * 100).toInt()}%',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// Intentionally left empty: progress UI handled by MediaDownloadCard.
 
 /// File size overlay widget.
 class _FileSizeOverlay extends StatelessWidget {

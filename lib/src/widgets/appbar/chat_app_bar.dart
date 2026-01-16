@@ -72,6 +72,9 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Custom trailing actions
   final List<Widget>? actions;
 
+  /// Additional actions to append to the default actions
+  final List<Widget>? additionalActions;
+
   /// Default icon for chats without image
   final IconData defaultIcon;
 
@@ -96,6 +99,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.menuItems,
     this.leading,
     this.actions,
+    this.additionalActions,
     this.defaultIcon = Icons.groups,
     this.backgroundColor,
     this.elevation = 0,
@@ -106,6 +110,13 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final defaultActions = _buildActions(context);
+    final allActions = actions ??
+        [
+          ...defaultActions,
+          if (additionalActions != null) ...additionalActions!,
+        ];
+
     return AppBar(
       leading: leading,
       title: GestureDetector(
@@ -118,7 +129,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           ],
         ),
       ),
-      actions: actions ?? _buildActions(context),
+      actions: allActions,
       backgroundColor: backgroundColor ?? Colors.transparent,
       surfaceTintColor: Colors.transparent,
       elevation: elevation,

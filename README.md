@@ -13,6 +13,8 @@ A comprehensive, feature-rich Chat UI library for Flutter. Platform-agnostic int
 - ⚡ **Smart Pagination** - Efficient list rendering with `smart_pagination` integration
 - 💬 **Interactive Features** - Reactions, swipe-to-reply, message selection
 - 🔄 **Adapter Pattern** - Easily integrate with any data source
+- 📦 **Cache-First Media** - TransferKit-based download and open flows
+- 💡 **Tooltip Suggestions** - Anchored floating suggestions with `TooltipCard`
 - 🎯 **Production Ready** - Battle-tested components
 
 ## Installation
@@ -29,6 +31,24 @@ dependencies:
 
 ```dart
 import 'package:chat_message_ui/chat_message_ui.dart';
+```
+
+### TransferKit Setup (Required for Media Downloads)
+
+Initialize TransferKit once in your app startup to enable cache-first
+media downloads used by the widgets:
+
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await TransferKitBridge.initialize(
+    cacheEnabled: true,
+    maxCacheSizeBytes: 1024 * 1024 * 1024, // 1 GB
+  );
+
+  runApp(const MyApp());
+}
 ```
 
 ---
@@ -133,6 +153,24 @@ enum ChatMessageType {
 | `ChatLocationData` | Location coordinates and name |
 | `ChatContactData` | Contact information |
 
+`ChatMediaData` supports attaching rich media details from TransferKit:
+
+```dart
+ChatMediaData(
+  url: mediaUrl,
+  mediaType: ChatMessageType.image,
+  metadata: MediaMetadata(
+    fileName: 'photo.jpg',
+    fileSize: 1024 * 1024,
+    aspectRatio: 1.33,
+    thumbnail: ThumbnailData(base64: '...'),
+  ),
+);
+```
+
+You can also derive `thumbnail`, `waveform`, and other metadata using
+TransferKit utilities before constructing `ChatMediaData`.
+
 ---
 
 ## Screens
@@ -151,8 +189,20 @@ ChatScreen(
   onAttachmentSelected: (source) {
     // Handle attachment selection
   },
+  onRecordingComplete: (path, duration, {waveform}) async {
+    // Send audio message with waveform if available
+  },
   onReactionTap: (message, emoji) {
     // Handle reaction
+  },
+  onForward: (messages) async {
+    // Forward selected messages
+  },
+  onCopy: (messages, resolvedText) async {
+    // Use resolvedText or override copy behavior
+  },
+  onPollVote: (message, optionId) {
+    // Handle poll vote
   },
   onRefresh: () async {
     // Refresh messages
@@ -160,10 +210,131 @@ ChatScreen(
   onDelete: (messages) {
     // Delete selected messages
   },
+  pinnedMessages: pinnedList,
+  onScrollToMessage: (messageId) async {
+    // Scroll to the message and return true on success
+    return true;
+  },
+  config: ChatMessageUiConfig(
+    enableSuggestions: true,
+    enableTextPreview: true,
+    pagination: ChatPaginationConfig(
+      listPadding: const EdgeInsets.all(16),
+      messagesGroupingMode: MessagesGroupingMode.sameMinute,
+      messagesGroupingTimeoutInSeconds: 300,
+    ),
+  ),
   showAvatar: true,
   appBar: AppBar(title: Text('Chat')),
 )
 ```
+
+### ChatScreen Selection Events
+
+```dart
+ChatScreen(
+  messagesCubit: mySmartPaginationCubit,
+  currentUserId: 'user123',
+  onReply: (message) async {
+    // Set reply message
+  },
+  onMessageInfo: (message) async {
+    // Show message info
+  },
+  onSelectionChanged: (selected) {
+    // Track selection state
+  },
+)
+```
+
+### ChatScreen Pinned Messages
+
+```dart
+ChatScreen(
+  messagesCubit: mySmartPaginationCubit,
+  currentUserId: 'user123',
+  pinnedMessages: pinnedList,
+  onScrollToMessage: (messageId) async {
+    return await scrollToMessage(messageId);
+  },
+  pinnedMessagesBuilder: (context, message, index, total, onTap) {
+    return PinnedMessagesBar(
+      message: message,
+      index: index,
+      total: total,
+      onTap: onTap,
+    );
+  },
+)
+```
+
+### ChatScreen Input Events
+
+```dart
+ChatScreen(
+  messagesCubit: mySmartPaginationCubit,
+  currentUserId: 'user123',
+  enableAttachments: true,
+  enableAudioRecording: true,
+  onPollRequested: () {
+    // Open poll creation flow
+  },
+  usernameProvider: myMentionProvider,
+  hashtagProvider: myHashtagProvider,
+  quickReplyProvider: myQuickReplyProvider,
+  taskProvider: myTaskProvider,
+)
+```
+
+### ChatScreen App Bar (Optional)
+
+```dart
+ChatScreen(
+  messagesCubit: mySmartPaginationCubit,
+  currentUserId: 'user123',
+  appBarData: ChatAppBarData(
+    id: 'chat-1',
+    title: 'Team Chat',
+    subtitle: '5 members',
+  ),
+  onAppBarTitleTap: () {},
+  onMenuSelection: (value) {},
+  onSearch: () {},
+)
+```
+
+### UI Configuration
+
+Global defaults can be set via `ChatMessageUiConfig.instance`, with optional
+per-screen overrides:
+
+```dart
+ChatMessageUiConfig.instance = ChatMessageUiConfig(
+  enableSuggestions: true,
+  enableTextPreview: true,
+  autoDownload: ChatAutoDownloadConfig(
+    image: AutoDownloadPolicy.never,
+    video: AutoDownloadPolicy.never,
+    audio: AutoDownloadPolicy.always,
+    document: AutoDownloadPolicy.never,
+  ),
+);
+
+ChatScreen(
+  messagesCubit: mySmartPaginationCubit,
+  currentUserId: 'user123',
+  config: ChatMessageUiConfig.instance.copyWith(
+    enableSuggestions: false,
+    autoDownload: ChatMessageUiConfig.instance.autoDownload.copyWith(
+      audio: AutoDownloadPolicy.never,
+    ),
+  ),
+)
+```
+
+`AutoDownloadPolicy.wifiOnly` is available for future network-aware behavior.
+Currently, only `always` triggers auto-start; `wifiOnly` behaves like manual
+until the host app enforces connectivity constraints.
 
 ### ChatMessageSearchView
 
@@ -727,6 +898,8 @@ lib/
 dependencies:
   flutter: sdk
   cached_network_image: any
+  transfer_kit: any
+  tooltip_card: any
   url_launcher: any
   intl: any
   lottie: any

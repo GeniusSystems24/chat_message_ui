@@ -5,3 +5,5 @@ library;
 
 export 'chat_app_bar.dart';
 export 'chat_selection_app_bar.dart';
+export 'pinned_messages_bar.dart';
+export 'search_matches_bar.dart';

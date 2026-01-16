@@ -30,11 +30,19 @@
 /// ```
 library;
 
+export 'package:smart_pagination/pagination.dart';
+export 'package:super_interactive_text/super_interactive_text.dart';
+export 'package:transfer_kit/transfer_kit.dart'
+    hide ImageBubbleConstants, ImageViewerFullScreen, MapNotifier, formatDuration, formatFileSize;
+
 // Adapters - Core data interfaces and models
 export 'src/adapters/adapters.dart';
 
 // Theme - Styling configuration
 export 'src/theme/theme.dart';
+
+// Config - Global and per-screen settings
+export 'src/config/chat_message_ui_config.dart';
 
 // Widgets - UI components
 export 'src/widgets/widgets.dart';
@@ -44,3 +52,7 @@ export 'src/screens/screens.dart';
 
 // Utils - Utility classes and functions
 export 'src/utils/utils.dart';
+
+// TransferKit bridge
+export 'src/transfer/transfer_kit_bridge.dart';
+export 'src/transfer/media_transfer_controller.dart';

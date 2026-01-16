@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:link_preview_generator/link_preview_generator.dart';
-import 'package:text_preview/text_preview.dart';
+import 'package:super_interactive_text/super_interactive_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Enum for preview location
@@ -12,7 +12,7 @@ class TextDataPreviewCard extends StatelessWidget {
   final PreviewLocation previewLocation;
 
   /// Text data for preview
-  final TextData textData;
+  final SuperInteractiveTextData textData;
 
   /// Card width
   final double? width;
@@ -43,20 +43,22 @@ class TextDataPreviewCard extends StatelessWidget {
 
   /// Build card content based on text type
   Widget _buildContent(BuildContext context, ThemeData theme) {
-    switch (textData.textType) {
-      case TextType.link:
-        return _buildLinkContent(context, theme);
-      case TextType.email:
-        return _buildEmailContent(context, theme);
-      case TextType.phone:
-        return _buildPhoneContent(context, theme);
-      case TextType.socialMedia:
-        return _buildSocialMediaContent(context, theme);
-      case TextType.route:
-        return _buildRouteContent(context, theme);
-      default:
-        return _buildDefaultContent(context, theme);
+    if (textData is LinkTextData) {
+      return _buildLinkContent(context, theme);
     }
+    if (textData is EmailTextData) {
+      return _buildEmailContent(context, theme);
+    }
+    if (textData is PhoneNumberTextData) {
+      return _buildPhoneContent(context, theme);
+    }
+    if (textData is SocialMediaTextData) {
+      return _buildSocialMediaContent(context, theme);
+    }
+    if (textData is RouteTextData) {
+      return _buildRouteContent(context, theme);
+    }
+    return _buildDefaultContent(context, theme);
   }
 
   Future<void> _launchUrl(String urlString) async {
@@ -192,7 +194,7 @@ class TextDataPreviewCard extends StatelessWidget {
     return InkWell(
       onTap: previewLocation == PreviewLocation.input
           ? null
-          : () => onRouteTap?.call(route.path),
+          : () => onRouteTap?.call(route.text),
       child: Container(
         constraints: constraints,
         child: _buildDefaultRouteView(theme, route),

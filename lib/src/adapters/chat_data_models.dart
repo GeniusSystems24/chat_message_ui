@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'package:transfer_kit/transfer_kit.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ENUMS
@@ -216,6 +217,7 @@ class ChatMediaData {
   final int? fileSize; // in bytes
   final String? fileName;
   final double? aspectRatio;
+  final MediaMetadata? metadata;
 
   const ChatMediaData({
     required this.url,
@@ -225,7 +227,35 @@ class ChatMediaData {
     this.fileSize,
     this.fileName,
     this.aspectRatio,
+    this.metadata,
   });
+
+  int? get resolvedDurationSeconds =>
+      duration ?? metadata?.durationInSeconds?.round();
+
+  int? get resolvedFileSize => fileSize ?? metadata?.fileSize;
+
+  String? get resolvedFileName => fileName ?? metadata?.fileName;
+
+  double? get resolvedAspectRatio => aspectRatio ?? metadata?.aspectRatio;
+
+  String? get mimeType => metadata?.mimeType;
+
+  int? get width => metadata?.width;
+
+  int? get height => metadata?.height;
+
+  double? get durationInSeconds => metadata?.durationInSeconds;
+
+  WaveformData? get waveform => metadata?.waveform;
+
+  ThumbnailData? get thumbnail => metadata?.thumbnail;
+
+  String? get sha256 => metadata?.sha256;
+
+  int? get pageCount => metadata?.pageCount;
+
+  bool get hasMetadata => metadata?.hasData == true;
 
   @override
   bool operator ==(Object other) =>

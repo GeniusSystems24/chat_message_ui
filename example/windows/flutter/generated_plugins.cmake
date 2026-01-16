@@ -3,6 +3,12 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  awesome_notifications
+  cloud_firestore
+  file_selector_windows
+  firebase_core
+  firebase_storage
+  pdfx
   record_windows
   url_launcher_windows
 )

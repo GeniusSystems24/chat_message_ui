@@ -1,8 +1,14 @@
 import 'package:flutter/widgets.dart';
-// Wait, map_extension is project specific. I need to remove this dependency.
-// I will implement helper methods or use standard map access.
+
+import 'floating_suggestion/floating_suggestion.dart';
+
+// Re-export new suggestion system for convenience
+export 'floating_suggestion/floating_suggestion.dart';
 
 /// Suggestion type in floating card
+///
+/// @Deprecated: Consider using [SuggestionTypeConfig] and [FloatingSuggestionTypes]
+/// for more customization options.
 enum FloatingSuggestionType {
   username(symbol: '@'),
   hashtag(symbol: '#'),
@@ -11,9 +17,26 @@ enum FloatingSuggestionType {
 
   final String symbol;
   const FloatingSuggestionType({required this.symbol});
+
+  /// Convert to new [SuggestionTypeConfig]
+  SuggestionTypeConfig toConfig() {
+    switch (this) {
+      case FloatingSuggestionType.username:
+        return FloatingSuggestionTypes.username;
+      case FloatingSuggestionType.hashtag:
+        return FloatingSuggestionTypes.hashtag;
+      case FloatingSuggestionType.quickReply:
+        return FloatingSuggestionTypes.quickReply;
+      case FloatingSuggestionType.clubChatTask:
+        return FloatingSuggestionTypes.task;
+    }
+  }
 }
 
 /// Suggestion item in floating card
+///
+/// This is the legacy item class. For new implementations, consider using
+/// [FloatingSuggestionItemData] which provides more options.
 class FloatingSuggestionItem<T> {
   final T value;
   final String label;
@@ -28,6 +51,17 @@ class FloatingSuggestionItem<T> {
     this.icon,
     required this.type,
   });
+
+  /// Convert to new [FloatingSuggestionItemData]
+  FloatingSuggestionItemData<T> toItemData() {
+    return FloatingSuggestionItemData<T>(
+      value: value,
+      label: label,
+      subtitle: subtitle,
+      icon: icon,
+      typeConfig: type.toConfig(),
+    );
+  }
 }
 
 /// Data model for mention suggestions
@@ -47,6 +81,18 @@ class ChatUserSuggestion {
   });
 
   String get mentionText => '@${username ?? id}';
+
+  /// Convert to [FloatingSuggestionItemData]
+  FloatingSuggestionItemData<ChatUserSuggestion> toSuggestionItem() {
+    return FloatingSuggestionItemData<ChatUserSuggestion>(
+      value: this,
+      label: name,
+      subtitle: username != null ? '@$username' : role,
+      imageUrl: imageUrl,
+      typeConfig: FloatingSuggestionTypes.username,
+      searchKeywords: [if (username != null) username!, if (role != null) role!],
+    );
+  }
 }
 
 /// Quick reply model
@@ -71,6 +117,16 @@ class QuickReply {
   QuickReply.fromMap(this.data);
 
   Map<String, dynamic> toMap() => data;
+
+  /// Convert to [FloatingSuggestionItemData]
+  FloatingSuggestionItemData<QuickReply> toSuggestionItem() {
+    return FloatingSuggestionItemData<QuickReply>(
+      value: this,
+      label: '/$command',
+      subtitle: response,
+      typeConfig: FloatingSuggestionTypes.quickReply,
+    );
+  }
 
   @override
   String toString() =>
@@ -101,6 +157,15 @@ class Hashtag {
 
   Map<String, dynamic> toMap() => data;
 
+  /// Convert to [FloatingSuggestionItemData]
+  FloatingSuggestionItemData<Hashtag> toSuggestionItem() {
+    return FloatingSuggestionItemData<Hashtag>(
+      value: this,
+      label: '#$hashtag',
+      typeConfig: FloatingSuggestionTypes.hashtag,
+    );
+  }
+
   @override
   String toString() => 'Hashtag(id: $id, hashtag: $hashtag)';
 
@@ -111,7 +176,3 @@ class Hashtag {
   @override
   int get hashCode => id.hashCode;
 }
-
-// Placeholder for ClubChatTaskModel if needed, or use dynamic/T
-// I'll leave it out or define a basic one if used by Type enum.
-// It is used in FloatingSuggestionType.clubChatTask.

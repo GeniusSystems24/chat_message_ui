@@ -1,10 +1,9 @@
-﻿part of 'audio_bubble.dart';
+part of 'audio_bubble.dart';
 
 /// Waveform section widget containing waveform and duration.
 class _AudioWaveformSection extends StatelessWidget {
   final String messageId;
   final String? filePath;
-  final String? url;
   final List<double> waveform;
   final int durationInSeconds;
   final Function(double position)? onSeek;
@@ -12,7 +11,6 @@ class _AudioWaveformSection extends StatelessWidget {
   const _AudioWaveformSection({
     required this.messageId,
     this.filePath,
-    this.url,
     required this.waveform,
     required this.durationInSeconds,
     this.onSeek,
@@ -24,7 +22,6 @@ class _AudioWaveformSection extends StatelessWidget {
     final audioPlayer = AudioPlayerFactory.create(
       messageId,
       filePath: filePath,
-      url: url,
     );
 
     return StreamBuilder<Duration>(

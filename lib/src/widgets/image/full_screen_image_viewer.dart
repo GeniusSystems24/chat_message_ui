@@ -215,7 +215,6 @@ class _ImageViewerFullScreenState extends State<ImageViewerFullScreen>
       return CachedNetworkImage(
         imageUrl: widget.imagePath,
         fit: BoxFit.contain,
-        placeholder: (context, url) => const _LoadingIndicator(),
         progressIndicatorBuilder: (context, url, progress) {
           return Center(
             child: _LoadingWithProgress(progress: progress.progress ?? 0),

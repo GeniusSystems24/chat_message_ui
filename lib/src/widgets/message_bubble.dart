@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:text_preview/text_preview.dart';
+import 'package:super_interactive_text/super_interactive_text.dart';
 
 import '../theme/chat_theme.dart';
 import '../adapters/adapters.dart';
+import '../config/chat_message_ui_config.dart';
 import '../utils/messages_grouping.dart';
 import 'message_bubble_layout.dart';
 import 'message_content_builder.dart';
@@ -60,8 +61,20 @@ class MessageBubble extends StatelessWidget {
   /// Callback for attachment taps.
   final VoidCallback? onAttachmentTap;
 
+  /// Callback for poll option selection.
+  final Function(String optionId)? onPollVote;
+
   /// Custom builder for deleted message content.
   final Widget Function(BuildContext context)? deletedMessageBuilder;
+
+  /// Auto-download settings for media attachments.
+  final ChatAutoDownloadConfig? autoDownloadConfig;
+
+  /// Current search query to highlight in text content.
+  final String? searchQuery;
+
+  /// Whether this message is the current search match.
+  final bool isCurrentSearchMatch;
 
   const MessageBubble({
     super.key,
@@ -80,7 +93,11 @@ class MessageBubble extends StatelessWidget {
     this.onRouteTap,
     this.onLinkTap,
     this.onAttachmentTap,
+    this.onPollVote,
     this.deletedMessageBuilder,
+    this.autoDownloadConfig,
+    this.searchQuery,
+    this.isCurrentSearchMatch = false,
   });
 
   /// Whether this message was sent by the current user.
@@ -195,9 +212,13 @@ class MessageBubble extends StatelessWidget {
           message: message,
           chatTheme: chatTheme,
           isMyMessage: isMyMessage,
+          autoDownloadConfig: autoDownloadConfig,
+          searchQuery: searchQuery,
+          isCurrentSearchMatch: isCurrentSearchMatch,
           onRouteTap: onRouteTap,
           onLinkTap: onLinkTap,
           onAttachmentTap: onAttachmentTap,
+          onPollVote: onPollVote,
         ),
         if (_shouldShowMetadata())
           MessageMetadataBuilder(
@@ -261,10 +282,10 @@ class MessageBubble extends StatelessWidget {
       borderRadius: BorderRadiusDirectional.only(
         topStart: Radius.circular(chatTheme.messageBubble.bubbleRadius),
         topEnd: Radius.circular(chatTheme.messageBubble.bubbleRadius),
-        bottomStart: isMyMessage && isFirstInGroup
+        bottomStart: !(isMyMessage && isFirstInGroup)
             ? Radius.zero
             : Radius.circular(chatTheme.messageBubble.bubbleRadius),
-        bottomEnd: !isMyMessage && isFirstInGroup
+        bottomEnd: !(!isMyMessage && isFirstInGroup)
             ? Radius.zero
             : Radius.circular(chatTheme.messageBubble.bubbleRadius),
       ),

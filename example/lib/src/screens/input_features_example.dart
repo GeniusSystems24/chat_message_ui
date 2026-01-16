@@ -5,6 +5,7 @@ import 'package:smart_pagination/pagination.dart';
 import '../data/example_message.dart';
 import '../data/example_pagination.dart';
 import '../data/example_sample_data.dart';
+import 'shared/example_scaffold.dart';
 
 class InputFeaturesExample extends StatefulWidget {
   const InputFeaturesExample({super.key});
@@ -17,6 +18,7 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
   final ValueNotifier<ChatReplyData?> _replyNotifier = ValueNotifier(null);
   late final List<ExampleMessage> _messages;
   late final ExamplePaginationHelper<ExampleMessage> _pagination;
+  int _pinnedIndex = 0;
 
   final List<ChatUserSuggestion> _users = const [
     ChatUserSuggestion(id: 'user_2', name: 'Omar', username: 'omar'),
@@ -68,9 +70,45 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Input Features')),
+      appBar: AppBar(
+        title: const Text('Input Features'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Screen Overview',
+            onPressed: () => ExampleDescription.showAsBottomSheet(
+              context,
+              title: 'Screen Overview',
+              icon: Icons.keyboard_outlined,
+              lines: const [
+                'Highlights advanced input options like mentions and quick replies.',
+                'Shows reply preview, attachments, and command suggestions together.',
+                'Useful to validate input UX before wiring real message delivery.',
+              ],
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
+          if (_messages.isNotEmpty)
+            PinnedMessagesBar(
+              message: _messages[_pinnedIndex % _messages.length],
+              index: _pinnedIndex % _messages.length,
+              total: _messages.length,
+              onTap: () {
+                setState(() {
+                  _pinnedIndex = (_pinnedIndex + 1) % _messages.length;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Pinned: ${_messages[_pinnedIndex % _messages.length].id}',
+                    ),
+                  ),
+                );
+              },
+            ),
           _buildHintCard(context),
           const SizedBox(height: 12),
           Expanded(
@@ -113,6 +151,20 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
                 SnackBar(content: Text('Attachment selected: ${type.name}')),
               );
             },
+            onPollRequested: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Create poll requested')),
+              );
+            },
+            onRecordingComplete: (path, duration, {waveform}) async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Recorded ${duration}s (waveform: ${waveform?.length ?? 0})',
+                  ),
+                ),
+              );
+            },
             replyMessage: _replyNotifier,
             usernameProvider: _usernameProvider,
             hashtagProvider: _hashtagProvider,
@@ -126,7 +178,14 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
 
   Widget _buildHintCard(BuildContext context) {
     final theme = Theme.of(context);
-    final hints = ['@mention', '#hashtag', '/quick', r'$task', 'Paste a link'];
+    final hints = [
+      '@mention',
+      '#hashtag',
+      '/quick',
+      r'$task',
+      'Paste a link',
+      'Polls',
+    ];
 
     return Container(
       padding: const EdgeInsets.all(16),

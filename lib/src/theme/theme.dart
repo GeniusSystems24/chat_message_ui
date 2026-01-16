@@ -4,3 +4,4 @@
 library;
 
 export 'chat_theme.dart';
+export 'search_highlight_theme.dart';

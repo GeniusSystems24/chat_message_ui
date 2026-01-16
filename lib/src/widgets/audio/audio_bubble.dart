@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:transfer_kit/transfer_kit.dart';
 
 import '../../theme/chat_theme.dart';
 import '../../adapters/chat_message_data.dart';
+import '../../config/chat_message_ui_config.dart';
+import '../../transfer/media_transfer_controller.dart';
 import 'audio_player_factory.dart';
 
 part 'audio_loading_widget.dart';
@@ -41,6 +45,9 @@ class AudioBubble extends StatefulWidget {
   /// Custom primary color for the player
   final Color? primaryColor;
 
+  /// Auto-download policy for network media.
+  final AutoDownloadPolicy autoDownloadPolicy;
+
   const AudioBubble({
     super.key,
     required this.message,
@@ -49,6 +56,7 @@ class AudioBubble extends StatefulWidget {
     this.showSpeedControl = false,
     this.isVoiceMessage = true,
     this.primaryColor,
+    this.autoDownloadPolicy = AutoDownloadPolicy.never,
   });
 
   String get messageId => message.id;
@@ -60,13 +68,13 @@ class AudioBubble extends StatefulWidget {
   }
 
   /// Duration of the audio in seconds.
-  int get duration => message.mediaData?.duration ?? 0;
+  int get duration => message.mediaData?.resolvedDurationSeconds ?? 0;
 
   /// File size in bytes.
-  int get fileSize => message.mediaData?.fileSize ?? 0;
+  int get fileSize => message.mediaData?.resolvedFileSize ?? 0;
 
   /// File name of the document.
-  String? get fileName => message.mediaData?.fileName;
+  String? get fileName => message.mediaData?.resolvedFileName;
 
   @override
   State<AudioBubble> createState() => _AudioBubbleState();
@@ -77,6 +85,7 @@ class _AudioBubbleState extends State<AudioBubble>
   List<double> _displayWaveform = [];
   double _currentSpeed = 1.0;
   late AnimationController _loadingController;
+  bool _autoStartTriggered = false;
 
   static const List<double> _availableSpeeds = [1.0, 1.25, 1.5, 1.75, 2.0, 0.5, 0.75];
 
@@ -97,6 +106,9 @@ class _AudioBubbleState extends State<AudioBubble>
         oldWidget.duration != widget.duration) {
       _initializeWaveform();
     }
+    if (oldWidget.audioSource != widget.audioSource) {
+      _autoStartTriggered = false;
+    }
   }
 
   @override
@@ -108,6 +120,13 @@ class _AudioBubbleState extends State<AudioBubble>
   void _initializeWaveform() {
     if (widget.waveformData != null && widget.waveformData!.isNotEmpty) {
       _displayWaveform = widget.waveformData!;
+      return;
+    }
+
+    final metadataWaveform = widget.message.mediaData?.waveform?.samples;
+    if (metadataWaveform != null && metadataWaveform.isNotEmpty) {
+      _displayWaveform = metadataWaveform;
+      return;
     } else {
       final pointCount = widget.duration > 0 ? widget.duration : 60;
       final actualPointCount =
@@ -140,27 +159,144 @@ class _AudioBubbleState extends State<AudioBubble>
   Widget build(BuildContext context) {
     final chatTheme = ChatThemeData.get(context);
     final source = widget.audioSource;
-
     if (source == null || source.isEmpty) {
       return _AudioEmptyState(chatTheme: chatTheme);
     }
 
     final isUrl = source.startsWith('http') || source.startsWith('https');
+    if (!isUrl) {
+      return _AudioPlayerCard(
+        filePath: source,
+        messageId: widget.messageId,
+        waveform: _displayWaveform,
+        durationInSeconds: widget.duration,
+        fileSize: widget.fileSize,
+        onSeek: _handleSeek,
+        showSpeedControl: widget.showSpeedControl,
+        currentSpeed: _currentSpeed,
+        onSpeedChange: _cycleSpeed,
+        isVoiceMessage: widget.isVoiceMessage,
+        loadingAnimation: _loadingController,
+        primaryColor: widget.primaryColor,
+      );
+    }
 
-    return _AudioPlayerCard(
-      url: isUrl ? source : null,
-      filePath: !isUrl ? source : null,
-      messageId: widget.messageId,
-      waveform: _displayWaveform,
-      durationInSeconds: widget.duration,
-      fileSize: widget.fileSize,
-      onSeek: _handleSeek,
-      showSpeedControl: widget.showSpeedControl,
-      currentSpeed: _currentSpeed,
-      onSpeedChange: _cycleSpeed,
-      isVoiceMessage: widget.isVoiceMessage,
-      loadingAnimation: _loadingController,
-      primaryColor: widget.primaryColor,
+    return _buildDownloadContent(context, source);
+  }
+
+  Widget _buildDownloadContent(BuildContext context, String url) {
+    final controller = MediaTransferController.instance;
+    final downloadTask = controller.buildDownloadTask(
+      url: url,
+      fileName: widget.fileName,
+    );
+
+    return FutureBuilder(
+      future: controller.enqueueOrResume(downloadTask, autoStart: false),
+      builder: (context, asyncSnapshot) {
+        final (
+          String? filePath,
+          StreamController<TaskItem>? streamController
+        ) = asyncSnapshot.data ?? (null, null);
+
+        if (filePath != null) {
+          return _AudioPlayerCard(
+            filePath: filePath,
+            messageId: widget.messageId,
+            waveform: _displayWaveform,
+            durationInSeconds: widget.duration,
+            fileSize: widget.fileSize,
+            onSeek: _handleSeek,
+            showSpeedControl: widget.showSpeedControl,
+            currentSpeed: _currentSpeed,
+            onSpeedChange: _cycleSpeed,
+            isVoiceMessage: widget.isVoiceMessage,
+            loadingAnimation: _loadingController,
+            primaryColor: widget.primaryColor,
+          );
+        }
+
+        if (_shouldAutoStart() && !_autoStartTriggered) {
+          _autoStartTriggered = true;
+          controller.startDownload(downloadTask);
+        }
+
+        return StreamBuilder(
+          initialData: FileTaskController.instance.fileUpdates[downloadTask.url],
+          stream: (streamController ??
+                  FileTaskController.instance.createFileController(
+                    downloadTask.url,
+                  ))
+              .stream,
+          builder: (context, snapshot) {
+            final taskItem = snapshot.data;
+            return DocumentDownloadCard(
+              item: taskItem,
+              fileName: widget.fileName,
+              fileSize: widget.fileSize,
+              onStart: () => controller.startDownload(downloadTask),
+              onPause: controller.pauseDownload,
+              onResume: controller.resumeDownload,
+              onCancel: controller.cancelDownload,
+              onRetry: controller.retryDownload,
+              completedBuilder: (context, item) => _AudioPlayerCard(
+                filePath: item.filePath,
+                messageId: widget.messageId,
+                waveform: _displayWaveform,
+                durationInSeconds: widget.duration,
+                fileSize: widget.fileSize,
+                onSeek: _handleSeek,
+                showSpeedControl: widget.showSpeedControl,
+                currentSpeed: _currentSpeed,
+                onSpeedChange: _cycleSpeed,
+                isVoiceMessage: widget.isVoiceMessage,
+                loadingAnimation: _loadingController,
+                primaryColor: widget.primaryColor,
+              ),
+              loadingBuilder: (context, item) =>
+                  _buildWaveformLoading(context),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  bool _shouldAutoStart() {
+    switch (widget.autoDownloadPolicy) {
+      case AutoDownloadPolicy.always:
+        return true;
+      case AutoDownloadPolicy.wifiOnly:
+      case AutoDownloadPolicy.never:
+        return false;
+    }
+  }
+
+  Widget _buildWaveformLoading(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: AudioBubbleConstants.smallSpacing),
+        InteractiveAudioWaveform(
+          amplitudes: _displayWaveform,
+          progress: 0,
+          type: WaveformType.static,
+          height: AudioBubbleConstants.waveformHeight,
+          primaryColor: Theme.of(context).colorScheme.primary,
+          secondaryColor: Theme.of(context)
+              .colorScheme
+              .onSurface
+              .withValues(alpha: AudioBubbleConstants.opacitySecondary),
+          onSeek: null,
+          interactive: false,
+        ),
+        const SizedBox(height: AudioBubbleConstants.smallSpacing),
+        _AudioDurationDisplay(
+          currentPosition: 0,
+          totalDuration: widget.duration,
+        ),
+      ],
     );
   }
 }
@@ -168,7 +304,6 @@ class _AudioBubbleState extends State<AudioBubble>
 /// Main audio player card widget.
 class _AudioPlayerCard extends StatelessWidget {
   final String? filePath;
-  final String? url;
   final String messageId;
   final List<double> waveform;
   final int durationInSeconds;
@@ -183,7 +318,6 @@ class _AudioPlayerCard extends StatelessWidget {
 
   const _AudioPlayerCard({
     this.filePath,
-    this.url,
     required this.messageId,
     required this.waveform,
     required this.durationInSeconds,
@@ -219,7 +353,6 @@ class _AudioPlayerCard extends StatelessWidget {
           _PlayPauseButton(
             messageId: messageId,
             filePath: filePath,
-            url: url,
             isVoiceMessage: isVoiceMessage,
             loadingAnimation: loadingAnimation,
             color: playerColor,
@@ -235,7 +368,6 @@ class _AudioPlayerCard extends StatelessWidget {
                 _AudioWaveformSection(
                   messageId: messageId,
                   filePath: filePath,
-                  url: url,
                   waveform: waveform,
                   durationInSeconds: durationInSeconds,
                   onSeek: onSeek,
@@ -274,7 +406,6 @@ class _AudioPlayerCard extends StatelessWidget {
 class _PlayPauseButton extends StatelessWidget {
   final String messageId;
   final String? filePath;
-  final String? url;
   final bool isVoiceMessage;
   final AnimationController loadingAnimation;
   final Color color;
@@ -282,7 +413,6 @@ class _PlayPauseButton extends StatelessWidget {
   const _PlayPauseButton({
     required this.messageId,
     this.filePath,
-    this.url,
     this.isVoiceMessage = true,
     required this.loadingAnimation,
     required this.color,
@@ -293,7 +423,6 @@ class _PlayPauseButton extends StatelessWidget {
     final audioPlayer = AudioPlayerFactory.create(
       messageId,
       filePath: filePath,
-      url: url,
     );
 
     return StreamBuilder<PlayerState>(
@@ -321,7 +450,6 @@ class _PlayPauseButton extends StatelessWidget {
                     AudioPlayerFactory.play(
                       messageId,
                       filePath: filePath,
-                      url: url,
                     );
                   }
                 },
