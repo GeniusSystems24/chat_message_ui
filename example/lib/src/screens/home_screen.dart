@@ -407,6 +407,7 @@ class _FeaturesGrid extends StatelessWidget {
       _FeatureItem('App Bar', 'Title, avatar, actions', Icons.web_asset_outlined, Colors.green, const AppBarExample()),
       _FeatureItem('Replies', 'Reply preview & context', Icons.reply_outlined, Colors.orange, const ReplyExample()),
       _FeatureItem('Search', 'Find messages', Icons.search_outlined, Colors.purple, const SearchExample()),
+      _FeatureItem('Custom Builders', 'Custom bubble rendering', Icons.build_outlined, Colors.teal, const CustomBuildersExample()),
     ];
 
     return GridView.builder(

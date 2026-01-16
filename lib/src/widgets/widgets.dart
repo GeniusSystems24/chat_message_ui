@@ -4,6 +4,7 @@
 library;
 
 export 'attachment_builder.dart';
+export 'bubble_builders.dart';
 export 'message_bubble.dart';
 export 'message_bubble_layout.dart';
 export 'message_content_builder.dart';

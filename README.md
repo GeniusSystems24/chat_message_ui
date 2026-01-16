@@ -1037,6 +1037,68 @@ ChatInput(
 )
 ```
 
+#### BubbleBuilders
+
+Customize how different message types are rendered with custom builders:
+
+```dart
+// Define custom builders
+final customBuilders = BubbleBuilders(
+  // Custom image bubble
+  imageBubbleBuilder: (context, builderContext, media) {
+    return MyCustomImageBubble(
+      imageUrl: media.url,
+      isMyMessage: builderContext.isMyMessage,
+      onTap: builderContext.onTap,
+    );
+  },
+
+  // Custom audio bubble
+  audioBubbleBuilder: (context, builderContext, media) {
+    return MyCustomAudioPlayer(
+      audioUrl: media.url,
+      duration: media.duration,
+    );
+  },
+
+  // Custom poll bubble
+  pollBubbleBuilder: (context, builderContext, poll, onVote) {
+    return MyCustomPollWidget(
+      question: poll.question,
+      options: poll.options,
+      onVote: onVote,
+    );
+  },
+
+  // Custom context menu
+  contextMenuBuilder: (context, builderContext) async {
+    return showMyCustomMenu(
+      context,
+      position: builderContext.position,
+      message: builderContext.message,
+    );
+  },
+);
+
+// Use in MessageBubble
+MessageBubble(
+  message: message,
+  currentUserId: userId,
+  bubbleBuilders: customBuilders,
+)
+```
+
+Available builders:
+- `textBubbleBuilder` - Custom text message rendering
+- `audioBubbleBuilder` - Custom audio player
+- `imageBubbleBuilder` - Custom image display
+- `videoBubbleBuilder` - Custom video player
+- `pollBubbleBuilder` - Custom poll UI
+- `locationBubbleBuilder` - Custom location display
+- `contactBubbleBuilder` - Custom contact card
+- `documentBubbleBuilder` - Custom document preview
+- `contextMenuBuilder` - Custom long-press menu
+
 ---
 
 ## Utilities

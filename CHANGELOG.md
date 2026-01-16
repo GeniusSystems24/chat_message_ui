@@ -50,6 +50,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Shows above input field when editing a message.
   - Cancel button to exit edit mode.
   - `EditMessageData` helper class for state management.
+- New `BubbleBuilders` class for customizing message bubble rendering.
+  - `textBubbleBuilder` - Custom text message builder
+  - `audioBubbleBuilder` - Custom audio message builder
+  - `imageBubbleBuilder` - Custom image message builder
+  - `videoBubbleBuilder` - Custom video message builder
+  - `pollBubbleBuilder` - Custom poll message builder
+  - `locationBubbleBuilder` - Custom location message builder
+  - `contactBubbleBuilder` - Custom contact message builder
+  - `documentBubbleBuilder` - Custom document message builder
+  - `contextMenuBuilder` - Custom context menu builder
+  - `BubbleBuilderContext` provides message data and theme to builders
+  - Supports full customization while maintaining default fallbacks
 
 ### Changed
 
