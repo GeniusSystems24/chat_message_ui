@@ -5,11 +5,37 @@ import '../../data/example_message.dart';
 import '../shared/example_scaffold.dart';
 
 /// Example screen showcasing all AudioBubble features and properties.
-class AudioBubbleExample extends StatelessWidget {
+class AudioBubbleExample extends StatefulWidget {
   const AudioBubbleExample({super.key});
 
+  @override
+  State<AudioBubbleExample> createState() => _AudioBubbleExampleState();
+}
+
+class _AudioBubbleExampleState extends State<AudioBubbleExample> {
   static const String _sampleAudioUrl =
       'https://firebasestorage.googleapis.com/v0/b/skycachefiles.appspot.com/o/WhatsApp%20Ptt%202026-01-06%20at%2019.11.56.mp3?alt=media&token=8bc5b4c3-d4d1-4fb5-a207-63f0744079b1';
+
+  String _playbackStatus = 'No audio playing';
+  int _activeAudios = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to audio state changes
+    AudioPlayerFactory.stateStream.listen((state) {
+      if (mounted) {
+        setState(() {
+          if (state.isPlaying) {
+            _playbackStatus = 'Playing: ${state.id}';
+          } else if (state.isPaused) {
+            _playbackStatus = 'Paused: ${state.id}';
+          }
+          _activeAudios = AudioPlayerFactory.controllersCount;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +55,103 @@ class AudioBubbleExample extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
+
+          // Audio Playback Manager Section
+          const ExampleSectionHeader(
+            title: 'Audio Playback Manager',
+            description: 'Centralized audio control with video coordination',
+            icon: Icons.speaker_group_outlined,
+          ),
+          const SizedBox(height: 12),
+          DemoContainer(
+            title: 'Playback Status',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'When audio plays, all videos automatically pause.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _playbackStatus.contains('Playing')
+                                ? Icons.play_circle
+                                : Icons.pause_circle,
+                            color: _playbackStatus.contains('Playing')
+                                ? Colors.green
+                                : Colors.grey,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _playbackStatus,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Active audio controllers: $_activeAudios',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          await AudioPlayerFactory.pauseAll();
+                          setState(() {
+                            _playbackStatus = 'All paused';
+                          });
+                        },
+                        icon: const Icon(Icons.pause, size: 18),
+                        label: const Text('Pause All'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final count = await AudioPlayerFactory.disposeAll();
+                          setState(() {
+                            _playbackStatus = 'Disposed $count controllers';
+                            _activeAudios = 0;
+                          });
+                        },
+                        icon: const Icon(Icons.clear_all, size: 18),
+                        label: const Text('Dispose All'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',
@@ -243,7 +366,7 @@ class AudioBubbleExample extends StatelessWidget {
 
           // Code Example
           const CodeSnippet(
-            title: 'Usage Example',
+            title: 'AudioBubble Usage',
             code: '''AudioBubble(
   message: message,
   isVoiceMessage: true,
@@ -251,6 +374,41 @@ class AudioBubbleExample extends StatelessWidget {
   primaryColor: Colors.blue,
   waveformData: [0.2, 0.5, 0.8, 0.3, ...],
 )''',
+          ),
+          const SizedBox(height: 16),
+
+          // AudioPlayerFactory Code Example
+          const CodeSnippet(
+            title: 'AudioPlayerFactory Usage',
+            code: '''// Play audio (auto-pauses all videos)
+await AudioPlayerFactory.play(
+  'audio-123',
+  filePath: '/path/to/audio.mp3',
+);
+
+// Pause audio
+await AudioPlayerFactory.pause('audio-123');
+
+// Seek to position
+await AudioPlayerFactory.seek(
+  'audio-123',
+  Duration(seconds: 10),
+);
+
+// Control speed (0.5x - 2.0x)
+await AudioPlayerFactory.setSpeed('audio-123', 1.5);
+
+// Listen to state changes
+AudioPlayerFactory.stateStream.listen((state) {
+  print('Audio \${state.id}: \${state.isPlaying}');
+  print('Position: \${state.positionInSeconds}s');
+});
+
+// Pause all audio
+await AudioPlayerFactory.pauseAll();
+
+// Cleanup
+await AudioPlayerFactory.dispose('audio-123');''',
           ),
           const SizedBox(height: 32),
         ],
