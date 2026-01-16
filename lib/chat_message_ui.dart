@@ -32,6 +32,7 @@ library;
 
 export 'package:smart_pagination/pagination.dart';
 export 'package:super_interactive_text/super_interactive_text.dart';
+export 'package:get_storage/get_storage.dart';
 export 'package:transfer_kit/transfer_kit.dart'
     hide ImageBubbleConstants, ImageViewerFullScreen, MapNotifier, formatDuration, formatFileSize;
 

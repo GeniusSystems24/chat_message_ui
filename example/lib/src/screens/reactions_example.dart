@@ -54,7 +54,7 @@ class _ReactionsExampleState extends State<ReactionsExample> {
               currentUserId: ExampleSampleData.currentUserId,
               onClose: _clearSelection,
               onReply: (msg) {
-                _showSnackBar('Reply to: ${msg.message}');
+                _showSnackBar('Reply to: ${msg.textContent}');
                 _clearSelection();
               },
               onCopy: () {
@@ -220,10 +220,10 @@ class _ReactionsExampleState extends State<ReactionsExample> {
   void _handleAction(MessageAction action, ExampleMessage message) {
     switch (action) {
       case MessageAction.reply:
-        _showSnackBar('Reply to: ${message.message}');
+        _showSnackBar('Reply to: ${message.textContent}');
         break;
       case MessageAction.copy:
-        _showSnackBar('Copied: ${message.message}');
+        _showSnackBar('Copied: ${message.textContent}');
         break;
       case MessageAction.forward:
         _showSnackBar('Forward message');

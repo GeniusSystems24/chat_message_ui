@@ -138,7 +138,7 @@ class EditMessagePreview extends StatelessWidget {
       case ChatMessageType.poll:
         return 'Poll';
       default:
-        return message.message ?? '';
+        return message.textContent ?? '';
     }
   }
 }
@@ -157,7 +157,7 @@ class EditMessageData {
   });
 
   /// Whether the text has been modified.
-  bool get isModified => currentText != (message.message ?? '');
+  bool get isModified => currentText != (message.textContent ?? '');
 
   /// Whether the edit is valid (not empty and modified).
   bool get isValid => currentText.trim().isNotEmpty && isModified;
