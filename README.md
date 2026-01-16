@@ -938,6 +938,105 @@ await MediaPlaybackManager.instance.dispose();
 coordinate through this manager, so you typically don't need to use
 `MediaPlaybackManager` directly unless you need custom playback logic.
 
+#### MessageReactionBar
+
+WhatsApp-style horizontal reaction bar for quick emoji selection:
+
+```dart
+MessageReactionBar(
+  reactions: const ['❤️', '😂', '😮', '😢', '🙏', '👍'],
+  onReactionSelected: (emoji) {
+    print('Selected: $emoji');
+    addReaction(messageId, emoji);
+  },
+  onMorePressed: () async {
+    // Show full emoji picker
+    final emoji = await ReactionEmojiPicker.show(context);
+    if (emoji != null) {
+      addReaction(messageId, emoji);
+    }
+  },
+  selectedReaction: currentUserReaction, // Highlight user's existing reaction
+)
+```
+
+#### MessageContextMenu
+
+Full context menu with reactions and actions for long-press on messages:
+
+```dart
+// Show context menu on long press
+GestureDetector(
+  onLongPressStart: (details) async {
+    final result = await MessageContextMenu.show(
+      context,
+      position: details.globalPosition,
+      reactions: ['❤️', '😂', '😮', '😢', '🙏', '👍'],
+      actions: [
+        MessageActionConfig.reply,
+        MessageActionConfig.copy,
+        MessageActionConfig.forward,
+        MessageActionConfig.pin,
+        MessageActionConfig.star,
+        MessageActionConfig.delete,
+      ],
+    );
+
+    if (result?.hasReaction == true) {
+      addReaction(message.id, result!.reaction!);
+    } else if (result?.hasAction == true) {
+      handleAction(result!.action!, message);
+    }
+  },
+  child: MessageBubble(message: message),
+)
+```
+
+#### ChatSelectionAppBar
+
+Enhanced selection app bar with pin, star, and forward actions:
+
+```dart
+ChatSelectionAppBar(
+  selectedCount: selectedMessages.length,
+  selectedMessages: selectedMessages,
+  currentUserId: currentUserId,
+  onClose: () => clearSelection(),
+  onReply: (msg) => replyTo(msg),
+  onCopy: () => copyToClipboard(),
+  onPin: (msgs) => pinMessages(msgs),
+  onUnpin: (msgs) => unpinMessages(msgs),
+  onStar: (msgs) => starMessages(msgs),
+  onForward: (msgs) => forwardMessages(msgs),
+  onDelete: (msgs) => deleteMessages(msgs),
+  areAllPinned: checkAllPinned(selectedMessages),
+  areAllStarred: checkAllStarred(selectedMessages),
+)
+```
+
+#### EditMessagePreview
+
+Preview widget shown above input when editing a message:
+
+```dart
+if (editingMessage != null)
+  EditMessagePreview(
+    message: editingMessage,
+    onCancel: () => setState(() => editingMessage = null),
+  ),
+ChatInput(
+  initialText: editingMessage?.message,
+  onSend: (text) {
+    if (editingMessage != null) {
+      updateMessage(editingMessage.id, text);
+      setState(() => editingMessage = null);
+    } else {
+      sendMessage(text);
+    }
+  },
+)
+```
+
 ---
 
 ## Utilities

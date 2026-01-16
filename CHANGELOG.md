@@ -30,6 +30,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Multiple answers toggle switch.
   - Can be shown as full page or bottom sheet.
   - Dark/Light theme support.
+- WhatsApp-style `MessageReactionBar` for quick emoji reactions.
+  - Animated reaction buttons with scale effect.
+  - Haptic feedback on selection.
+  - "More" button for full emoji picker.
+  - `ReactionEmojiPicker` bottom sheet for extended emoji selection.
+- New `MessageContextMenu` popup with reactions and actions.
+  - Shows reaction bar at top with action buttons below.
+  - Supports reply, copy, forward, pin, star, delete actions.
+  - Vertical or horizontal action layout options.
+  - Smooth animations and haptic feedback.
+- Enhanced `ChatSelectionAppBar` with new action buttons.
+  - Pin/Unpin button for message pinning.
+  - Star/Unstar button for favorites.
+  - Forward button for message forwarding.
+  - Improved WhatsApp-style visual design.
+  - Haptic feedback on all actions.
+- New `EditMessagePreview` widget for edit mode indicator.
+  - Shows above input field when editing a message.
+  - Cancel button to exit edit mode.
+  - `EditMessageData` helper class for state management.
 
 ### Changed
 

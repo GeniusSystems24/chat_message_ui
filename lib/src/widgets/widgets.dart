@@ -33,6 +33,7 @@ export 'input/chat_input.dart';
 export 'input/input_models.dart';
 export 'input/chat_input_config.dart';
 export 'input/attachment_source_selector.dart';
+export 'input/edit_message_preview.dart';
 
 // Reply
 export 'reply/reply_preview_widget.dart';
