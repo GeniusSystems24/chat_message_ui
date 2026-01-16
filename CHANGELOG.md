@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PinnedMessagesBar` widget and pinned list cycling with `onScrollToMessage`.
 - Message grouping configuration (mode + timeout) in pagination config.
 - Poll bubble rendering support in attachment builder with vote callbacks.
+- New `MediaPlaybackManager` for centralized audio/video playback coordination.
+  - Ensures only one media (audio or video) plays at a time.
+  - Automatically pauses audio when video starts and vice versa.
+  - Provides unified API for controlling all media playback.
+- Inline video player in `VideoBubble` with native controls overlay.
+  - Interactive progress bar with seek functionality.
+  - Auto-hiding controls overlay.
+  - Full-screen mode with gesture controls.
 
 ### Changed
 
@@ -25,10 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Video thumbnail file path handling now avoids passing remote URLs as files.
 - Example screens refreshed with pinned messages, grouping configuration,
   and new input callbacks.
+- `VideoBubble` now uses `VideoPlayerFactory` for state management instead of
+  direct Chewie controller management.
+- `VideoPlayerFactory.play()` now automatically pauses all playing audio.
+- `AudioPlayerFactory.play()` now automatically pauses all playing videos.
+- Improved video controls with animated play/pause button.
+- Enhanced full-screen video player with buffering indicator.
 
 ### Fixed
 
 - Recording callbacks now forward waveform data consistently.
+- Fixed video player resource cleanup on widget disposal.
+- Fixed state synchronization between inline and full-screen video players.
 
 ## [1.2.0] - 2026-01-15
 

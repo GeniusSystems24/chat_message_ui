@@ -561,9 +561,55 @@ Display video messages with player:
 VideoBubble(
   message: messageData,
   chatTheme: ChatThemeData.get(context),
+  isMyMessage: true,
   filePath: '/path/to/local/video.mp4', // Optional
   thumbnailFilePath: '/path/to/thumb.jpg', // Optional
+  showMiniPlayer: true, // Show inline player with controls
+  autoPlay: false,
+  muted: false,
+  onPlay: () {
+    // Called when video starts playing
+  },
+  onPause: () {
+    // Called when video is paused
+  },
 )
+```
+
+**Note:** When a video starts playing, all other audio and video playback
+is automatically paused. This behavior is handled by `VideoPlayerFactory`
+and `MediaPlaybackManager`.
+
+#### VideoPlayerFactory
+
+Centralized video playback management:
+
+```dart
+// Play a video (automatically pauses other media)
+await VideoPlayerFactory.play(
+  'video-123',
+  filePath: '/path/to/video.mp4',
+);
+
+// Pause video
+await VideoPlayerFactory.pause('video-123');
+
+// Seek to position
+await VideoPlayerFactory.seek('video-123', Duration(seconds: 30));
+
+// Control volume
+await VideoPlayerFactory.setVolume('video-123', 0.5);
+
+// Listen to state changes
+VideoPlayerFactory.stateStream.listen((state) {
+  if (state.id == 'video-123') {
+    print('Position: ${state.formattedPosition}');
+    print('Is playing: ${state.isPlaying}');
+  }
+});
+
+// Cleanup
+await VideoPlayerFactory.dispose('video-123');
 ```
 
 #### AudioBubble
@@ -806,6 +852,51 @@ final chatTheme = ChatThemeData.get(context);
 
 ---
 
+### Media Playback Management
+
+#### MediaPlaybackManager
+
+Centralized manager ensuring only one media plays at a time:
+
+```dart
+// Initialize the manager (call once at app startup)
+MediaPlaybackManager.instance.initialize();
+
+// Play audio (pauses any playing video)
+await MediaPlaybackManager.instance.playAudio(
+  'audio-123',
+  filePath: '/path/to/audio.mp3',
+);
+
+// Play video (pauses any playing audio or other video)
+await MediaPlaybackManager.instance.playVideo(
+  'video-123',
+  filePath: '/path/to/video.mp4',
+);
+
+// Pause all media
+await MediaPlaybackManager.instance.pauseAll();
+
+// Check current state
+final state = MediaPlaybackManager.instance.state;
+print('Current media type: ${state.type}'); // audio, video, or none
+print('Is playing: ${state.isPlaying}');
+
+// Listen to state changes
+MediaPlaybackManager.instance.stateStream.listen((state) {
+  print('Now playing: ${state.mediaId}');
+});
+
+// Cleanup
+await MediaPlaybackManager.instance.dispose();
+```
+
+**Note:** `VideoPlayerFactory` and `AudioPlayerFactory` automatically
+coordinate through this manager, so you typically don't need to use
+`MediaPlaybackManager` directly unless you need custom playback logic.
+
+---
+
 ## Utilities
 
 ### MessageGroupStatus
@@ -878,6 +969,7 @@ lib/
     │   ├── input/                    # Input widgets
     │   ├── audio/                    # Audio player
     │   ├── video/                    # Video player
+    │   ├── media/                    # Media playback manager
     │   ├── image/                    # Image viewer
     │   ├── poll/                     # Poll widgets
     │   ├── location/                 # Location widgets
