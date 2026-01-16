@@ -26,7 +26,8 @@ class _CustomBuildersExampleState extends State<CustomBuildersExample> {
   @override
   void initState() {
     super.initState();
-    _messages = ExampleSampleData.buildMessages().take(10).toList().reversed.toList();
+    _messages =
+        ExampleSampleData.buildMessages().take(10).toList().reversed.toList();
     _pagination = ExamplePaginationHelper<ExampleMessage>(
       items: _messages,
       pageSize: 20,
@@ -134,7 +135,9 @@ class _CustomBuildersExampleState extends State<CustomBuildersExample> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  _useCustomBuilders ? Icons.check_circle : Icons.circle_outlined,
+                  _useCustomBuilders
+                      ? Icons.check_circle
+                      : Icons.circle_outlined,
                   color: _useCustomBuilders ? Colors.green : Colors.grey,
                   size: 20,
                 ),
@@ -261,7 +264,8 @@ class _CustomImageBubble extends StatelessWidget {
                 bottom: 8,
                 right: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(12),
@@ -339,10 +343,11 @@ class _CustomAudioBubble extends StatelessWidget {
                 'Custom Audio Player',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              Text(
-                _formatDuration(media.duration),
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-              ),
+              if (media.duration != null)
+                Text(
+                  _formatDuration(Duration(milliseconds: media.duration!)),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
             ],
           ),
           const SizedBox(width: 12),
@@ -411,7 +416,7 @@ class _CustomLocationBubble extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           Text(
-            '${location.latitude.toStringAsFixed(4)}, ${location.longitude.toStringAsFixed(4)}',
+            '${location.latitude?.toStringAsFixed(4)}, ${location.longitude?.toStringAsFixed(4)}',
             style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             textAlign: TextAlign.center,
           ),
@@ -491,11 +496,15 @@ class _CustomContextMenuSheet extends StatelessWidget {
           const Divider(height: 32),
 
           // Actions
-          _buildAction(Icons.reply, 'Reply', () => onAction(MessageAction.reply)),
+          _buildAction(
+              Icons.reply, 'Reply', () => onAction(MessageAction.reply)),
           _buildAction(Icons.copy, 'Copy', () => onAction(MessageAction.copy)),
-          _buildAction(Icons.forward, 'Forward', () => onAction(MessageAction.forward)),
-          _buildAction(Icons.push_pin, 'Pin', () => onAction(MessageAction.pin)),
-          _buildAction(Icons.delete, 'Delete', () => onAction(MessageAction.delete),
+          _buildAction(
+              Icons.forward, 'Forward', () => onAction(MessageAction.forward)),
+          _buildAction(
+              Icons.push_pin, 'Pin', () => onAction(MessageAction.pin)),
+          _buildAction(
+              Icons.delete, 'Delete', () => onAction(MessageAction.delete),
               isDestructive: true),
 
           const SizedBox(height: 24),
