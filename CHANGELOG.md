@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Interactive progress bar with seek functionality.
   - Auto-hiding controls overlay.
   - Full-screen mode with gesture controls.
+- New `CreatePollScreen` widget for creating polls with WhatsApp-style design.
+  - Question input field with validation.
+  - Dynamic option fields with add/remove capability (2-12 options).
+  - Multiple answers toggle switch.
+  - Can be shown as full page or bottom sheet.
+  - Dark/Light theme support.
 
 ### Changed
 

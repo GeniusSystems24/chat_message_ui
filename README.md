@@ -663,6 +663,49 @@ PollBubble(
 )
 ```
 
+#### CreatePollScreen
+
+WhatsApp-style screen for creating polls:
+
+```dart
+// Show as full page
+final poll = await CreatePollScreen.showAsPage(
+  context,
+  onCreatePoll: (pollData) {
+    // Handle poll creation
+    print('Question: ${pollData.question}');
+    print('Options: ${pollData.validOptions}');
+    print('Multiple answers: ${pollData.allowMultipleAnswers}');
+  },
+  minOptions: 2,
+  maxOptions: 12,
+);
+
+// Or show as bottom sheet
+final poll = await CreatePollScreen.showAsBottomSheet(
+  context,
+  onCreatePoll: (pollData) {
+    // Handle poll creation
+  },
+);
+
+// Or use directly as a widget
+CreatePollScreen(
+  onCreatePoll: (pollData) {
+    // Send poll message
+    sendPollMessage(
+      question: pollData.question,
+      options: pollData.validOptions,
+      allowMultiple: pollData.allowMultipleAnswers,
+    );
+  },
+  title: 'Create poll',
+  questionHint: 'Ask question',
+  optionHint: '+ Add',
+  multipleAnswersLabel: 'Allow multiple answers',
+)
+```
+
 #### LocationBubble
 
 Display location with map preview:

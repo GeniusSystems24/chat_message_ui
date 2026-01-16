@@ -19,6 +19,7 @@ export 'image/image_bubble.dart';
 export 'image/full_screen_image_viewer.dart';
 export 'poll/poll_bubble.dart';
 export 'poll/poll_vote_details_view.dart';
+export 'poll/create_poll_screen.dart';
 export 'video/video_bubble.dart';
 
 // Chat List
