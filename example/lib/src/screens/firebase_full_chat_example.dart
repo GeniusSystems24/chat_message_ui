@@ -9,7 +9,8 @@ class FirebaseFullChatExample extends StatefulWidget {
   const FirebaseFullChatExample({super.key});
 
   @override
-  State<FirebaseFullChatExample> createState() => _FirebaseFullChatExampleState();
+  State<FirebaseFullChatExample> createState() =>
+      _FirebaseFullChatExampleState();
 }
 
 class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
@@ -80,8 +81,8 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
       },
       onRecordingStart: () => _showSnackBar(context, 'Recording started'),
       onRecordingCancel: () => _showSnackBar(context, 'Recording cancelled'),
-      onRecordingLockedChanged: (locked) =>
-          _showSnackBar(context, locked ? 'Recording locked' : 'Recording unlocked'),
+      onRecordingLockedChanged: (locked) => _showSnackBar(
+          context, locked ? 'Recording locked' : 'Recording unlocked'),
       onPollRequested: () async {
         await _controller.sendPoll(reply: _replyNotifier.value);
         _replyNotifier.value = null;
@@ -144,64 +145,63 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
     return PreferredSize(
-      preferredSize: const Size.fromHeight(230),
+      preferredSize: const Size.fromHeight(kToolbarHeight),
       child: Container(
         color: theme.colorScheme.surface,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ChatAppBar(
-              chat: const ChatAppBarData(
-                id: 'firebase_demo',
-                title: 'Firebase Live Chat',
-                subtitle: 'Firestore + Storage sync',
-                imageUrl: 'https://i.pravatar.cc/150?img=31',
+        child: ChatAppBar(
+          chat: const ChatAppBarData(
+            id: 'firebase_demo',
+            title: 'Firebase Live Chat',
+            subtitle: 'Firestore + Storage sync',
+            imageUrl: 'https://i.pravatar.cc/150?img=31',
+          ),
+          showSearch: true,
+          showMenu: true,
+          showVideoCall: true,
+          showTasks: true,
+          menuItems: const [
+            PopupMenuItem(
+              value: 'seed_samples',
+              child: Row(
+                children: [
+                  Icon(Icons.auto_awesome_outlined),
+                  SizedBox(width: 8),
+                  Text('Seed sample messages'),
+                ],
               ),
-              showSearch: true,
-              showMenu: true,
-              showVideoCall: true,
-              showTasks: true,
-              menuItems: const [
-                PopupMenuItem(
-                  value: 'seed_samples',
-                  child: Row(
-                    children: [
-                      Icon(Icons.auto_awesome_outlined),
-                      SizedBox(width: 8),
-                      Text('Seed sample messages'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'send_audio',
-                  child: Row(
-                    children: [
-                      Icon(Icons.mic_outlined),
-                      SizedBox(width: 8),
-                      Text('Send audio message'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'send_poll',
-                  child: Row(
-                    children: [
-                      Icon(Icons.poll_outlined),
-                      SizedBox(width: 8),
-                      Text('Send poll message'),
-                    ],
-                  ),
-                ),
-              ],
-              onSearch: () => _openSearch(context),
-              onMenuSelection: (value) => _handleMenuAction(context, value),
-              onTitleTap: () => _showSnackBar(context, 'Open chat profile'),
-              onVideoCall: () => _showSnackBar(context, 'Start video call'),
-              onTasks: () => _showSnackBar(context, 'Open tasks'),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              child: ExampleDescription(
+            PopupMenuItem(
+              value: 'send_audio',
+              child: Row(
+                children: [
+                  Icon(Icons.mic_outlined),
+                  SizedBox(width: 8),
+                  Text('Send audio message'),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'send_poll',
+              child: Row(
+                children: [
+                  Icon(Icons.poll_outlined),
+                  SizedBox(width: 8),
+                  Text('Send poll message'),
+                ],
+              ),
+            ),
+          ],
+          onSearch: () => _openSearch(context),
+          onMenuSelection: (value) => _handleMenuAction(context, value),
+          onTitleTap: () => _showSnackBar(context, 'Open chat profile'),
+          onVideoCall: () => _showSnackBar(context, 'Start video call'),
+          onTasks: () => _showSnackBar(context, 'Open tasks'),
+          additionalActions: [
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              tooltip: 'Screen Overview',
+              onPressed: () => ExampleDescription.showAsBottomSheet(
+                context,
                 title: 'Screen Overview',
                 icon: Icons.cloud_outlined,
                 lines: const [

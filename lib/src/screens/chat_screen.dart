@@ -296,12 +296,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _scrollToBottom() {
-    if (!_scrollController.hasClients) return;
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
+    // Try using smart_pagination's jumpToIndex for instant scroll
+    if (widget.messagesCubit.hasObserverController) {
+      widget.messagesCubit.jumpToIndex(0);
+      return;
+    }
   }
 
   Future<void> _handleRefresh() async {
@@ -340,12 +339,20 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<bool> _scrollToMessage(String messageId) async {
-    if (widget.onScrollToMessage == null) return false;
-    try {
-      return await widget.onScrollToMessage!(messageId);
-    } catch (_) {
-      return false;
-    }
+    // Use custom callback if provided
+    final canHandle = (await widget.onScrollToMessage?.call(messageId)) ?? true;
+
+    if (!canHandle) return false;
+
+    // Try animateFirstWhere first (requires observer controller)
+    final result = await widget.messagesCubit.animateFirstWhere(
+      (message) => message.id == messageId,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+      alignment: 0.3, // Position message 30% from top
+    );
+
+    return result;
   }
 
   void _clearSelection() {
@@ -413,7 +420,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _handlePinnedTap() async {
     final message = _currentPinnedMessage;
-    if (message == null || widget.onScrollToMessage == null) return;
+    if (message == null) return;
     final didScroll = await _scrollToMessage(message.id);
     if (!didScroll || !mounted) return;
     setState(() {
@@ -426,15 +433,15 @@ class _ChatScreenState extends State<ChatScreen> {
     final theme = Theme.of(context);
     final uiConfig = widget.config ?? ChatMessageUiConfig.instance;
     final pinnedMessage = _currentPinnedMessage;
-    final pinnedSection = pinnedMessage == null
+    final pinnedSection = widget.pinnedMessages.isEmpty || pinnedMessage == null
         ? null
         : (widget.pinnedMessagesBuilder?.call(
-                context,
-                pinnedMessage,
-                _pinnedIndex,
-                widget.pinnedMessages.length,
-                _handlePinnedTap,
-              ) ??
+              context,
+              pinnedMessage,
+              _pinnedIndex,
+              widget.pinnedMessages.length,
+              _handlePinnedTap,
+            ) ??
             PinnedMessagesBar(
               message: pinnedMessage,
               index: _pinnedIndex,
@@ -578,7 +585,8 @@ class _ChatScreenState extends State<ChatScreen> {
           ? (message) async => widget.onMessageInfo!(message)
           : null,
       onDelete: widget.onDelete != null ? (_) => _handleDeleteMessages() : null,
-      onForward: widget.onForward != null ? (_) => _handleForwardMessages() : null,
+      onForward:
+          widget.onForward != null ? (_) => _handleForwardMessages() : null,
     );
   }
 }

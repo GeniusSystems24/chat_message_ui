@@ -185,6 +185,47 @@ class ExampleDescription extends StatelessWidget {
       ),
     );
   }
+
+  /// Shows this description in a modal bottom sheet.
+  static void showAsBottomSheet(
+    BuildContext context, {
+    required String title,
+    required List<String> lines,
+    IconData? icon,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ExampleDescription(
+              title: title,
+              icon: icon,
+              lines: lines,
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// A property showcase item for displaying widget properties.

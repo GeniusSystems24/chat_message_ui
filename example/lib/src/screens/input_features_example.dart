@@ -18,6 +18,7 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
   final ValueNotifier<ChatReplyData?> _replyNotifier = ValueNotifier(null);
   late final List<ExampleMessage> _messages;
   late final ExamplePaginationHelper<ExampleMessage> _pagination;
+  int _pinnedIndex = 0;
 
   final List<ChatUserSuggestion> _users = const [
     ChatUserSuggestion(id: 'user_2', name: 'Omar', username: 'omar'),
@@ -69,22 +70,45 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Input Features')),
-      body: Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: ExampleDescription(
+      appBar: AppBar(
+        title: const Text('Input Features'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Screen Overview',
+            onPressed: () => ExampleDescription.showAsBottomSheet(
+              context,
               title: 'Screen Overview',
               icon: Icons.keyboard_outlined,
-              lines: [
+              lines: const [
                 'Highlights advanced input options like mentions and quick replies.',
                 'Shows reply preview, attachments, and command suggestions together.',
                 'Useful to validate input UX before wiring real message delivery.',
               ],
             ),
           ),
-          const SizedBox(height: 12),
+        ],
+      ),
+      body: Column(
+        children: [
+          if (_messages.isNotEmpty)
+            PinnedMessagesBar(
+              message: _messages[_pinnedIndex % _messages.length],
+              index: _pinnedIndex % _messages.length,
+              total: _messages.length,
+              onTap: () {
+                setState(() {
+                  _pinnedIndex = (_pinnedIndex + 1) % _messages.length;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Pinned: ${_messages[_pinnedIndex % _messages.length].id}',
+                    ),
+                  ),
+                );
+              },
+            ),
           _buildHintCard(context),
           const SizedBox(height: 12),
           Expanded(

@@ -84,8 +84,8 @@ class _FullChatExampleState extends State<FullChatExample> {
       },
       onRecordingStart: () => _showSnackBar(context, 'Recording started'),
       onRecordingCancel: () => _showSnackBar(context, 'Recording cancelled'),
-      onRecordingLockedChanged: (locked) =>
-          _showSnackBar(context, locked ? 'Recording locked' : 'Recording unlocked'),
+      onRecordingLockedChanged: (locked) => _showSnackBar(
+          context, locked ? 'Recording locked' : 'Recording unlocked'),
       onPollRequested: () => _showSnackBar(context, 'Create poll requested'),
       config: ChatMessageUiConfig(
         enableSuggestions: true,
@@ -113,28 +113,27 @@ class _FullChatExampleState extends State<FullChatExample> {
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
     return PreferredSize(
-      preferredSize: const Size.fromHeight(200),
+      preferredSize: const Size.fromHeight(kToolbarHeight),
       child: Container(
         color: theme.colorScheme.surface,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ChatAppBar(
-              chat: const ChatAppBarData(
-                id: ExampleSampleData.chatId,
-                title: 'Product Studio',
-                subtitle: '8 members • Online',
-                imageUrl: 'https://i.pravatar.cc/150?img=64',
-              ),
-              onSearch: () => _openSearch(context),
-              onMenuSelection: (value) => _showSnackBar(
+        child: ChatAppBar(
+          chat: const ChatAppBarData(
+            id: ExampleSampleData.chatId,
+            title: 'Product Studio',
+            subtitle: '8 members • Online',
+            imageUrl: 'https://i.pravatar.cc/150?img=64',
+          ),
+          onSearch: () => _openSearch(context),
+          onMenuSelection: (value) => _showSnackBar(
+            context,
+            'Menu action: $value',
+          ),
+          additionalActions: [
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              tooltip: 'Screen Overview',
+              onPressed: () => ExampleDescription.showAsBottomSheet(
                 context,
-                'Menu action: $value',
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              child: ExampleDescription(
                 title: 'Screen Overview',
                 icon: Icons.forum_outlined,
                 lines: const [

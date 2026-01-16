@@ -15,6 +15,8 @@ class MessageTypesExample extends StatefulWidget {
 
 class _MessageTypesExampleState extends State<MessageTypesExample> {
   late final ExamplePaginationHelper<Widget> _pagination;
+  late final List<IChatMessageData> _pinnedMessages;
+  int _pinnedIndex = 0;
 
   @override
   void initState() {
@@ -30,14 +32,17 @@ class _MessageTypesExampleState extends State<MessageTypesExample> {
         messages.firstWhere((message) => message.type == ChatMessageType.video);
     final audioMessage =
         messages.firstWhere((message) => message.type == ChatMessageType.audio);
-    final documentMessage =
-        messages.firstWhere((message) => message.type == ChatMessageType.document);
-    final locationMessage =
-        messages.firstWhere((message) => message.type == ChatMessageType.location);
-    final contactMessage =
-        messages.firstWhere((message) => message.type == ChatMessageType.contact);
+    final documentMessage = messages
+        .firstWhere((message) => message.type == ChatMessageType.document);
+    final locationMessage = messages
+        .firstWhere((message) => message.type == ChatMessageType.location);
+    final contactMessage = messages
+        .firstWhere((message) => message.type == ChatMessageType.contact);
     final pollMessage =
         messages.firstWhere((message) => message.type == ChatMessageType.poll);
+
+    // الرسائل المثبتة هي نفس الرسائل المعروضة
+    _pinnedMessages = [textMessage, imageMessage, videoMessage];
 
     final items = <Widget>[
       const _SectionTitle(title: 'Text & Metadata'),
@@ -106,22 +111,45 @@ class _MessageTypesExampleState extends State<MessageTypesExample> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Message Types')),
-      body: Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: ExampleDescription(
+      appBar: AppBar(
+        title: const Text('Message Types'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Screen Overview',
+            onPressed: () => ExampleDescription.showAsBottomSheet(
+              context,
               title: 'Screen Overview',
               icon: Icons.category_outlined,
-              lines: [
+              lines: const [
                 'Displays every supported message bubble in one scroll.',
                 'Shows the data requirements for each message type.',
                 'Great for testing rendering consistency across media.',
               ],
             ),
           ),
-          const SizedBox(height: 12),
+        ],
+      ),
+      body: Column(
+        children: [
+          if (_pinnedMessages.isNotEmpty)
+            PinnedMessagesBar(
+              message: _pinnedMessages[_pinnedIndex],
+              index: _pinnedIndex,
+              total: _pinnedMessages.length,
+              onTap: () {
+                setState(() {
+                  _pinnedIndex = (_pinnedIndex + 1) % _pinnedMessages.length;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Jump to: ${_pinnedMessages[_pinnedIndex].id}',
+                    ),
+                  ),
+                );
+              },
+            ),
           Expanded(
             child: SmartPaginationListView.withCubit(
               cubit: _pagination.cubit,

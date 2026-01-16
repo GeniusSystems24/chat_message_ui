@@ -272,10 +272,10 @@ class MessageBubble extends StatelessWidget {
       borderRadius: BorderRadiusDirectional.only(
         topStart: Radius.circular(chatTheme.messageBubble.bubbleRadius),
         topEnd: Radius.circular(chatTheme.messageBubble.bubbleRadius),
-        bottomStart: isMyMessage && isFirstInGroup
+        bottomStart: !(isMyMessage && isFirstInGroup)
             ? Radius.zero
             : Radius.circular(chatTheme.messageBubble.bubbleRadius),
-        bottomEnd: !isMyMessage && isFirstInGroup
+        bottomEnd: !(!isMyMessage && isFirstInGroup)
             ? Radius.zero
             : Radius.circular(chatTheme.messageBubble.bubbleRadius),
       ),

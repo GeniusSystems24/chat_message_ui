@@ -15,15 +15,19 @@ class ThemingExample extends StatefulWidget {
 
 class _ThemingExampleState extends State<ThemingExample> {
   late final ExamplePaginationHelper<Widget> _pagination;
+  late final List<IChatMessageData> _pinnedMessages;
+  int _pinnedIndex = 0;
 
   @override
   void initState() {
     super.initState();
     final messages = ExampleSampleData.buildMessages();
+    // الرسائل المثبتة والمعروضة هي نفسها
     final sampleMessages = messages
         .where((message) => message.type == ChatMessageType.text)
         .take(2)
         .toList();
+    _pinnedMessages = sampleMessages;
 
     final baseTheme = ThemeData.from(
       colorScheme: ThemeData.light().colorScheme,
@@ -89,22 +93,45 @@ class _ThemingExampleState extends State<ThemingExample> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Theming')),
-      body: Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: ExampleDescription(
+      appBar: AppBar(
+        title: const Text('Theming'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Screen Overview',
+            onPressed: () => ExampleDescription.showAsBottomSheet(
+              context,
               title: 'Screen Overview',
               icon: Icons.palette_outlined,
-              lines: [
+              lines: const [
                 'Compares multiple ChatThemeData configurations side by side.',
                 'Shows how bubbles and inputs adapt to theme extensions.',
                 'Useful for designing a branded chat experience.',
               ],
             ),
           ),
-          const SizedBox(height: 12),
+        ],
+      ),
+      body: Column(
+        children: [
+          if (_pinnedMessages.isNotEmpty)
+            PinnedMessagesBar(
+              message: _pinnedMessages[_pinnedIndex],
+              index: _pinnedIndex,
+              total: _pinnedMessages.length,
+              onTap: () {
+                setState(() {
+                  _pinnedIndex = (_pinnedIndex + 1) % _pinnedMessages.length;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Jump to: ${_pinnedMessages[_pinnedIndex].id}',
+                    ),
+                  ),
+                );
+              },
+            ),
           Expanded(
             child: SmartPaginationListView.withCubit(
               cubit: _pagination.cubit,

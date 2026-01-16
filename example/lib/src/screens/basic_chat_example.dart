@@ -49,11 +49,12 @@ class _BasicChatExampleState extends State<BasicChatExample> {
       ),
       appBar: AppBar(
         title: const Text('Basic Chat'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(140),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: ExampleDescription(
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Screen Overview',
+            onPressed: () => ExampleDescription.showAsBottomSheet(
+              context,
               title: 'Screen Overview',
               icon: Icons.info_outline,
               lines: const [
@@ -63,10 +64,25 @@ class _BasicChatExampleState extends State<BasicChatExample> {
               ],
             ),
           ),
-        ),
+        ],
       ),
+      pinnedMessages: _buildPinnedList(),
+      onScrollToMessage: _scrollToPinnedMessage,
       showAvatar: true,
       emptyMessage: 'Start the conversation with a simple text message.',
     );
+  }
+
+  List<IChatMessageData> _buildPinnedList() {
+    final items = _controller.messagesCubit.currentItems;
+    if (items.isEmpty) return const [];
+    return items.take(2).toList();
+  }
+
+  Future<bool> _scrollToPinnedMessage(String messageId) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Jump to pinned message: $messageId')),
+    );
+    return true;
   }
 }
