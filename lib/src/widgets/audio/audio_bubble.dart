@@ -642,7 +642,7 @@ class _AudioEmptyState extends StatelessWidget {
           Icon(
             Icons.mic_off_rounded,
             size: 20,
-            color: chatTheme.colors.error,
+            color: chatTheme.colors.errorContainer,
           ),
           const SizedBox(width: 8),
           Text(
