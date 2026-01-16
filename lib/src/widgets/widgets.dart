@@ -55,3 +55,9 @@ export 'video/video_player_factory.dart';
 
 // Media
 export 'media/media_playback_manager.dart';
+
+// Reactions
+export 'reactions/reactions.dart';
+
+// Context Menu
+export 'context_menu/context_menu.dart';
