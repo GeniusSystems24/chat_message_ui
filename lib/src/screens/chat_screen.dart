@@ -9,6 +9,9 @@ import '../adapters/chat_data_models.dart';
 import '../config/chat_message_ui_config.dart';
 import '../widgets/widgets.dart';
 
+/// Callback signature for backend search.
+typedef OnBackendSearchCallback = Future<List<String>> Function(String query);
+
 typedef PinnedMessagesBuilder = Widget Function(
   BuildContext context,
   IChatMessageData message,
@@ -104,6 +107,24 @@ class ChatScreen extends StatefulWidget {
 
   /// Whether to show search action (ChatAppBar only).
   final bool showSearch;
+
+  /// Backend search callback for finding messages not loaded locally.
+  /// If provided, will be called when local search doesn't find matches
+  /// or to search the full message history on the server.
+  final OnBackendSearchCallback? onBackendSearch;
+
+  /// Whether search mode is externally controlled.
+  /// If true, use [searchModeNotifier] to control search state.
+  final ValueNotifier<bool>? searchModeNotifier;
+
+  /// Search hint text for the search bar.
+  final String? searchHint;
+
+  /// Minimum characters required before searching.
+  final int searchMinCharacters;
+
+  /// Debounce duration for search input.
+  final Duration searchDebounce;
 
   /// Whether to show video call action (ChatAppBar only).
   final bool showVideoCall;
@@ -218,6 +239,11 @@ class ChatScreen extends StatefulWidget {
     this.onTasks,
     this.onSearch,
     this.showSearch = true,
+    this.onBackendSearch,
+    this.searchModeNotifier,
+    this.searchHint,
+    this.searchMinCharacters = 2,
+    this.searchDebounce = const Duration(milliseconds: 300),
     this.showVideoCall = false,
     this.showTasks = false,
     this.showMenu = true,
@@ -260,11 +286,24 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _focusedMessageId;
   int _pinnedIndex = 0;
 
+  // Search state
+  bool _isSearchMode = false;
+  String _searchQuery = '';
+  List<String> _matchedMessageIds = [];
+  int _currentMatchIndex = 0;
+  bool _isSearching = false;
+  Timer? _searchDebounceTimer;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
     _syncPinnedIndex();
+
+    // Listen to external search mode if provided
+    widget.searchModeNotifier?.addListener(_onSearchModeChanged);
   }
 
   @override
@@ -272,6 +311,11 @@ class _ChatScreenState extends State<ChatScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.pinnedMessages != widget.pinnedMessages) {
       _syncPinnedIndex();
+    }
+    // Update search mode listener
+    if (oldWidget.searchModeNotifier != widget.searchModeNotifier) {
+      oldWidget.searchModeNotifier?.removeListener(_onSearchModeChanged);
+      widget.searchModeNotifier?.addListener(_onSearchModeChanged);
     }
   }
 
@@ -281,7 +325,25 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollController.dispose();
     _textController.dispose();
     _focusNode.dispose();
+    _searchDebounceTimer?.cancel();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    widget.searchModeNotifier?.removeListener(_onSearchModeChanged);
     super.dispose();
+  }
+
+  void _onSearchModeChanged() {
+    final isSearchMode = widget.searchModeNotifier?.value ?? false;
+    if (isSearchMode != _isSearchMode) {
+      setState(() {
+        _isSearchMode = isSearchMode;
+        if (!isSearchMode) {
+          _clearSearch();
+        } else {
+          _searchFocusNode.requestFocus();
+        }
+      });
+    }
   }
 
   void _handleScroll() {
@@ -428,6 +490,163 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  // ============ Search Methods ============
+
+  void _openSearch() {
+    setState(() {
+      _isSearchMode = true;
+      _searchFocusNode.requestFocus();
+    });
+    widget.searchModeNotifier?.value = true;
+  }
+
+  void _closeSearch() {
+    setState(() {
+      _isSearchMode = false;
+      _clearSearch();
+    });
+    widget.searchModeNotifier?.value = false;
+  }
+
+  void _clearSearch() {
+    _searchQuery = '';
+    _searchController.clear();
+    _matchedMessageIds.clear();
+    _currentMatchIndex = 0;
+    _isSearching = false;
+    _searchDebounceTimer?.cancel();
+    _focusedMessageId = null;
+  }
+
+  void _onSearchQueryChanged(String query) {
+    _searchDebounceTimer?.cancel();
+
+    if (query.length < widget.searchMinCharacters) {
+      setState(() {
+        _searchQuery = query;
+        _matchedMessageIds.clear();
+        _currentMatchIndex = 0;
+        _focusedMessageId = null;
+      });
+      return;
+    }
+
+    _searchDebounceTimer = Timer(widget.searchDebounce, () {
+      _performSearch(query);
+    });
+  }
+
+  Future<void> _performSearch(String query) async {
+    if (!mounted) return;
+
+    setState(() {
+      _searchQuery = query;
+      _isSearching = true;
+    });
+
+    // First, search locally in loaded messages
+    final localMatches = _searchLocalMessages(query);
+
+    // If onBackendSearch is provided, also search backend
+    List<String> backendMatches = [];
+    if (widget.onBackendSearch != null) {
+      try {
+        backendMatches = await widget.onBackendSearch!(query);
+      } catch (e) {
+        // Backend search failed, continue with local results
+        debugPrint('Backend search error: $e');
+      }
+    }
+
+    if (!mounted) return;
+
+    // Combine results, prioritizing backend matches (they include full history)
+    // Backend matches take priority as they're authoritative
+    final allMatches =
+        widget.onBackendSearch != null ? backendMatches : localMatches;
+
+    setState(() {
+      _matchedMessageIds = allMatches;
+      _currentMatchIndex = 0;
+      _isSearching = false;
+    });
+
+    // Navigate to first match if available
+    if (_matchedMessageIds.isNotEmpty) {
+      _navigateToCurrentMatch();
+    }
+  }
+
+  List<String> _searchLocalMessages(String query) {
+    final lowerQuery = query.toLowerCase();
+    final matches = <String>[];
+
+    for (final message in widget.messagesCubit.currentItems) {
+      if (_messageMatchesQuery(message, lowerQuery)) {
+        matches.add(message.id);
+      }
+    }
+
+    // Return in order from newest to oldest (list is already in that order)
+    return matches;
+  }
+
+  bool _messageMatchesQuery(IChatMessageData message, String lowerQuery) {
+    // Search in text content
+    final text = message.textContent?.toLowerCase();
+    if (text != null && text.contains(lowerQuery)) {
+      return true;
+    }
+
+    // Search in media file name
+    final fileName = message.mediaData?.resolvedFileName?.toLowerCase();
+    if (fileName != null && fileName.contains(lowerQuery)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  void _navigateToCurrentMatch() {
+    if (_matchedMessageIds.isEmpty) return;
+    if (_currentMatchIndex < 0 ||
+        _currentMatchIndex >= _matchedMessageIds.length) {
+      return;
+    }
+
+    final messageId = _matchedMessageIds[_currentMatchIndex];
+    setState(() => _focusedMessageId = messageId);
+    _scrollToMessage(messageId);
+
+    // Clear focus highlight after animation
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted && _focusedMessageId == messageId) {
+        setState(() => _focusedMessageId = null);
+      }
+    });
+  }
+
+  void _goToPreviousMatch() {
+    if (_matchedMessageIds.isEmpty || _currentMatchIndex <= 0) return;
+    setState(() {
+      _currentMatchIndex--;
+    });
+    _navigateToCurrentMatch();
+  }
+
+  void _goToNextMatch() {
+    if (_matchedMessageIds.isEmpty ||
+        _currentMatchIndex >= _matchedMessageIds.length - 1) {
+      return;
+    }
+    setState(() {
+      _currentMatchIndex++;
+    });
+    _navigateToCurrentMatch();
+  }
+
+  // ============ End Search Methods ============
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -449,9 +668,14 @@ class _ChatScreenState extends State<ChatScreen> {
               onTap: _handlePinnedTap,
             ));
 
+    // Determine search query to pass to list (only if >= min characters)
+    final activeSearchQuery =
+        _searchQuery.length >= widget.searchMinCharacters ? _searchQuery : null;
+
     final content = Column(
       children: [
-        if (pinnedSection != null) pinnedSection,
+        // Show pinned section only when not in search mode
+        if (!_isSearchMode && pinnedSection != null) pinnedSection,
         Expanded(
           child: ChatMessageList(
             cubit: widget.messagesCubit,
@@ -466,6 +690,9 @@ class _ChatScreenState extends State<ChatScreen> {
             onAttachmentTap: widget.onAttachmentTap,
             onPollVote: widget.onPollVote,
             focusedMessageId: _focusedMessageId,
+            searchQuery: activeSearchQuery,
+            matchedMessageIds: _matchedMessageIds,
+            currentMatchIndex: _currentMatchIndex,
             onSelectionChanged: () {
               setState(() {});
               widget.onSelectionChanged?.call(_selectedMessages);
@@ -524,17 +751,42 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: _buildAppBar(context),
       floatingActionButton: _isAtBottom
           ? null
-          : FloatingActionButton.small(
-              backgroundColor: theme.floatingActionButtonTheme.backgroundColor
-                  ?.withValues(alpha: 0.5),
-              onPressed: _scrollToBottom,
-              child: const Icon(Icons.arrow_downward),
+          : Container(
+              margin: const EdgeInsets.only(bottom: 40),
+              child: FloatingActionButton.small(
+                backgroundColor: theme.floatingActionButtonTheme.backgroundColor
+                        ?.withValues(alpha: 0.5) ??
+                    theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                onPressed: _scrollToBottom,
+                child: const Icon(Icons.arrow_downward),
+              ),
             ),
       body: body,
     );
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
+    // Show search bar as AppBar when in search mode
+    if (_isSearchMode) {
+      return PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight + 6.0),
+        child: SafeArea(
+          child: SearchMatchesBar(
+            matchedMessageIds: _matchedMessageIds,
+            currentMatchIndex: _currentMatchIndex,
+            isSearching: _isSearching,
+            onPrevious: _goToPreviousMatch,
+            onNext: _goToNextMatch,
+            onClose: _closeSearch,
+            onQueryChanged: _onSearchQueryChanged,
+            searchHint: widget.searchHint,
+            controller: _searchController,
+            focusNode: _searchFocusNode,
+          ),
+        ),
+      );
+    }
+
     if (_selectedMessages.isNotEmpty) {
       if (widget.selectionAppBarBuilder != null) {
         return widget.selectionAppBarBuilder!(
@@ -555,7 +807,7 @@ class _ChatScreenState extends State<ChatScreen> {
         onMenuSelection: widget.onMenuSelection,
         onVideoCall: widget.onVideoCall,
         onTasks: widget.onTasks,
-        onSearch: widget.onSearch,
+        onSearch: widget.onSearch ?? _openSearch,
         showSearch: widget.showSearch,
         showVideoCall: widget.showVideoCall,
         showTasks: widget.showTasks,

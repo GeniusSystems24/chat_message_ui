@@ -70,6 +70,12 @@ class MessageBubble extends StatelessWidget {
   /// Auto-download settings for media attachments.
   final ChatAutoDownloadConfig? autoDownloadConfig;
 
+  /// Current search query to highlight in text content.
+  final String? searchQuery;
+
+  /// Whether this message is the current search match.
+  final bool isCurrentSearchMatch;
+
   const MessageBubble({
     super.key,
     required this.message,
@@ -90,6 +96,8 @@ class MessageBubble extends StatelessWidget {
     this.onPollVote,
     this.deletedMessageBuilder,
     this.autoDownloadConfig,
+    this.searchQuery,
+    this.isCurrentSearchMatch = false,
   });
 
   /// Whether this message was sent by the current user.
@@ -205,6 +213,8 @@ class MessageBubble extends StatelessWidget {
           chatTheme: chatTheme,
           isMyMessage: isMyMessage,
           autoDownloadConfig: autoDownloadConfig,
+          searchQuery: searchQuery,
+          isCurrentSearchMatch: isCurrentSearchMatch,
           onRouteTap: onRouteTap,
           onLinkTap: onLinkTap,
           onAttachmentTap: onAttachmentTap,

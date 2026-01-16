@@ -15,6 +15,7 @@ class FullChatExample extends StatefulWidget {
 class _FullChatExampleState extends State<FullChatExample> {
   late final ExampleChatController _controller;
   final ValueNotifier<ChatReplyData?> _replyNotifier = ValueNotifier(null);
+  final ValueNotifier<bool> _searchModeNotifier = ValueNotifier(false);
 
   @override
   void initState() {
@@ -29,6 +30,7 @@ class _FullChatExampleState extends State<FullChatExample> {
   @override
   void dispose() {
     _replyNotifier.dispose();
+    _searchModeNotifier.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -87,6 +89,10 @@ class _FullChatExampleState extends State<FullChatExample> {
       onRecordingLockedChanged: (locked) => _showSnackBar(
           context, locked ? 'Recording locked' : 'Recording unlocked'),
       onPollRequested: () => _showSnackBar(context, 'Create poll requested'),
+      // In-chat search configuration
+      searchModeNotifier: _searchModeNotifier,
+      searchHint: 'Search messages...',
+      onBackendSearch: _simulateBackendSearch,
       config: ChatMessageUiConfig(
         enableSuggestions: true,
         enableTextPreview: true,
@@ -179,17 +185,26 @@ class _FullChatExampleState extends State<FullChatExample> {
   }
 
   Future<void> _openSearch(BuildContext context) async {
-    final selected = await Navigator.of(context).push<IChatMessageData>(
-      MaterialPageRoute(
-        builder: (context) => ChatMessageSearchView(
-          messages: _controller.messagesCubit.currentItems,
-          currentUserId: ExampleSampleData.currentUserId,
-        ),
-      ),
-    );
+    // Toggle in-chat search mode
+    _searchModeNotifier.value = true;
+  }
 
-    if (!mounted || selected == null) return;
-    _replyNotifier.value = _buildReplyData(selected);
+  /// Simulates a backend search - in real apps, this would call your API
+  Future<List<String>> _simulateBackendSearch(String query) async {
+    // Simulate network delay
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    final lowerQuery = query.toLowerCase();
+    final matches = <String>[];
+
+    for (final message in _controller.messagesCubit.currentItems) {
+      final text = message.textContent?.toLowerCase() ?? '';
+      if (text.contains(lowerQuery)) {
+        matches.add(message.id);
+      }
+    }
+
+    return matches;
   }
 
   ChatReplyData _buildReplyData(IChatMessageData message) {

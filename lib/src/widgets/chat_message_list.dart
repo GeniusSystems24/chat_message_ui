@@ -86,6 +86,15 @@ class ChatMessageList extends StatelessWidget {
   /// Time threshold for grouping when using timeDifference mode.
   final int messagesGroupingTimeoutInSeconds;
 
+  /// Current search query (for highlighting matches in messages).
+  final String? searchQuery;
+
+  /// List of matched message IDs from search.
+  final List<String>? matchedMessageIds;
+
+  /// Current match index in the search results.
+  final int? currentMatchIndex;
+
   const ChatMessageList({
     super.key,
     required this.cubit,
@@ -111,6 +120,9 @@ class ChatMessageList extends StatelessWidget {
     this.autoDownloadConfig,
     this.messagesGroupingMode = MessagesGroupingMode.sameMinute,
     this.messagesGroupingTimeoutInSeconds = 300,
+    this.searchQuery,
+    this.matchedMessageIds,
+    this.currentMatchIndex,
   });
 
   @override
@@ -172,6 +184,15 @@ class ChatMessageList extends StatelessWidget {
     final showDateSeparator = messageDate != null &&
         (nextDate == null || !_isSameDay(messageDate, nextDate));
 
+    // Determine if this message is a search match and if it's the current one
+    final isSearchMatch = searchQuery != null &&
+        matchedMessageIds != null &&
+        matchedMessageIds!.contains(message.id);
+    final isCurrentSearchMatch = isSearchMatch &&
+        currentMatchIndex != null &&
+        currentMatchIndex! < matchedMessageIds!.length &&
+        matchedMessageIds![currentMatchIndex!] == message.id;
+
     final bubble = Padding(
       padding: EdgeInsets.only(top: groupStatus?.isFirst == true ? 10 : 4),
       child: messageBubbleBuilder?.call(context, message, groupStatus) ??
@@ -181,6 +202,8 @@ class ChatMessageList extends StatelessWidget {
             currentUserId: currentUserId,
             messageGroupStatus: groupStatus,
             autoDownloadConfig: autoDownloadConfig,
+            searchQuery: searchQuery,
+            isCurrentSearchMatch: isCurrentSearchMatch,
             onLongPress: onMessageLongPress != null
                 ? () => onMessageLongPress!(message)
                 : null,

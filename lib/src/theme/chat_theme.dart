@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:super_interactive_text/super_interactive_text.dart';
 
 import '../widgets/input/floating_suggestion/floating_suggestion_theme.dart';
+import 'search_highlight_theme.dart';
 
 /// Comprehensive chat theme data containing all styling components for chat UI
 class ChatThemeData extends ThemeExtension<ChatThemeData> {
@@ -75,6 +76,9 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
   /// Floating suggestion card styling
   final FloatingSuggestionTheme floatingSuggestion;
 
+  /// Search highlight styling configuration
+  final SearchHighlightTheme searchHighlight;
+
   ChatThemeData({
     Brightness brightness = Brightness.light,
     ChatColors? colors,
@@ -94,6 +98,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
     VideoBubbleTheme? videoBubble,
     DocumentBubbleTheme? documentBubble,
     FloatingSuggestionTheme? floatingSuggestion,
+    SearchHighlightTheme? searchHighlight,
   })  : colors = colors ??
             (brightness == Brightness.light
                 ? const ChatColors.light()
@@ -158,7 +163,11 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
         floatingSuggestion = floatingSuggestion ??
             (brightness == Brightness.light
                 ? const FloatingSuggestionTheme.light()
-                : const FloatingSuggestionTheme.dark());
+                : const FloatingSuggestionTheme.dark()),
+        searchHighlight = searchHighlight ??
+            (brightness == Brightness.light
+                ? const SearchHighlightTheme.light()
+                : const SearchHighlightTheme.dark());
 
   /// Creates a default light theme.
   /// Optionally specify a [textTheme].
@@ -181,6 +190,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
           videoBubble: const VideoBubbleTheme.light(),
           documentBubble: const DocumentBubbleTheme.light(),
           floatingSuggestion: const FloatingSuggestionTheme.light(),
+          searchHighlight: const SearchHighlightTheme.light(),
         );
 
   /// Creates a default dark theme.
@@ -204,6 +214,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
           videoBubble: const VideoBubbleTheme.dark(),
           documentBubble: const DocumentBubbleTheme.dark(),
           floatingSuggestion: const FloatingSuggestionTheme.dark(),
+          searchHighlight: const SearchHighlightTheme.dark(),
         );
 
   /// Creates a [ChatThemeData] based on a Material [ThemeData].
@@ -226,6 +237,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
         videoBubble: const VideoBubbleTheme.light(),
         documentBubble: const DocumentBubbleTheme.light(),
         floatingSuggestion: FloatingSuggestionTheme.fromThemeData(themeData),
+        searchHighlight: const SearchHighlightTheme.light(),
       );
 
   /// Creates a copy of [ChatThemeData] with updated properties.
@@ -248,6 +260,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
     VideoBubbleTheme? videoBubble,
     DocumentBubbleTheme? documentBubble,
     FloatingSuggestionTheme? floatingSuggestion,
+    SearchHighlightTheme? searchHighlight,
   }) {
     return ChatThemeData(
       colors: colors ?? this.colors,
@@ -267,6 +280,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
       videoBubble: videoBubble ?? this.videoBubble,
       documentBubble: documentBubble ?? this.documentBubble,
       floatingSuggestion: floatingSuggestion ?? this.floatingSuggestion,
+      searchHighlight: searchHighlight ?? this.searchHighlight,
     );
   }
 
@@ -301,6 +315,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
         other.floatingSuggestion,
         t,
       ),
+      searchHighlight: searchHighlight,
     );
   }
 
@@ -327,6 +342,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
       videoBubble: other.videoBubble,
       documentBubble: other.documentBubble,
       floatingSuggestion: other.floatingSuggestion,
+      searchHighlight: other.searchHighlight,
     );
   }
 
@@ -352,7 +368,8 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
         other.imageBubble == imageBubble &&
         other.audioBubble == audioBubble &&
         other.videoBubble == videoBubble &&
-        other.documentBubble == documentBubble;
+        other.documentBubble == documentBubble &&
+        other.searchHighlight == searchHighlight;
   }
 
   /// Returns a hash code for this [ChatThemeData].
@@ -376,6 +393,7 @@ class ChatThemeData extends ThemeExtension<ChatThemeData> {
         audioBubble,
         videoBubble,
         documentBubble,
+        searchHighlight,
       );
 }
 
@@ -2865,7 +2883,6 @@ class VideoBubbleTheme {
   @override
   int get hashCode =>
       Object.hash(sender, receiver, borderRadius, maxWidthFactor);
-
 }
 
 /// Document bubble configuration for either sender or receiver
@@ -3194,7 +3211,6 @@ class DocumentBubbleTheme {
 
   @override
   int get hashCode => Object.hash(sender, receiver, borderRadius);
-
 }
 
 /// Image bubble configuration for either sender or receiver
@@ -3478,7 +3494,6 @@ class ImageBubbleTheme {
   @override
   int get hashCode =>
       Object.hash(sender, receiver, borderRadius, maxWidthFactor);
-
 }
 
 /// Audio bubble configuration for either sender or receiver
@@ -3801,5 +3816,4 @@ class AudioBubbleTheme {
 
   @override
   int get hashCode => Object.hash(sender, receiver, borderRadius);
-
 }
