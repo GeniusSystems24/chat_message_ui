@@ -59,24 +59,24 @@ class AttachmentBuilder extends StatelessWidget {
         borderRadius: BorderRadius.circular(chatTheme.imageBubble.borderRadius),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: chatTheme.imageBubble.maxWidth,
-            maxHeight: chatTheme.imageBubble.maxHeight,
+            maxWidth: chatTheme.imageBubble.maxWidth ?? double.nan,
+            maxHeight: chatTheme.imageBubble.maxHeight ?? double.nan,
           ),
           child: CachedNetworkImage(
             imageUrl: media.url,
             fit: BoxFit.cover,
             placeholder: (context, url) => Container(
               constraints: BoxConstraints(
-                maxWidth: chatTheme.imageBubble.maxWidth,
-                maxHeight: chatTheme.imageBubble.maxHeight,
+                maxWidth: chatTheme.imageBubble.maxWidth ?? double.nan,
+                maxHeight: chatTheme.imageBubble.maxHeight ?? double.nan,
               ),
               color: chatTheme.colors.surfaceContainerHigh,
               child: const Center(child: CircularProgressIndicator()),
             ),
             errorWidget: (context, url, error) => Container(
               constraints: BoxConstraints(
-                maxWidth: chatTheme.imageBubble.maxWidth,
-                maxHeight: chatTheme.imageBubble.maxHeight,
+                maxWidth: chatTheme.imageBubble.maxWidth ?? double.nan,
+                maxHeight: chatTheme.imageBubble.maxHeight ?? double.nan,
               ),
               color: chatTheme.colors.surfaceContainerHigh,
               child: Icon(
@@ -91,6 +91,7 @@ class AttachmentBuilder extends StatelessWidget {
   }
 
   Widget _buildVideoAttachment(BuildContext context, ChatMediaData media) {
+    final theme = Theme.of(context);
     final thumbnailUrl = media.thumbnailUrl ?? media.url;
 
     return GestureDetector(
@@ -102,23 +103,23 @@ class AttachmentBuilder extends StatelessWidget {
           children: [
             ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: chatTheme.videoBubble.maxWidth,
-                maxHeight: chatTheme.videoBubble.maxHeight,
+                maxWidth: chatTheme.videoBubble.maxWidth ?? double.nan,
+                maxHeight: chatTheme.videoBubble.maxHeight ?? double.nan,
               ),
               child: CachedNetworkImage(
                 imageUrl: thumbnailUrl,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
                   constraints: BoxConstraints(
-                    maxWidth: chatTheme.videoBubble.maxWidth,
-                    maxHeight: chatTheme.videoBubble.maxHeight,
+                    maxWidth: chatTheme.videoBubble.maxWidth ?? double.nan,
+                    maxHeight: chatTheme.videoBubble.maxHeight ?? double.nan,
                   ),
                   color: chatTheme.colors.surfaceContainerHigh,
                 ),
                 errorWidget: (context, url, error) => Container(
                   constraints: BoxConstraints(
-                    maxWidth: chatTheme.videoBubble.maxWidth,
-                    maxHeight: chatTheme.videoBubble.maxHeight,
+                    maxWidth: chatTheme.videoBubble.maxWidth ?? double.nan,
+                    maxHeight: chatTheme.videoBubble.maxHeight ?? double.nan,
                   ),
                   color: chatTheme.colors.surfaceContainerHigh,
                   child: Icon(
@@ -133,13 +134,15 @@ class AttachmentBuilder extends StatelessWidget {
               width: chatTheme.videoBubble.playButtonSize,
               height: chatTheme.videoBubble.playButtonSize,
               decoration: BoxDecoration(
-                color: chatTheme.videoBubble.playButtonBackgroundColor,
+                color: chatTheme.videoBubble.playButtonBackgroundColor ??
+                    theme.colorScheme.surface.withValues(alpha: 0.8),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.play_arrow,
                 size: chatTheme.videoBubble.playIconSize,
-                color: chatTheme.videoBubble.playButtonIconColor,
+                color: chatTheme.videoBubble.playButtonIconColor ??
+                    theme.colorScheme.onSurface,
               ),
             ),
             // Duration indicator
@@ -172,11 +175,13 @@ class AttachmentBuilder extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: EdgeInsets.all(chatTheme.audioBubble.padding),
+      padding: EdgeInsets.all(chatTheme.audioBubble.padding ?? 0),
       decoration: BoxDecoration(
         color: isMyMessage
-            ? chatTheme.audioBubble.senderBackgroundColor
-            : chatTheme.audioBubble.receiverBackgroundColor,
+            ? chatTheme.audioBubble.senderBackgroundColor ??
+                chatTheme.colors.primary.withValues(alpha: 0.1)
+            : chatTheme.audioBubble.receiverBackgroundColor ??
+                chatTheme.colors.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(chatTheme.audioBubble.borderRadius),
       ),
       child: Row(
@@ -196,7 +201,7 @@ class AttachmentBuilder extends StatelessWidget {
               child: Icon(
                 Icons.play_arrow,
                 size: chatTheme.audioBubble.playIconSize,
-                color: chatTheme.audioBubble.playIconColor,
+                color: chatTheme.audioBubble.playIconColor ?? Colors.white,
               ),
             ),
           ),

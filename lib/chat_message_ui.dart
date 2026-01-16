@@ -30,8 +30,6 @@
 /// ```
 library;
 
-export 'package:smart_pagination/pagination.dart';
-
 // Adapters - Core data interfaces and models
 export 'src/adapters/adapters.dart';
 

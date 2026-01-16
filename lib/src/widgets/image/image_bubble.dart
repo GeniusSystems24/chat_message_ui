@@ -397,7 +397,7 @@ class _ShimmerPlaceholderState extends State<_ShimmerPlaceholder>
   @override
   Widget build(BuildContext context) {
     final baseColor = widget.chatTheme.colors.surfaceContainerHigh;
-    final highlightColor = widget.chatTheme.colors.surfaceContainerHigh;
+    final highlightColor = widget.chatTheme.colors.surfaceContainerHighest;
 
     return AnimatedBuilder(
       animation: _animation,
