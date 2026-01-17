@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/chat_theme.dart';
+import '../overlay/focused_message_overlay.dart';
 import '../reactions/message_reaction_bar.dart';
 
 /// Action types available in the context menu.
@@ -212,6 +213,52 @@ class MessageContextMenu extends StatefulWidget {
           child: child,
         );
       },
+    );
+  }
+
+  /// Shows the context menu with a focused overlay displaying the message.
+  ///
+  /// This method creates a WhatsApp/Telegram-style overlay that:
+  /// - Dims the background with a modal barrier
+  /// - Highlights and centers the message
+  /// - Shows reactions bar above the message
+  /// - Shows action buttons below the message
+  ///
+  /// Example:
+  /// ```dart
+  /// final result = await MessageContextMenu.showWithFocusedOverlay(
+  ///   context,
+  ///   messageBuilder: (context) => MessageBubble(
+  ///     message: message,
+  ///     isMyMessage: isMyMessage,
+  ///   ),
+  ///   actions: [
+  ///     MessageActionConfig.reply,
+  ///     MessageActionConfig.copy,
+  ///     MessageActionConfig.forward,
+  ///   ],
+  ///   isMyMessage: isMyMessage,
+  /// );
+  /// ```
+  static Future<MessageContextMenuResult?> showWithFocusedOverlay(
+    BuildContext context, {
+    required Widget Function(BuildContext context) messageBuilder,
+    List<MessageActionConfig> actions = const [],
+    List<String> reactions = const ['❤️', '😂', '😮', '😢', '🙏', '👍'],
+    bool showReactions = true,
+    bool showActionLabels = true,
+    bool isMyMessage = false,
+    Color? barrierColor,
+  }) {
+    return FocusedMessageOverlay.show(
+      context,
+      messageBuilder: messageBuilder,
+      actions: actions,
+      reactions: reactions,
+      showReactions: showReactions,
+      showActionLabels: showActionLabels,
+      isMyMessage: isMyMessage,
+      barrierColor: barrierColor,
     );
   }
 

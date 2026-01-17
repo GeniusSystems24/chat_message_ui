@@ -35,6 +35,7 @@ abstract class RoutePaths {
   static const featuresEditMessage = '/features/edit-message';
   static const featuresFileUpload = '/features/file-upload';
   static const featuresPinnedSearch = '/features/pinned-search';
+  static const featuresFocusedOverlay = '/features/focused-overlay';
 
   // Bubbles
   static const bubblesText = '/bubbles/text';
@@ -228,6 +229,16 @@ class PinnedSearchFeatureRoute extends GoRouteData with $PinnedSearchFeatureRout
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const PinnedSearchExample();
+  }
+}
+
+@TypedGoRoute<FocusedOverlayFeatureRoute>(path: '/features/focused-overlay')
+class FocusedOverlayFeatureRoute extends GoRouteData with $FocusedOverlayFeatureRoute {
+  const FocusedOverlayFeatureRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const FocusedOverlayExample();
   }
 }
 

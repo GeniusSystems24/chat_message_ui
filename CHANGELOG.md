@@ -48,8 +48,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Haptic feedback on all actions.
 - New `EditMessagePreview` widget for edit mode indicator.
   - Shows above input field when editing a message.
-  - Cancel button to exit edit mode.
-  - `EditMessageData` helper class for state management.
+- New `FocusedMessageOverlay` widget for WhatsApp/Telegram-style message interactions.
+  - Modal barrier with highlighted message in center.
+  - Reaction bar displayed above the message.
+  - Action buttons displayed below the message.
+  - Smooth animations with haptic feedback.
+  - `InlineFocusedOverlay` for TooltipCard-based inline usage.
+- New `MessageContextMenu.showWithFocusedOverlay()` method for integrated overlay experience.
+  - Combines focused overlay with context menu functionality.
+  - Customizable reactions and actions.
+  - Proper handling of message alignment (sent/received).
 - New `BubbleBuilders` class for customizing message bubble rendering.
   - `textBubbleBuilder` - Custom text message builder
   - `audioBubbleBuilder` - Custom audio message builder

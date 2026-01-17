@@ -405,6 +405,7 @@ class _FeaturesGrid extends StatelessWidget {
       _FeatureItem('Replies', 'Reply preview & context', Icons.reply_outlined, Colors.orange, '/features/reply'),
       _FeatureItem('Search', 'Find messages', Icons.search_outlined, Colors.purple, '/features/search'),
       _FeatureItem('Custom Builders', 'Custom bubble rendering', Icons.build_outlined, Colors.teal, '/features/custom'),
+      _FeatureItem('Focused Overlay', 'WhatsApp-style context', Icons.center_focus_strong_outlined, Colors.deepOrange, '/features/focused-overlay'),
     ];
 
     return GridView.builder(
