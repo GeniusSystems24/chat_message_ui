@@ -7,6 +7,16 @@ import '../data/example_pagination.dart';
 import '../data/example_sample_data.dart';
 import 'shared/example_scaffold.dart';
 
+/// Demonstrates all input-related features.
+///
+/// Features demonstrated:
+/// - ChatAppBar with actions
+/// - ChatInputWidget with all suggestion providers (@, #, /, $)
+/// - EditMessagePreview for edit-in-place flow
+/// - Reply preview (ChatReplyData)
+/// - Voice recording callbacks
+/// - Poll request callback
+/// - PinnedMessagesBar
 class InputFeaturesExample extends StatefulWidget {
   const InputFeaturesExample({super.key});
 
@@ -16,6 +26,7 @@ class InputFeaturesExample extends StatefulWidget {
 
 class _InputFeaturesExampleState extends State<InputFeaturesExample> {
   final ValueNotifier<ChatReplyData?> _replyNotifier = ValueNotifier(null);
+  final ValueNotifier<IChatMessageData?> _editNotifier = ValueNotifier(null);
   late final List<ExampleMessage> _messages;
   late final ExamplePaginationHelper<ExampleMessage> _pagination;
   int _pinnedIndex = 0;
@@ -49,7 +60,7 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
     super.initState();
     _messages = ExampleSampleData.buildMessages()
         .where((message) => message.type == ChatMessageType.text)
-        .take(2)
+        .take(4)
         .toList()
         .reversed
         .toList();
@@ -63,31 +74,66 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
   @override
   void dispose() {
     _replyNotifier.dispose();
+    _editNotifier.dispose();
     _pagination.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Input Features'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            tooltip: 'Screen Overview',
-            onPressed: () => ExampleDescription.showAsBottomSheet(
-              context,
-              title: 'Screen Overview',
-              icon: Icons.keyboard_outlined,
-              lines: const [
-                'Highlights advanced input options like mentions and quick replies.',
-                'Shows reply preview, attachments, and command suggestions together.',
-                'Useful to validate input UX before wiring real message delivery.',
-              ],
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Container(
+          color: theme.colorScheme.surface,
+          child: ChatAppBar(
+            chat: const ChatAppBarData(
+              id: 'input_features_demo',
+              title: 'Input Features',
+              subtitle: 'Suggestions, reply, edit, voice',
+              imageUrl: 'https://i.pravatar.cc/150?img=15',
             ),
+            showSearch: false,
+            showMenu: true,
+            showVideoCall: false,
+            showTasks: true,
+            menuItems: [
+              PopupMenuItem(
+                value: 'clear_reply',
+                child: Row(
+                  children: [
+                    Icon(Icons.clear, color: theme.colorScheme.onSurface),
+                    const SizedBox(width: 8),
+                    const Text('Clear reply/edit'),
+                  ],
+                ),
+              ),
+            ],
+            onMenuSelection: (_) {
+              _replyNotifier.value = null;
+              _editNotifier.value = null;
+            },
+            onTasks: () => _showSnackBar('Open tasks view'),
+            additionalActions: [
+              IconButton(
+                icon: const Icon(Icons.info_outline),
+                tooltip: 'Screen Overview',
+                onPressed: () => ExampleDescription.showAsBottomSheet(
+                  context,
+                  title: 'Screen Overview',
+                  icon: Icons.keyboard_outlined,
+                  lines: const [
+                    'Highlights advanced input options like mentions and quick replies.',
+                    'Shows EditMessagePreview for editing existing messages.',
+                    'Try @mention, #hashtag, /command, or \$task in the input.',
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       body: Column(
         children: [
@@ -100,12 +146,8 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
                 setState(() {
                   _pinnedIndex = (_pinnedIndex + 1) % _messages.length;
                 });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Pinned: ${_messages[_pinnedIndex % _messages.length].id}',
-                    ),
-                  ),
+                _showSnackBar(
+                  'Pinned: ${_messages[_pinnedIndex % _messages.length].id}',
                 );
               },
             ),
@@ -119,50 +161,41 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
                 final message = items[index];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: MessageBubble(
-                    message: message,
-                    currentUserId: ExampleSampleData.currentUserId,
-                    showAvatar: true,
+                  child: GestureDetector(
+                    onLongPress: () => _startEditMessage(message),
+                    child: MessageBubble(
+                      message: message,
+                      currentUserId: ExampleSampleData.currentUserId,
+                      showAvatar: true,
+                    ),
                   ),
                 );
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton.icon(
-              onPressed: () {
-                _replyNotifier.value = ChatReplyData(
-                  id: 'msg_reply',
-                  senderId: 'user_2',
-                  senderName: 'Omar',
-                  message: 'Reply preview enabled from the example screen.',
-                  type: ChatMessageType.text,
-                );
-              },
-              icon: const Icon(Icons.reply_outlined),
-              label: const Text('Enable reply preview'),
-            ),
+          _buildActionButtons(context),
+          // EditMessagePreview integration
+          ValueListenableBuilder<IChatMessageData?>(
+            valueListenable: _editNotifier,
+            builder: (context, editMessage, _) {
+              if (editMessage == null) return const SizedBox.shrink();
+              return EditMessagePreview(
+                message: editMessage,
+                onCancel: () => _editNotifier.value = null,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+              );
+            },
           ),
           ChatInputWidget(
             onSendText: _handleSendText,
-            onAttachmentSelected: (type) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Attachment selected: ${type.name}')),
-              );
-            },
-            onPollRequested: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Create poll requested')),
-              );
-            },
+            onAttachmentSelected: (type) =>
+                _showSnackBar('Attachment selected: ${type.name}'),
+            onPollRequested: () => _showSnackBar('Create poll requested'),
+            onRecordingStart: () => _showSnackBar('Recording started'),
+            onRecordingCancel: () => _showSnackBar('Recording cancelled'),
             onRecordingComplete: (path, duration, {waveform}) async {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Recorded ${duration}s (waveform: ${waveform?.length ?? 0})',
-                  ),
-                ),
+              _showSnackBar(
+                'Recorded ${duration}s (waveform: ${waveform?.length ?? 0})',
               );
             },
             replyMessage: _replyNotifier,
@@ -176,6 +209,53 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
     );
   }
 
+  Widget _buildActionButtons(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () {
+                _replyNotifier.value = ChatReplyData(
+                  id: 'msg_reply',
+                  senderId: 'user_2',
+                  senderName: 'Omar',
+                  message: 'Reply preview enabled from the example screen.',
+                  type: ChatMessageType.text,
+                );
+              },
+              icon: const Icon(Icons.reply_outlined, size: 18),
+              label: const Text('Reply'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () {
+                if (_messages.isEmpty) return;
+                final message = _messages.first;
+                _startEditMessage(message);
+              },
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Edit'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _startEditMessage(ExampleMessage message) {
+    if (message.senderId != ExampleSampleData.currentUserId) {
+      _showSnackBar('Cannot edit messages from other users');
+      return;
+    }
+
+    _editNotifier.value = message;
+    _showSnackBar('Editing message: ${message.id}');
+  }
+
   Widget _buildHintCard(BuildContext context) {
     final theme = Theme.of(context);
     final hints = [
@@ -183,8 +263,7 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
       '#hashtag',
       '/quick',
       r'$task',
-      'Paste a link',
-      'Polls',
+      'Long-press to edit',
     ];
 
     return Container(
@@ -221,9 +300,29 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
   }
 
   Future<void> _handleSendText(String text) async {
+    // If editing, update existing message
+    if (_editNotifier.value != null) {
+      final editMessage = _editNotifier.value!;
+      final index = _messages.indexWhere((m) => m.id == editMessage.id);
+      if (index != -1) {
+        final original = _messages[index];
+        _messages[index] = original.copyWith(
+          textContent: text.trim(),
+          isEdited: true,
+          updatedAt: DateTime.now(),
+        );
+        _pagination.setItems(_messages);
+        _showSnackBar('Message edited');
+      }
+      _editNotifier.value = null;
+      return;
+    }
+
+    // Clear reply if set
     if (_replyNotifier.value != null) {
       _replyNotifier.value = null;
     }
+
     final message = ExampleMessage(
       id: 'input_${DateTime.now().microsecondsSinceEpoch}',
       chatId: ExampleSampleData.chatId,
@@ -382,5 +481,11 @@ class _InputFeaturesExampleState extends State<InputFeaturesExample> {
       return query.substring(1);
     }
     return query;
+  }
+
+  void _showSnackBar(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(text)),
+    );
   }
 }

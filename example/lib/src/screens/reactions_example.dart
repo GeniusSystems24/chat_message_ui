@@ -7,6 +7,16 @@ import '../data/example_pagination.dart';
 import '../data/example_sample_data.dart';
 import 'shared/example_scaffold.dart';
 
+/// Demonstrates reaction system and context menu actions.
+///
+/// Features demonstrated:
+/// - ChatAppBar for normal mode
+/// - ChatSelectionAppBar for multi-select mode
+/// - MessageReactionBar widget
+/// - MessageContextMenu with actions and reactions
+/// - ReactionEmojiPicker for extended emoji selection
+/// - ChatInputWidget for quick reply after context action
+/// - Reply flow integration
 class ReactionsExample extends StatefulWidget {
   const ReactionsExample({super.key});
 
@@ -17,14 +27,17 @@ class ReactionsExample extends StatefulWidget {
 class _ReactionsExampleState extends State<ReactionsExample> {
   late final List<ExampleMessage> _messages;
   late final ExamplePaginationHelper<ExampleMessage> _pagination;
+  final ValueNotifier<ChatReplyData?> _replyNotifier = ValueNotifier(null);
   int _pinnedIndex = 0;
+  Set<IChatMessageData> _selectedMessages = {};
+  bool _isSelectionMode = false;
 
   @override
   void initState() {
     super.initState();
     _messages = ExampleSampleData.buildMessages()
         .where((message) => message.type == ChatMessageType.text)
-        .take(3)
+        .take(5)
         .toList()
         .reversed
         .toList();
@@ -38,34 +51,103 @@ class _ReactionsExampleState extends State<ReactionsExample> {
 
   @override
   void dispose() {
+    _replyNotifier.dispose();
     _pagination.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reactions & Status'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            tooltip: 'Screen Overview',
-            onPressed: () => ExampleDescription.showAsBottomSheet(
-              context,
-              title: 'Screen Overview',
-              icon: Icons.emoji_emotions_outlined,
-              lines: const [
-                'Focuses on message reactions and status indicators.',
-                'Lets you toggle emoji reactions for the current user.',
-                'Useful to validate reaction UI and state updates.',
-              ],
+    final PreferredSizeWidget currentAppBar = _isSelectionMode
+        ? ChatSelectionAppBar(
+            selectedCount: _selectedMessages.length,
+            selectedMessages: _selectedMessages,
+            currentUserId: ExampleSampleData.currentUserId,
+            onClose: _clearSelection,
+            onReply: (msg) {
+              _replyNotifier.value = _buildReplyData(msg);
+              _clearSelection();
+            },
+            onCopy: () {
+              _showSnackBar('Copied ${_selectedMessages.length} messages');
+              _clearSelection();
+            },
+            onPin: (msgs) {
+              _showSnackBar('Pinned ${msgs.length} messages');
+              _clearSelection();
+            },
+            onStar: (msgs) {
+              _showSnackBar('Starred ${msgs.length} messages');
+              _clearSelection();
+            },
+            onForward: (msgs) {
+              _showSnackBar('Forward ${msgs.length} messages');
+              _clearSelection();
+            },
+            onDelete: (msgs) {
+              _showSnackBar('Deleted ${msgs.length} messages');
+              _clearSelection();
+            },
+          ) as PreferredSizeWidget
+        : ChatAppBar(
+            chat: const ChatAppBarData(
+              id: 'reactions_demo',
+              title: 'Reactions & Context Menu',
+              subtitle: 'Long-press messages',
+              imageUrl: 'https://i.pravatar.cc/150?img=25',
             ),
-          ),
-        ],
-      ),
+            showSearch: false,
+            showMenu: true,
+            menuItems: const [
+              PopupMenuItem(
+                value: 'clear_reactions',
+                child: Row(
+                  children: [
+                    Icon(Icons.clear_all),
+                    SizedBox(width: 8),
+                    Text('Clear all reactions'),
+                  ],
+                ),
+              ),
+            ],
+            onMenuSelection: (value) {
+              if (value == 'clear_reactions') {
+                setState(() {
+                  for (var i = 0; i < _messages.length; i++) {
+                    _messages[i] = _messages[i].copyWith(reactions: const []);
+                  }
+                });
+                _pagination.setItems(_messages);
+                _showSnackBar('All reactions cleared');
+              }
+            },
+            additionalActions: [
+              IconButton(
+                icon: const Icon(Icons.info_outline),
+                tooltip: 'Screen Overview',
+                onPressed: () => ExampleDescription.showAsBottomSheet(
+                  context,
+                  title: 'Screen Overview',
+                  icon: Icons.emoji_emotions_outlined,
+                  lines: const [
+                    'WhatsApp-style reactions and context menu.',
+                    'Long press a message to show context menu.',
+                    'Select multiple messages for bulk actions.',
+                    'Includes pin, star, reply, copy, forward, delete.',
+                    'Quick reply via ChatInputWidget at bottom.',
+                  ],
+                ),
+              ),
+            ],
+          );
+
+    return Scaffold(
+      appBar: currentAppBar,
       body: Column(
         children: [
+          // Demo section for MessageReactionBar
+          _buildReactionBarDemo(),
+
           if (_messages.isNotEmpty)
             PinnedMessagesBar(
               message: _messages[_pinnedIndex],
@@ -75,13 +157,7 @@ class _ReactionsExampleState extends State<ReactionsExample> {
                 setState(() {
                   _pinnedIndex = (_pinnedIndex + 1) % _messages.length;
                 });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Pinned message: ${_messages[_pinnedIndex].id}',
-                    ),
-                  ),
-                );
+                _showSnackBar('Pinned message: ${_messages[_pinnedIndex].id}');
               },
             ),
           Expanded(
@@ -90,20 +166,197 @@ class _ReactionsExampleState extends State<ReactionsExample> {
               padding: const EdgeInsets.all(16),
               itemBuilder: (context, items, index) {
                 final message = items[index];
+                final isSelected = _selectedMessages.contains(message);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: MessageBubble(
-                    message: message,
-                    currentUserId: ExampleSampleData.currentUserId,
-                    showAvatar: true,
-                    onReactionTap: (emoji) => _toggleReaction(message, emoji),
+                  child: GestureDetector(
+                    onLongPressStart: (details) => _showContextMenu(
+                        context, details.globalPosition, message),
+                    onTap: _isSelectionMode
+                        ? () => _toggleSelection(message)
+                        : null,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.1)
+                            : null,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: MessageBubble(
+                        message: message,
+                        currentUserId: ExampleSampleData.currentUserId,
+                        showAvatar: true,
+                        onReactionTap: (emoji) =>
+                            _toggleReaction(message, emoji),
+                      ),
+                    ),
                   ),
                 );
               },
             ),
           ),
+          // ChatInputWidget for quick reply flow
+          ChatInputWidget(
+            onSendText: _handleSendText,
+            onAttachmentSelected: (type) =>
+                _showSnackBar('Attachment: ${type.name}'),
+            replyMessage: _replyNotifier,
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildReactionBarDemo() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'MessageReactionBar Demo',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: MessageReactionBar(
+              reactions: const ['❤️', '😂', '😮', '😢', '🙏', '👍'],
+              onReactionSelected: (emoji) {
+                _showSnackBar('Selected reaction: $emoji');
+              },
+              onMorePressed: () async {
+                final emoji = await ReactionEmojiPicker.show(context);
+                if (emoji != null) {
+                  _showSnackBar('Selected from picker: $emoji');
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleSendText(String text) async {
+    final reply = _replyNotifier.value;
+    _replyNotifier.value = null;
+
+    final message = ExampleMessage(
+      id: 'reaction_${DateTime.now().microsecondsSinceEpoch}',
+      chatId: ExampleSampleData.chatId,
+      senderId: ExampleSampleData.currentUserId,
+      senderData: ExampleSampleData.users[ExampleSampleData.currentUserId] ??
+          const ChatSenderData(id: 'user_1', name: 'You'),
+      type: ChatMessageType.text,
+      textContent: text.trim(),
+      createdAt: DateTime.now(),
+      status: ChatMessageStatus.sent,
+      replyToId: reply?.id,
+      replyData: reply,
+    );
+
+    setState(() {
+      _messages.add(message);
+    });
+    _pagination.setItems(_messages);
+  }
+
+  ChatReplyData _buildReplyData(IChatMessageData message) {
+    final senderName = message.senderData?.displayName ?? message.senderId;
+    final preview = message.textContent?.trim().isNotEmpty == true
+        ? message.textContent!
+        : message.type.name;
+
+    return ChatReplyData(
+      id: message.id,
+      senderId: message.senderId,
+      senderName: senderName,
+      message: preview,
+      type: message.type,
+      thumbnailUrl: message.mediaData?.thumbnailUrl,
+    );
+  }
+
+  Future<void> _showContextMenu(
+    BuildContext context,
+    Offset position,
+    ExampleMessage message,
+  ) async {
+    final result = await MessageContextMenu.show(
+      context,
+      position: position,
+      reactions: const ['❤️', '😂', '😮', '😢', '🙏', '👍'],
+      actions: [
+        MessageActionConfig.reply,
+        MessageActionConfig.copy,
+        MessageActionConfig.forward,
+        MessageActionConfig.pin,
+        MessageActionConfig.star,
+        MessageActionConfig.delete,
+      ],
+    );
+
+    if (result == null) return;
+
+    if (result.hasReaction) {
+      _toggleReaction(message, result.reaction!);
+    } else if (result.hasAction) {
+      _handleAction(result.action!, message);
+    }
+  }
+
+  void _handleAction(MessageAction action, ExampleMessage message) {
+    switch (action) {
+      case MessageAction.reply:
+        _replyNotifier.value = _buildReplyData(message);
+        break;
+      case MessageAction.copy:
+        _showSnackBar('Copied: ${message.textContent}');
+        break;
+      case MessageAction.forward:
+        _showSnackBar('Forward message');
+        break;
+      case MessageAction.pin:
+        _showSnackBar('Pinned message');
+        break;
+      case MessageAction.star:
+        _showSnackBar('Starred message');
+        break;
+      case MessageAction.delete:
+        _showSnackBar('Deleted message');
+        break;
+      default:
+        _showSnackBar('Action: $action');
+    }
+  }
+
+  void _toggleSelection(IChatMessageData message) {
+    setState(() {
+      if (_selectedMessages.contains(message)) {
+        _selectedMessages.remove(message);
+        if (_selectedMessages.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedMessages.add(message);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedMessages = {};
+      _isSelectionMode = false;
+    });
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 1)),
     );
   }
 

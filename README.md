@@ -1,6 +1,6 @@
 # Chat Message UI
 
-[![Pub Version](https://img.shields.io/badge/pub-v1.0.0-blue)](https://pub.dev)
+[![Pub Version](https://img.shields.io/badge/pub-v1.3.0-blue)](https://pub.dev)
 [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?logo=flutter)](https://flutter.dev)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -561,9 +561,55 @@ Display video messages with player:
 VideoBubble(
   message: messageData,
   chatTheme: ChatThemeData.get(context),
+  isMyMessage: true,
   filePath: '/path/to/local/video.mp4', // Optional
   thumbnailFilePath: '/path/to/thumb.jpg', // Optional
+  showMiniPlayer: true, // Show inline player with controls
+  autoPlay: false,
+  muted: false,
+  onPlay: () {
+    // Called when video starts playing
+  },
+  onPause: () {
+    // Called when video is paused
+  },
 )
+```
+
+**Note:** When a video starts playing, all other audio and video playback
+is automatically paused. This behavior is handled by `VideoPlayerFactory`
+and `MediaPlaybackManager`.
+
+#### VideoPlayerFactory
+
+Centralized video playback management:
+
+```dart
+// Play a video (automatically pauses other media)
+await VideoPlayerFactory.play(
+  'video-123',
+  filePath: '/path/to/video.mp4',
+);
+
+// Pause video
+await VideoPlayerFactory.pause('video-123');
+
+// Seek to position
+await VideoPlayerFactory.seek('video-123', Duration(seconds: 30));
+
+// Control volume
+await VideoPlayerFactory.setVolume('video-123', 0.5);
+
+// Listen to state changes
+VideoPlayerFactory.stateStream.listen((state) {
+  if (state.id == 'video-123') {
+    print('Position: ${state.formattedPosition}');
+    print('Is playing: ${state.isPlaying}');
+  }
+});
+
+// Cleanup
+await VideoPlayerFactory.dispose('video-123');
 ```
 
 #### AudioBubble
@@ -614,6 +660,49 @@ PollBubble(
   onViewVotes: (option) {
     // Show vote details
   },
+)
+```
+
+#### CreatePollScreen
+
+WhatsApp-style screen for creating polls:
+
+```dart
+// Show as full page
+final poll = await CreatePollScreen.showAsPage(
+  context,
+  onCreatePoll: (pollData) {
+    // Handle poll creation
+    print('Question: ${pollData.question}');
+    print('Options: ${pollData.validOptions}');
+    print('Multiple answers: ${pollData.allowMultipleAnswers}');
+  },
+  minOptions: 2,
+  maxOptions: 12,
+);
+
+// Or show as bottom sheet
+final poll = await CreatePollScreen.showAsBottomSheet(
+  context,
+  onCreatePoll: (pollData) {
+    // Handle poll creation
+  },
+);
+
+// Or use directly as a widget
+CreatePollScreen(
+  onCreatePoll: (pollData) {
+    // Send poll message
+    sendPollMessage(
+      question: pollData.question,
+      options: pollData.validOptions,
+      allowMultiple: pollData.allowMultipleAnswers,
+    );
+  },
+  title: 'Create poll',
+  questionHint: 'Ask question',
+  optionHint: '+ Add',
+  multipleAnswersLabel: 'Allow multiple answers',
 )
 ```
 
@@ -806,6 +895,212 @@ final chatTheme = ChatThemeData.get(context);
 
 ---
 
+### Media Playback Management
+
+#### MediaPlaybackManager
+
+Centralized manager ensuring only one media plays at a time:
+
+```dart
+// Initialize the manager (call once at app startup)
+MediaPlaybackManager.instance.initialize();
+
+// Play audio (pauses any playing video)
+await MediaPlaybackManager.instance.playAudio(
+  'audio-123',
+  filePath: '/path/to/audio.mp3',
+);
+
+// Play video (pauses any playing audio or other video)
+await MediaPlaybackManager.instance.playVideo(
+  'video-123',
+  filePath: '/path/to/video.mp4',
+);
+
+// Pause all media
+await MediaPlaybackManager.instance.pauseAll();
+
+// Check current state
+final state = MediaPlaybackManager.instance.state;
+print('Current media type: ${state.type}'); // audio, video, or none
+print('Is playing: ${state.isPlaying}');
+
+// Listen to state changes
+MediaPlaybackManager.instance.stateStream.listen((state) {
+  print('Now playing: ${state.mediaId}');
+});
+
+// Cleanup
+await MediaPlaybackManager.instance.dispose();
+```
+
+**Note:** `VideoPlayerFactory` and `AudioPlayerFactory` automatically
+coordinate through this manager, so you typically don't need to use
+`MediaPlaybackManager` directly unless you need custom playback logic.
+
+#### MessageReactionBar
+
+WhatsApp-style horizontal reaction bar for quick emoji selection:
+
+```dart
+MessageReactionBar(
+  reactions: const ['❤️', '😂', '😮', '😢', '🙏', '👍'],
+  onReactionSelected: (emoji) {
+    print('Selected: $emoji');
+    addReaction(messageId, emoji);
+  },
+  onMorePressed: () async {
+    // Show full emoji picker
+    final emoji = await ReactionEmojiPicker.show(context);
+    if (emoji != null) {
+      addReaction(messageId, emoji);
+    }
+  },
+  selectedReaction: currentUserReaction, // Highlight user's existing reaction
+)
+```
+
+#### MessageContextMenu
+
+Full context menu with reactions and actions for long-press on messages:
+
+```dart
+// Show context menu on long press
+GestureDetector(
+  onLongPressStart: (details) async {
+    final result = await MessageContextMenu.show(
+      context,
+      position: details.globalPosition,
+      reactions: ['❤️', '😂', '😮', '😢', '🙏', '👍'],
+      actions: [
+        MessageActionConfig.reply,
+        MessageActionConfig.copy,
+        MessageActionConfig.forward,
+        MessageActionConfig.pin,
+        MessageActionConfig.star,
+        MessageActionConfig.delete,
+      ],
+    );
+
+    if (result?.hasReaction == true) {
+      addReaction(message.id, result!.reaction!);
+    } else if (result?.hasAction == true) {
+      handleAction(result!.action!, message);
+    }
+  },
+  child: MessageBubble(message: message),
+)
+```
+
+#### ChatSelectionAppBar
+
+Enhanced selection app bar with pin, star, and forward actions:
+
+```dart
+ChatSelectionAppBar(
+  selectedCount: selectedMessages.length,
+  selectedMessages: selectedMessages,
+  currentUserId: currentUserId,
+  onClose: () => clearSelection(),
+  onReply: (msg) => replyTo(msg),
+  onCopy: () => copyToClipboard(),
+  onPin: (msgs) => pinMessages(msgs),
+  onUnpin: (msgs) => unpinMessages(msgs),
+  onStar: (msgs) => starMessages(msgs),
+  onForward: (msgs) => forwardMessages(msgs),
+  onDelete: (msgs) => deleteMessages(msgs),
+  areAllPinned: checkAllPinned(selectedMessages),
+  areAllStarred: checkAllStarred(selectedMessages),
+)
+```
+
+#### EditMessagePreview
+
+Preview widget shown above input when editing a message:
+
+```dart
+if (editingMessage != null)
+  EditMessagePreview(
+    message: editingMessage,
+    onCancel: () => setState(() => editingMessage = null),
+  ),
+ChatInput(
+  initialText: editingMessage?.message,
+  onSend: (text) {
+    if (editingMessage != null) {
+      updateMessage(editingMessage.id, text);
+      setState(() => editingMessage = null);
+    } else {
+      sendMessage(text);
+    }
+  },
+)
+```
+
+#### BubbleBuilders
+
+Customize how different message types are rendered with custom builders:
+
+```dart
+// Define custom builders
+final customBuilders = BubbleBuilders(
+  // Custom image bubble
+  imageBubbleBuilder: (context, builderContext, media) {
+    return MyCustomImageBubble(
+      imageUrl: media.url,
+      isMyMessage: builderContext.isMyMessage,
+      onTap: builderContext.onTap,
+    );
+  },
+
+  // Custom audio bubble
+  audioBubbleBuilder: (context, builderContext, media) {
+    return MyCustomAudioPlayer(
+      audioUrl: media.url,
+      duration: media.duration,
+    );
+  },
+
+  // Custom poll bubble
+  pollBubbleBuilder: (context, builderContext, poll, onVote) {
+    return MyCustomPollWidget(
+      question: poll.question,
+      options: poll.options,
+      onVote: onVote,
+    );
+  },
+
+  // Custom context menu
+  contextMenuBuilder: (context, builderContext) async {
+    return showMyCustomMenu(
+      context,
+      position: builderContext.position,
+      message: builderContext.message,
+    );
+  },
+);
+
+// Use in MessageBubble
+MessageBubble(
+  message: message,
+  currentUserId: userId,
+  bubbleBuilders: customBuilders,
+)
+```
+
+Available builders:
+- `textBubbleBuilder` - Custom text message rendering
+- `audioBubbleBuilder` - Custom audio player
+- `imageBubbleBuilder` - Custom image display
+- `videoBubbleBuilder` - Custom video player
+- `pollBubbleBuilder` - Custom poll UI
+- `locationBubbleBuilder` - Custom location display
+- `contactBubbleBuilder` - Custom contact card
+- `documentBubbleBuilder` - Custom document preview
+- `contextMenuBuilder` - Custom long-press menu
+
+---
+
 ## Utilities
 
 ### MessageGroupStatus
@@ -878,6 +1173,7 @@ lib/
     │   ├── input/                    # Input widgets
     │   ├── audio/                    # Audio player
     │   ├── video/                    # Video player
+    │   ├── media/                    # Media playback manager
     │   ├── image/                    # Image viewer
     │   ├── poll/                     # Poll widgets
     │   ├── location/                 # Location widgets

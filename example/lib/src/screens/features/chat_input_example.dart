@@ -15,6 +15,7 @@ class _ChatInputExampleState extends State<ChatInputExample> {
   final _basicController = TextEditingController();
   final _fullController = TextEditingController();
   final _replyMessage = ValueNotifier<ChatReplyData?>(null);
+  bool _recordingLocked = false;
 
   @override
   void dispose() {
@@ -134,7 +135,8 @@ class _ChatInputExampleState extends State<ChatInputExample> {
               onRecordingLockedChanged: (locked) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(locked ? 'Recording locked' : 'Recording unlocked'),
+                    content: Text(
+                        locked ? 'Recording locked' : 'Recording unlocked'),
                   ),
                 );
               },
@@ -304,6 +306,155 @@ class _ChatInputExampleState extends State<ChatInputExample> {
           ),
           const SizedBox(height: 24),
 
+          // Recording Lock Status
+          const ExampleSectionHeader(
+            title: 'Recording Lock Feedback',
+            description: 'Track recording lock state',
+            icon: Icons.lock_outlined,
+          ),
+          const SizedBox(height: 12),
+          DemoContainer(
+            title: 'Lock State Monitor',
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _recordingLocked
+                        ? Colors.red.withValues(alpha: 0.1)
+                        : Colors.grey.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _recordingLocked ? Icons.lock : Icons.lock_open,
+                        color: _recordingLocked ? Colors.red : Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _recordingLocked
+                            ? 'Recording is locked'
+                            : 'Recording not locked',
+                        style: TextStyle(
+                          color: _recordingLocked ? Colors.red : Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ChatInputWidget(
+                  onSendText: (text) async {},
+                  enableAttachments: false,
+                  enableAudioRecording: true,
+                  onRecordingLockedChanged: (locked) {
+                    setState(() => _recordingLocked = locked);
+                  },
+                  onRecordingComplete: (path, duration, {waveform}) async {
+                    setState(() => _recordingLocked = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Recording ${duration}s saved'),
+                      ),
+                    );
+                  },
+                  onRecordingCancel: () {
+                    setState(() => _recordingLocked = false);
+                  },
+                  hintText: 'Slide up to lock recording',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Max Length Input
+          const ExampleSectionHeader(
+            title: 'Input Constraints',
+            description: 'Limit message length and show counter',
+            icon: Icons.format_size_outlined,
+          ),
+          const SizedBox(height: 12),
+          DemoContainer(
+            title: 'With Max Length (100 chars)',
+            padding: const EdgeInsets.all(8),
+            child: ChatInputWidget(
+              onSendText: (text) async {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Sent: $text')),
+                );
+              },
+              enableAttachments: false,
+              enableAudioRecording: false,
+              hintText: 'Max 100 characters...',
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // All Callbacks Demo
+          const ExampleSectionHeader(
+            title: 'Complete Callbacks',
+            description: 'Monitor all input events',
+            icon: Icons.notifications_active_outlined,
+          ),
+          const SizedBox(height: 12),
+          DemoContainer(
+            title: 'All Event Handlers',
+            padding: const EdgeInsets.all(8),
+            child: ChatInputWidget(
+              onSendText: (text) async {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('✓ Sent: $text')),
+                );
+              },
+              enableAttachments: true,
+              enableAudioRecording: true,
+              onAttachmentSelected: (type) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('📎 Attachment: ${type.name}')),
+                );
+              },
+              onPollRequested: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('📊 Poll requested')),
+                );
+              },
+              onRecordingStart: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('🎤 Recording started')),
+                );
+              },
+              onRecordingComplete: (path, duration, {waveform}) async {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '✓ Recorded ${duration}s (waveform: ${waveform != null ? "yes" : "no"})',
+                    ),
+                  ),
+                );
+              },
+              onRecordingCancel: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('✗ Recording cancelled')),
+                );
+              },
+              onRecordingLockedChanged: (locked) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(locked ? '🔒 Locked' : '🔓 Unlocked'),
+                    duration: const Duration(milliseconds: 500),
+                  ),
+                );
+              },
+              hintText: 'All events monitored...',
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Custom Decoration
           const ExampleSectionHeader(
             title: 'Custom Decoration',
@@ -367,6 +518,18 @@ class _ChatInputExampleState extends State<ChatInputExample> {
             property: 'replyMessage',
             value: 'ValueNotifier<ChatReplyData?>?',
             description: 'Reply preview notifier',
+          ),
+          const SizedBox(height: 8),
+          const PropertyShowcase(
+            property: 'controller',
+            value: 'TextEditingController?',
+            description: 'External text controller',
+          ),
+          const SizedBox(height: 8),
+          const PropertyShowcase(
+            property: 'enableFloatingSuggestions',
+            value: 'bool (default: false)',
+            description: 'Enable @, #, / suggestions overlay',
           ),
           const SizedBox(height: 8),
           const PropertyShowcase(

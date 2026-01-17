@@ -5,58 +5,141 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2026-01-17
 
 ### Added
 
-- ChatScreen input callbacks for audio recording lifecycle, polling requests,
-  and suggestion providers.
-- Selection action callbacks for reply, copy, forward, and message info.
-- Optional pinned messages region below the app bar with WhatsApp-style bar.
-- `PinnedMessagesBar` widget and pinned list cycling with `onScrollToMessage`.
-- Message grouping configuration (mode + timeout) in pagination config.
-- Poll bubble rendering support in attachment builder with vote callbacks.
+#### Message Interactions & Context Menu
+- New `FocusedMessageOverlay` widget for WhatsApp/Telegram-style message interactions
+  - Modal barrier with highlighted message in center
+  - Reaction bar displayed above the message
+  - Action buttons displayed below the message
+  - Smooth animations with haptic feedback
+  - `InlineFocusedOverlay` for TooltipCard-based inline usage
+- New `MessageContextMenu` popup with reactions and actions
+  - Shows reaction bar at top with action buttons below
+  - Supports reply, copy, forward, pin, star, delete actions
+  - Vertical or horizontal action layout options
+  - `showWithFocusedOverlay()` method for integrated overlay experience
+- WhatsApp-style `MessageReactionBar` for quick emoji reactions
+  - Animated reaction buttons with scale effect
+  - Haptic feedback on selection
+  - "More" button for full emoji picker
+  - `ReactionEmojiPicker` bottom sheet for extended emoji selection
+
+#### Custom Bubble Builders
+- New `BubbleBuilders` class for customizing message bubble rendering
+  - `textBubbleBuilder` - Custom text message builder
+  - `audioBubbleBuilder` - Custom audio message builder
+  - `imageBubbleBuilder` - Custom image message builder
+  - `videoBubbleBuilder` - Custom video message builder
+  - `pollBubbleBuilder` - Custom poll message builder
+  - `locationBubbleBuilder` - Custom location message builder
+  - `contactBubbleBuilder` - Custom contact message builder
+  - `documentBubbleBuilder` - Custom document message builder
+  - `contextMenuBuilder` - Custom context menu builder
+  - `BubbleBuilderContext` provides message data and theme to builders
+
+#### Media Playback
+- New `MediaPlaybackManager` for centralized audio/video playback coordination
+  - Ensures only one media (audio or video) plays at a time
+  - Automatically pauses audio when video starts and vice versa
+  - Provides unified API for controlling all media playback
+- Inline video player in `VideoBubble` with native controls overlay
+  - Interactive progress bar with seek functionality
+  - Auto-hiding controls overlay
+  - Full-screen mode with gesture controls
+- `VideoBubble` download progress overlay with `transfer_kit` integration
+  - Shows download button when video not cached
+  - Circular progress indicator with percentage during download
+  - Automatic playback after download completes
+
+#### Polls
+- New `CreatePollScreen` widget for creating polls with WhatsApp-style design
+  - Question input field with validation
+  - Dynamic option fields with add/remove capability (2-12 options)
+  - Multiple answers toggle switch
+  - Can be shown as full page or bottom sheet
+  - Dark/Light theme support
+
+#### Selection & App Bar
+- Enhanced `ChatSelectionAppBar` with new action buttons
+  - Pin/Unpin button for message pinning
+  - Star/Unstar button for favorites
+  - Forward button for message forwarding
+  - Improved WhatsApp-style visual design
+  - Haptic feedback on all actions
+- New `EditMessagePreview` widget for edit mode indicator
+
+#### Chat Screen Enhancements
+- ChatScreen input callbacks for audio recording lifecycle, polling requests, and suggestion providers
+- Selection action callbacks for reply, copy, forward, and message info
+- Optional pinned messages region below the app bar with WhatsApp-style bar
+- `PinnedMessagesBar` widget and pinned list cycling with `onScrollToMessage`
+- Message grouping configuration (mode + timeout) in pagination config
+- Poll bubble rendering support in attachment builder with vote callbacks
+
+#### Example App
+- Enhanced `ExampleChatController` with media sending methods
+  - `sendText`, `sendImage`, `sendVideo`, `sendDocument`, `sendAudio` methods
+  - Immediate message injection into cubit for instant UI display
+  - Simulated backend send with status updates (pending → sent → delivered)
+- File picker integration in `FullChatExample`
+  - Camera and gallery image/video selection via `image_picker`
+  - Document selection via `file_picker`
+  - All attachment types supported with proper callbacks
 
 ### Changed
 
-- ChatScreen default selection app bar now exposes reply/copy/forward/info hooks.
-- Video bubble supports network streaming when local file is unavailable.
-- Video thumbnails fall back to a default placeholder when none is provided.
-- Video thumbnail file path handling now avoids passing remote URLs as files.
-- Example screens refreshed with pinned messages, grouping configuration,
-  and new input callbacks.
+- ChatScreen default selection app bar now exposes reply/copy/forward/info hooks
+- Video bubble supports network streaming when local file is unavailable
+- Video thumbnails fall back to a default placeholder when none is provided
+- Video thumbnail file path handling now avoids passing remote URLs as files
+- `VideoBubble` now uses `VideoPlayerFactory` for state management
+- `VideoBubble` now shows thumbnail only, opens full-screen player on tap
+- `VideoPlayerFactory.play()` now automatically pauses all playing audio
+- `AudioPlayerFactory.play()` now automatically pauses all playing videos
+- Improved video controls with animated play/pause button
+- Enhanced full-screen video player with buffering indicator
 
 ### Fixed
 
-- Recording callbacks now forward waveform data consistently.
+- Recording callbacks now forward waveform data consistently
+- Fixed video player resource cleanup on widget disposal
+- Fixed state synchronization between inline and full-screen video players
+
+---
 
 ## [1.2.0] - 2026-01-15
 
 ### Added
 
 - TransferKit bridge initialization helpers and a shared transfer controller
-  for cache-first media downloads and upload task handling.
+  for cache-first media downloads and upload task handling
 - Configurable auto-download policies per media type with defaults
-  (image/video/document: never, audio: always).
+  (image/video/document: never, audio: always)
 - Cache-first download flows in image, video, audio, and document bubbles
-  with TransferKit download cards and local file open support.
+  with TransferKit download cards and local file open support
 - `ChatMediaData.metadata` support with fallback getters for file details
-  (file name, size, duration, aspect ratio, thumbnail, waveform, page count).
+  (file name, size, duration, aspect ratio, thumbnail, waveform, page count)
 - `ChatMessageUiConfig` with global defaults and per-screen overrides for
-  suggestions, text preview, pagination, and bubble theme.
+  suggestions, text preview, pagination, and bubble theme
 - TooltipCard-driven floating suggestions anchored to the input row with a
-  unified payload builder.
+  unified payload builder
 
 ### Changed
 
-- Suggestion rendering now uses a single TooltipCard around the input row.
+- Suggestion rendering now uses a single TooltipCard around the input row
 - `ChatScreen` accepts optional UI configuration and forwards settings to
-  input and message list widgets.
+  input and message list widgets
+
+---
 
 ## [1.1.0] - 2026-01-15
 
 ### Added
 
+#### Audio Recording & Playback
 - Real-time waveform visualization during audio recording
   - `RecordingWaveform` widget for live amplitude display
   - `LockedRecordingWaveform` widget for locked recording state
@@ -83,6 +166,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Glow effect on play button when playing
   - File size display
   - Custom primary color support
+
+#### Image Handling
 - Enhanced `ImageBubble` widget
   - Shimmer loading placeholder animation
   - Blurred thumbnail preview while loading
@@ -98,6 +183,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - File name and size display in top bar
   - Share and download action buttons
   - Loading progress with percentage
+
+#### Video Handling
 - New `VideoPlayerFactory` for centralized video management
   - `VideoPlaybackState` enum for tracking playback state
   - `VideoQuality` enum for quality selection
@@ -149,7 +236,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `mounted` check before setState in async callbacks
 - Proper cleanup of amplitude stream subscriptions
 
-## [1.0.0] - Initial Release
+---
+
+## [1.0.0] - 2026-01-14
 
 ### Added
 

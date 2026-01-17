@@ -13,6 +13,8 @@ class PollBubbleExample extends StatefulWidget {
 }
 
 class _PollBubbleExampleState extends State<PollBubbleExample> {
+  CreatePollData? _lastCreatedPoll;
+
   @override
   Widget build(BuildContext context) {
     return ExampleScaffold(
@@ -31,6 +33,22 @@ class _PollBubbleExampleState extends State<PollBubbleExample> {
             ],
           ),
           const SizedBox(height: 16),
+
+          // Create Poll Section
+          const ExampleSectionHeader(
+            title: 'Create Poll',
+            description: 'WhatsApp-style poll creation screen',
+            icon: Icons.add_circle_outline,
+          ),
+          const SizedBox(height: 12),
+          _CreatePollSection(
+            lastCreatedPoll: _lastCreatedPoll,
+            onPollCreated: (poll) {
+              setState(() => _lastCreatedPoll = poll);
+            },
+          ),
+          const SizedBox(height: 24),
+
           // Overview
           const ExampleSectionHeader(
             title: 'Overview',
@@ -309,6 +327,242 @@ class _PollBubbleExampleState extends State<PollBubbleExample> {
         isMultiple: isMultiple,
         isClosed: isClosed,
       ),
+    );
+  }
+}
+
+/// Section for demonstrating CreatePollScreen functionality.
+class _CreatePollSection extends StatelessWidget {
+  final CreatePollData? lastCreatedPoll;
+  final ValueChanged<CreatePollData> onPollCreated;
+
+  const _CreatePollSection({
+    required this.lastCreatedPoll,
+    required this.onPollCreated,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Full Page Button
+        DemoContainer(
+          title: 'Open as Full Page',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Opens CreatePollScreen as a full page navigation.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () => _openAsFullPage(context),
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Open Full Page'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Bottom Sheet Button
+        DemoContainer(
+          title: 'Open as Bottom Sheet',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Opens CreatePollScreen as a draggable bottom sheet.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _openAsBottomSheet(context),
+                icon: const Icon(Icons.vertical_align_bottom),
+                label: const Text('Open Bottom Sheet'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Last Created Poll Display
+        if (lastCreatedPoll != null) ...[
+          const SizedBox(height: 16),
+          DemoContainer(
+            title: 'Last Created Poll',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Poll Created Successfully!',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _PollDataRow(
+                  label: 'Question',
+                  value: lastCreatedPoll!.question,
+                ),
+                const SizedBox(height: 8),
+                _PollDataRow(
+                  label: 'Options',
+                  value: '${lastCreatedPoll!.validOptions.length} options',
+                ),
+                const SizedBox(height: 4),
+                ...lastCreatedPoll!.validOptions.asMap().entries.map((entry) {
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 4),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            entry.value,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+                _PollDataRow(
+                  label: 'Multiple Answers',
+                  value: lastCreatedPoll!.allowMultipleAnswers ? 'Yes' : 'No',
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 16),
+
+        // Code Example
+        const CodeSnippet(
+          title: 'CreatePollScreen Usage',
+          code: '''// Show as full page
+final poll = await CreatePollScreen.showAsPage(
+  context,
+  onCreatePoll: (pollData) {
+    print('Question: \${pollData.question}');
+    print('Options: \${pollData.validOptions}');
+  },
+);
+
+// Show as bottom sheet
+final poll = await CreatePollScreen.showAsBottomSheet(
+  context,
+  minOptions: 2,
+  maxOptions: 12,
+);
+
+// Use as widget
+CreatePollScreen(
+  onCreatePoll: (poll) => sendPoll(poll),
+  title: 'Create poll',
+  questionHint: 'Ask question',
+)''',
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openAsFullPage(BuildContext context) async {
+    final poll = await CreatePollScreen.showAsPage(
+      context,
+      onCreatePoll: onPollCreated,
+    );
+
+    if (poll != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Poll created: ${poll.question}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openAsBottomSheet(BuildContext context) async {
+    final poll = await CreatePollScreen.showAsBottomSheet(
+      context,
+      onCreatePoll: onPollCreated,
+    );
+
+    if (poll != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Poll created: ${poll.question}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+}
+
+/// Row displaying poll data label and value.
+class _PollDataRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _PollDataRow({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13),
+          ),
+        ),
+      ],
     );
   }
 }

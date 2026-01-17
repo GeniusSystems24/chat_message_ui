@@ -4,6 +4,7 @@
 library;
 
 export 'attachment_builder.dart';
+export 'bubble_builders.dart';
 export 'message_bubble.dart';
 export 'message_bubble_layout.dart';
 export 'message_content_builder.dart';
@@ -19,6 +20,7 @@ export 'image/image_bubble.dart';
 export 'image/full_screen_image_viewer.dart';
 export 'poll/poll_bubble.dart';
 export 'poll/poll_vote_details_view.dart';
+export 'poll/create_poll_screen.dart';
 export 'video/video_bubble.dart';
 
 // Chat List
@@ -32,6 +34,7 @@ export 'input/chat_input.dart';
 export 'input/input_models.dart';
 export 'input/chat_input_config.dart';
 export 'input/attachment_source_selector.dart';
+export 'input/edit_message_preview.dart';
 
 // Reply
 export 'reply/reply_preview_widget.dart';
@@ -51,3 +54,15 @@ export 'audio/audio_player_factory.dart';
 
 // Video
 export 'video/video_player_factory.dart';
+
+// Media
+export 'media/media_playback_manager.dart';
+
+// Reactions
+export 'reactions/reactions.dart';
+
+// Context Menu
+export 'context_menu/context_menu.dart';
+
+// Overlay
+export 'overlay/overlay.dart';

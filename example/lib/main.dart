@@ -1,10 +1,11 @@
 import 'package:chat_message_ui/chat_message_ui.dart';
+import 'package:chat_message_ui_example/src/router/routes.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'firebase_options.dart';
-import 'src/screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,14 +28,19 @@ Future<void> main() async {
 /// - Reply functionality
 /// - Chat input with various features
 /// - Polls, locations, and contacts
+/// - Type-safe navigation with go_router
+/// - Deep link support for Firebase chat
 class ChatMessageUIExampleApp extends StatelessWidget {
   const ChatMessageUIExampleApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Chat Message UI Example',
       debugShowCheckedModeBanner: false,
+      routerConfig: GoRouter(
+        routes: $appRoutes,
+      ),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,
@@ -52,7 +58,6 @@ class ChatMessageUIExampleApp extends StatelessWidget {
         extensions: [ChatThemeData.dark()],
       ),
       themeMode: ThemeMode.system,
-      home: const HomeScreen(),
     );
   }
 }

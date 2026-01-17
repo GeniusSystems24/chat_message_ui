@@ -5,6 +5,7 @@ import '../theme/chat_theme.dart';
 import '../adapters/adapters.dart';
 import '../config/chat_message_ui_config.dart';
 import '../utils/messages_grouping.dart';
+import 'bubble_builders.dart';
 import 'message_bubble_layout.dart';
 import 'message_content_builder.dart';
 import 'message_metadata_builder.dart';
@@ -76,6 +77,9 @@ class MessageBubble extends StatelessWidget {
   /// Whether this message is the current search match.
   final bool isCurrentSearchMatch;
 
+  /// Custom bubble builders for different message types.
+  final BubbleBuilders? bubbleBuilders;
+
   const MessageBubble({
     super.key,
     required this.message,
@@ -98,6 +102,7 @@ class MessageBubble extends StatelessWidget {
     this.autoDownloadConfig,
     this.searchQuery,
     this.isCurrentSearchMatch = false,
+    this.bubbleBuilders,
   });
 
   /// Whether this message was sent by the current user.
@@ -212,6 +217,7 @@ class MessageBubble extends StatelessWidget {
           message: message,
           chatTheme: chatTheme,
           isMyMessage: isMyMessage,
+          currentUserId: currentUserId,
           autoDownloadConfig: autoDownloadConfig,
           searchQuery: searchQuery,
           isCurrentSearchMatch: isCurrentSearchMatch,
@@ -219,6 +225,7 @@ class MessageBubble extends StatelessWidget {
           onLinkTap: onLinkTap,
           onAttachmentTap: onAttachmentTap,
           onPollVote: onPollVote,
+          bubbleBuilders: bubbleBuilders,
         ),
         if (_shouldShowMetadata())
           MessageMetadataBuilder(

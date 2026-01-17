@@ -420,20 +420,7 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-/// Loading indicator widget.
-class _LoadingIndicator extends StatelessWidget {
-  const _LoadingIndicator();
 
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(
-        color: Colors.white,
-        strokeWidth: 2,
-      ),
-    );
-  }
-}
 
 /// Loading indicator with progress.
 class _LoadingWithProgress extends StatelessWidget {

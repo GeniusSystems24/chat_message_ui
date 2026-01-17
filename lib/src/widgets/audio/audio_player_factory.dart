@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../video/video_player_factory.dart';
+
 /// Playback state for audio players.
 enum AudioPlaybackState {
   /// Audio is stopped/not started.
@@ -394,6 +396,10 @@ class AudioPlayerFactory {
   // ============ Playback Controls ============
 
   /// Plays an audio file.
+  ///
+  /// This will automatically:
+  /// - Pause any currently playing video
+  /// - Pause any other playing audio
   static Future<void> play(
     String id, {
     String? filePath,
@@ -401,6 +407,9 @@ class AudioPlayerFactory {
     AudioPlayerConfig config = AudioPlayerConfig.defaultConfig,
   }) async {
     final audioPlayer = create(id, filePath: filePath, url: url, config: config);
+
+    // Pause all currently playing videos
+    await VideoPlayerFactory.pauseAll();
 
     // Pause any currently playing audio
     pauseCurrentAudio();
