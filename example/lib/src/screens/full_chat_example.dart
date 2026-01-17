@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:chat_message_ui/chat_message_ui.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../data/example_chat_controller.dart';
 import '../data/example_sample_data.dart';
@@ -27,6 +31,7 @@ class _FullChatExampleState extends State<FullChatExample> {
   late final ExampleChatController _controller;
   final ValueNotifier<ChatReplyData?> _replyNotifier = ValueNotifier(null);
   final ValueNotifier<bool> _searchModeNotifier = ValueNotifier(false);
+  final ImagePicker _imagePicker = ImagePicker();
 
   // Suggestion data
   final List<ChatUserSuggestion> _users = const [
@@ -77,9 +82,7 @@ class _FullChatExampleState extends State<FullChatExample> {
       messagesCubit: _controller.messagesCubit,
       currentUserId: ExampleSampleData.currentUserId,
       onSendMessage: _handleSendMessage,
-      onAttachmentSelected: (type) => _showSnackBar(
-        'Attachment selected: ${type.name}',
-      ),
+      onAttachmentSelected: _handleAttachmentSelected,
       onAttachmentTap: (message) => _showSnackBar(
         'Attachment tapped: ${message.type.name}',
       ),
@@ -108,9 +111,13 @@ class _FullChatExampleState extends State<FullChatExample> {
       pinnedMessages: _buildPinnedList(),
       onScrollToMessage: _scrollToPinnedMessage,
       onRecordingComplete: (path, duration, {waveform}) async {
-        _showSnackBar(
-          'Recorded ${duration}s (waveform: ${waveform?.length ?? 0})',
+        await _controller.sendAudio(
+          path,
+          duration: duration,
+          waveform: waveform,
+          reply: _replyNotifier.value,
         );
+        _replyNotifier.value = null;
       },
       onRecordingStart: () => _showSnackBar('Recording started'),
       onRecordingCancel: () => _showSnackBar('Recording cancelled'),
@@ -144,9 +151,106 @@ class _FullChatExampleState extends State<FullChatExample> {
   }
 
   Future<void> _handleSendMessage(String text) async {
-    // Send new message
+    // Send new message - input is automatically cleared by ChatInput
     await _controller.sendText(text, reply: _replyNotifier.value);
     _replyNotifier.value = null;
+  }
+
+  /// Handles attachment selection using file_picker and image_picker
+  Future<void> _handleAttachmentSelected(AttachmentSource source) async {
+    try {
+      switch (source) {
+        case AttachmentSource.cameraImage:
+          final XFile? image = await _imagePicker.pickImage(
+            source: ImageSource.camera,
+            imageQuality: 85,
+          );
+          if (image != null) {
+            await _controller.sendImage(
+              File(image.path),
+              reply: _replyNotifier.value,
+            );
+            _replyNotifier.value = null;
+          }
+          break;
+
+        case AttachmentSource.galleryImage:
+          final XFile? image = await _imagePicker.pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 85,
+          );
+          if (image != null) {
+            await _controller.sendImage(
+              File(image.path),
+              reply: _replyNotifier.value,
+            );
+            _replyNotifier.value = null;
+          }
+          break;
+
+        case AttachmentSource.cameraVideo:
+          final XFile? video = await _imagePicker.pickVideo(
+            source: ImageSource.camera,
+            maxDuration: const Duration(minutes: 5),
+          );
+          if (video != null) {
+            await _controller.sendVideo(
+              File(video.path),
+              reply: _replyNotifier.value,
+            );
+            _replyNotifier.value = null;
+          }
+          break;
+
+        case AttachmentSource.galleryVideo:
+          final XFile? video = await _imagePicker.pickVideo(
+            source: ImageSource.gallery,
+          );
+          if (video != null) {
+            await _controller.sendVideo(
+              File(video.path),
+              reply: _replyNotifier.value,
+            );
+            _replyNotifier.value = null;
+          }
+          break;
+
+        case AttachmentSource.document:
+          final result = await FilePicker.platform.pickFiles(
+            type: FileType.any,
+            allowMultiple: false,
+          );
+          if (result != null && result.files.isNotEmpty) {
+            final file = result.files.first;
+            if (file.path != null) {
+              await _controller.sendDocument(
+                File(file.path!),
+                reply: _replyNotifier.value,
+                fileName: file.name,
+              );
+              _replyNotifier.value = null;
+            }
+          }
+          break;
+
+        case AttachmentSource.location:
+          _showSnackBar('Location sharing not implemented in demo');
+          break;
+
+        case AttachmentSource.contact:
+          _showSnackBar('Contact sharing not implemented in demo');
+          break;
+
+        case AttachmentSource.voting:
+          final poll = await CreatePollScreen.showAsBottomSheet(context);
+          if (poll != null) {
+            _showSnackBar('Created poll: ${poll.question}');
+          }
+          break;
+      }
+    } catch (e) {
+      _showSnackBar('Error: ${e.toString()}');
+    }
   }
 
   List<IChatMessageData> _buildPinnedList() {

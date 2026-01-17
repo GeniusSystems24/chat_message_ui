@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:chat_message_ui/chat_message_ui.dart';
 import 'package:smart_pagination/pagination.dart';
 
 import 'example_message.dart';
+import 'example_sample_data.dart';
 
 class ExampleChatRepository {
   ExampleChatRepository({required List<ExampleMessage> messages})
@@ -65,17 +68,176 @@ class ExampleChatController {
       id: 'local_${DateTime.now().microsecondsSinceEpoch}',
       chatId: 'demo-chat',
       senderId: currentUserId,
-      senderData: ChatSenderData(id: currentUserId, name: 'You'),
+      senderData: ExampleSampleData.users[currentUserId],
       type: ChatMessageType.text,
       textContent: text.trim(),
       createdAt: DateTime.now(),
-      status: ChatMessageStatus.sent,
+      status: ChatMessageStatus.pending,
       replyData: reply,
       replyToId: reply?.id,
     );
 
+    // Insert immediately into cubit for instant UI update
     _repository.insertMessage(message);
     messagesCubit.insertEmit(message, index: 0);
+
+    // Simulate backend send (in real app, this would be an API call)
+    await _simulateBackendSend(message);
+  }
+
+  /// Sends an image message
+  Future<void> sendImage(
+    File file, {
+    ChatReplyData? reply,
+    String? caption,
+  }) async {
+    final message = ExampleMessage(
+      id: 'local_${DateTime.now().microsecondsSinceEpoch}',
+      chatId: 'demo-chat',
+      senderId: currentUserId,
+      senderData: ExampleSampleData.users[currentUserId],
+      type: ChatMessageType.image,
+      textContent: caption,
+      createdAt: DateTime.now(),
+      status: ChatMessageStatus.pending,
+      replyData: reply,
+      replyToId: reply?.id,
+      mediaData: ChatMediaData(
+        url: file.path,
+        mediaType: ChatMessageType.image,
+        metadata: {
+          'fileName': file.path.split('/').last,
+          'fileSize': await file.length(),
+        },
+      ),
+    );
+
+    _repository.insertMessage(message);
+    messagesCubit.insertEmit(message, index: 0);
+
+    await _simulateBackendSend(message);
+  }
+
+  /// Sends a video message
+  Future<void> sendVideo(
+    File file, {
+    ChatReplyData? reply,
+    String? caption,
+    String? thumbnailPath,
+  }) async {
+    final message = ExampleMessage(
+      id: 'local_${DateTime.now().microsecondsSinceEpoch}',
+      chatId: 'demo-chat',
+      senderId: currentUserId,
+      senderData: ExampleSampleData.users[currentUserId],
+      type: ChatMessageType.video,
+      textContent: caption,
+      createdAt: DateTime.now(),
+      status: ChatMessageStatus.pending,
+      replyData: reply,
+      replyToId: reply?.id,
+      mediaData: ChatMediaData(
+        url: file.path,
+        thumbnailUrl: thumbnailPath,
+        mediaType: ChatMessageType.video,
+        metadata: {
+          'fileName': file.path.split('/').last,
+          'fileSize': await file.length(),
+        },
+      ),
+    );
+
+    _repository.insertMessage(message);
+    messagesCubit.insertEmit(message, index: 0);
+
+    await _simulateBackendSend(message);
+  }
+
+  /// Sends a document message
+  Future<void> sendDocument(
+    File file, {
+    ChatReplyData? reply,
+    String? fileName,
+  }) async {
+    final name = fileName ?? file.path.split('/').last;
+    final message = ExampleMessage(
+      id: 'local_${DateTime.now().microsecondsSinceEpoch}',
+      chatId: 'demo-chat',
+      senderId: currentUserId,
+      senderData: ExampleSampleData.users[currentUserId],
+      type: ChatMessageType.document,
+      createdAt: DateTime.now(),
+      status: ChatMessageStatus.pending,
+      replyData: reply,
+      replyToId: reply?.id,
+      mediaData: ChatMediaData(
+        url: file.path,
+        mediaType: ChatMessageType.document,
+        metadata: {
+          'fileName': name,
+          'fileSize': await file.length(),
+        },
+      ),
+    );
+
+    _repository.insertMessage(message);
+    messagesCubit.insertEmit(message, index: 0);
+
+    await _simulateBackendSend(message);
+  }
+
+  /// Sends an audio message
+  Future<void> sendAudio(
+    String filePath, {
+    int? duration,
+    List<double>? waveform,
+    ChatReplyData? reply,
+  }) async {
+    final file = File(filePath);
+    final message = ExampleMessage(
+      id: 'local_${DateTime.now().microsecondsSinceEpoch}',
+      chatId: 'demo-chat',
+      senderId: currentUserId,
+      senderData: ExampleSampleData.users[currentUserId],
+      type: ChatMessageType.audio,
+      createdAt: DateTime.now(),
+      status: ChatMessageStatus.pending,
+      replyData: reply,
+      replyToId: reply?.id,
+      mediaData: ChatMediaData(
+        url: filePath,
+        mediaType: ChatMessageType.audio,
+        metadata: {
+          'fileName': filePath.split('/').last,
+          'fileSize': await file.length(),
+          'duration': duration,
+          'waveform': waveform,
+        },
+      ),
+    );
+
+    _repository.insertMessage(message);
+    messagesCubit.insertEmit(message, index: 0);
+
+    await _simulateBackendSend(message);
+  }
+
+  /// Simulates backend send and updates message status
+  Future<void> _simulateBackendSend(ExampleMessage message) async {
+    // Simulate network delay
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    // Update to sent status
+    final sentMessage = message.copyWith(status: ChatMessageStatus.sent);
+    _repository.updateMessage(sentMessage);
+    messagesCubit.addOrUpdateEmit(sentMessage, index: 0);
+
+    // Simulate delivery confirmation
+    await Future<void>.delayed(const Duration(seconds: 1));
+    final deliveredMessage =
+        sentMessage.copyWith(status: ChatMessageStatus.delivered);
+    _repository.updateMessage(deliveredMessage);
+    messagesCubit.addOrUpdateEmit(deliveredMessage, index: 0);
   }
 
   void toggleReaction(IChatMessageData message, String emoji) {
