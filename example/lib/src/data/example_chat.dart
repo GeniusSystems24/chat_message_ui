@@ -1,5 +1,8 @@
 import 'package:chat_message_ui/chat_message_ui.dart';
 
+/// Callback type for fetching member data from external source
+typedef MemberFetcher = Future<ChatSenderData?> Function(String userId);
+
 /// Example implementation of IChatData for demonstration purposes
 class ExampleChat implements IChatData {
   ExampleChat({
@@ -25,9 +28,16 @@ class ExampleChat implements IChatData {
     this.lastMessagePreview,
     this.lastMessageAt,
     this.lastReadMessageId,
+    this.memberFetcher,
   })  : participantIds = participantIds ?? const [],
         adminIds = adminIds ?? const [],
         typingUserIds = typingUserIds ?? const [];
+
+  /// Callback for fetching member data from external source (API, database, etc.)
+  final MemberFetcher? memberFetcher;
+
+  /// In-memory cache for member data
+  final ChatMemberCache _memberCache = ChatMemberCache();
 
   @override
   final String id;
@@ -158,6 +168,7 @@ class ExampleChat implements IChatData {
     String? lastMessagePreview,
     DateTime? lastMessageAt,
     String? lastReadMessageId,
+    MemberFetcher? memberFetcher,
   }) {
     return ExampleChat(
       id: id ?? this.id,
@@ -182,6 +193,41 @@ class ExampleChat implements IChatData {
       lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
       lastReadMessageId: lastReadMessageId ?? this.lastReadMessageId,
+      memberFetcher: memberFetcher ?? this.memberFetcher,
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MEMBER DATA IMPLEMENTATION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Future<ChatSenderData?> getMemberData(String userId) async {
+    // Check cache first
+    final cached = _memberCache.get(userId);
+    if (cached != null) {
+      return cached;
+    }
+
+    // Fetch from external source if memberFetcher is provided
+    if (memberFetcher != null) {
+      final data = await memberFetcher!(userId);
+      if (data != null) {
+        _memberCache.put(userId, data);
+      }
+      return data;
+    }
+
+    return null;
+  }
+
+  @override
+  ChatSenderData? getCachedMemberData(String userId) {
+    return _memberCache.get(userId);
+  }
+
+  @override
+  void clearMemberCache() {
+    _memberCache.clear();
   }
 }

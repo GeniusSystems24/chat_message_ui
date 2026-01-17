@@ -4,6 +4,8 @@
 /// a unified API for UI widgets across all screens.
 library;
 
+import 'chat_data_models.dart';
+
 /// Type of chat
 enum ChatType {
   /// 1:1 private chat
@@ -133,4 +135,33 @@ abstract class IChatData {
 
   /// Get display subtitle (typing > online > lastSeen > custom subtitle)
   String? get displaySubtitle;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MEMBER DATA
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Fetch member data by user ID
+  ///
+  /// Implementations should use internal caching to avoid redundant fetches.
+  /// Returns null if member is not found.
+  ///
+  /// Example:
+  /// ```dart
+  /// final member = await chat.getMemberData('user_123');
+  /// if (member != null) {
+  ///   print('Name: ${member.displayName}');
+  /// }
+  /// ```
+  Future<ChatSenderData?> getMemberData(String userId);
+
+  /// Get cached member data synchronously (if available)
+  ///
+  /// Returns null if member is not in cache.
+  /// Use this when you need immediate access without async/await.
+  ChatSenderData? getCachedMemberData(String userId);
+
+  /// Clear member cache
+  ///
+  /// Call this when you need to refresh member data from the source.
+  void clearMemberCache();
 }

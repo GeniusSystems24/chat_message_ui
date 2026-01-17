@@ -327,3 +327,44 @@ class ChatMeetingReportData {
   @override
   int get hashCode => meetingId.hashCode;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MEMBER CACHE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// In-memory cache for chat member data
+///
+/// Provides efficient storage and retrieval of [ChatSenderData] objects
+/// to avoid redundant API calls when fetching member information.
+class ChatMemberCache {
+  final Map<String, ChatSenderData> _cache = {};
+
+  /// Get cached member data by user ID
+  ChatSenderData? get(String userId) => _cache[userId];
+
+  /// Store member data in cache
+  void put(String userId, ChatSenderData data) {
+    _cache[userId] = data;
+  }
+
+  /// Check if member is cached
+  bool contains(String userId) => _cache.containsKey(userId);
+
+  /// Remove member from cache
+  void remove(String userId) => _cache.remove(userId);
+
+  /// Clear all cached data
+  void clear() => _cache.clear();
+
+  /// Get all cached members (unmodifiable)
+  Map<String, ChatSenderData> get all => Map.unmodifiable(_cache);
+
+  /// Number of cached members
+  int get length => _cache.length;
+
+  /// Check if cache is empty
+  bool get isEmpty => _cache.isEmpty;
+
+  /// Check if cache is not empty
+  bool get isNotEmpty => _cache.isNotEmpty;
+}
