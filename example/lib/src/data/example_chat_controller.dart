@@ -212,7 +212,7 @@ class ExampleChatController {
           fileName: filePath.split('/').last,
           fileSize: await file.length(),
           durationInSeconds: duration?.toDouble(),
-          waveform: waveform == null ? null : WaveformData(samples: waveform!),
+          waveform: waveform == null ? null : WaveformData(samples: waveform),
         ),
       ),
     );

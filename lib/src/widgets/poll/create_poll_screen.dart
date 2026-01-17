@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element_parameter
+
 import 'package:flutter/material.dart';
 
 import '../../theme/chat_theme.dart';
@@ -218,9 +220,6 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
         ? const Color(0xFF1F2C34) // WhatsApp dark background
         : theme.scaffoldBackgroundColor;
 
-    final surfaceColor = isDark
-        ? const Color(0xFF263238) // WhatsApp dark surface
-        : theme.colorScheme.surfaceContainerHighest;
 
     final borderColor = isDark
         ? Colors.white.withValues(alpha: 0.1)

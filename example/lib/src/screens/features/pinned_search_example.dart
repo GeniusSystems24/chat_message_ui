@@ -68,7 +68,8 @@ class _PinnedSearchExampleState extends State<PinnedSearchExample> {
         senderId: 'user_3',
         senderData: ExampleSampleData.users['user_3'],
         type: ChatMessageType.text,
-        textContent: 'The project deadline is next Friday. Please review the requirements.',
+        textContent:
+            'The project deadline is next Friday. Please review the requirements.',
         createdAt: DateTime.now().subtract(const Duration(hours: 3)),
         status: ChatMessageStatus.read,
       ),
@@ -280,14 +281,19 @@ class _PinnedSearchExampleState extends State<PinnedSearchExample> {
                             children: [
                               Text(
                                 'Match ${_currentMatchIndex + 1} of ${_matchedIds.length}',
-                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                      color: Theme.of(context).colorScheme.primary,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
                               ),
                               const SizedBox(height: 8),
                               MessageBubble(
                                 message: _allMessages.firstWhere(
-                                  (m) => m.id == _matchedIds[_currentMatchIndex],
+                                  (m) =>
+                                      m.id == _matchedIds[_currentMatchIndex],
                                 ),
                                 currentUserId: ExampleSampleData.currentUserId,
                                 showAvatar: true,
@@ -354,7 +360,8 @@ class _PinnedSearchExampleState extends State<PinnedSearchExample> {
                             borderRadius: BorderRadius.circular(12),
                             border: isMatch
                                 ? Border.all(
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
                                     width: 2,
                                   )
                                 : null,
@@ -372,7 +379,9 @@ class _PinnedSearchExampleState extends State<PinnedSearchExample> {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primaryContainer,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -532,7 +541,6 @@ class _ToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return isActive
         ? FilledButton.icon(
             onPressed: onPressed,

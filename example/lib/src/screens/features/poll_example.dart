@@ -366,57 +366,6 @@ Navigator.push(
     _showSnackBar('Voted for option: $optionId');
   }
 
-  void _showPollDetails(BuildContext context, ExampleMessage message) {
-    final pollData = message.pollData;
-    if (pollData == null) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => Column(
-          children: [
-            // Handle
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurfaceVariant
-                    .withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            // Title
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                pollData.question,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const Divider(height: 1),
-            // Vote details
-            Expanded(
-              child: PollVoteDetailsView(poll: pollData),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -439,7 +388,6 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return FilledButton.icon(
       onPressed: onPressed,
       icon: Icon(icon),

@@ -105,7 +105,6 @@ class _VideoBubbleState extends State<VideoBubble>
   bool _isPressed = false;
   late AnimationController _loadingController;
   String? _downloadedPath;
-  bool _autoStartTriggered = false;
   StreamSubscription<VideoPlayerState>? _stateSubscription;
 
   // Download state
@@ -156,11 +155,7 @@ class _VideoBubbleState extends State<VideoBubble>
 
   VideoPlayerState? get _currentState => VideoPlayerFactory.getState(_videoId);
   bool get _isInitialized => _currentState?.isReady ?? false;
-  bool get _isInitializing =>
-      _currentState?.state == VideoPlaybackState.initializing;
   bool get _isPlaying => _currentState?.isPlaying ?? false;
-  bool get _hasError => _currentState?.hasError ?? false;
-  String? get _error => _currentState?.errorMessage;
 
   @override
   void initState() {
@@ -194,7 +189,6 @@ class _VideoBubbleState extends State<VideoBubble>
   void didUpdateWidget(VideoBubble oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.message.mediaData?.url != widget.message.mediaData?.url) {
-      _autoStartTriggered = false;
     }
   }
 

@@ -209,7 +209,7 @@ class _ReactionButtonState extends State<_ReactionButton>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    
 
     return GestureDetector(
       onTapDown: _handleTapDown,

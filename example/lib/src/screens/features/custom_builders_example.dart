@@ -91,6 +91,13 @@ class _CustomBuildersExampleState extends State<CustomBuildersExample> {
           );
         },
 
+        pollBubbleBuilder: (context, builderContext, poll, onVote) {
+          return _CustomPollBubble(
+            poll: poll,
+            isMyMessage: builderContext.isMyMessage,
+          );
+        },
+
         // Custom context menu
         contextMenuBuilder: (context, builderContext) async {
           return _showCustomContextMenu(context, builderContext);
