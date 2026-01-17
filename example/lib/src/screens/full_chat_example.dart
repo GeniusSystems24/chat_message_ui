@@ -5,6 +5,17 @@ import '../data/example_chat_controller.dart';
 import '../data/example_sample_data.dart';
 import 'shared/example_scaffold.dart';
 
+/// Full chat example with all features enabled.
+///
+/// Features demonstrated:
+/// - All ChatScreen callbacks and features
+/// - ChatAppBar with all actions
+/// - ChatSelectionAppBar with full actions
+/// - In-chat search with searchModeNotifier
+/// - ChatMessageSearchView as separate page
+/// - Suggestion providers (@mention, #hashtag, /quick, $task)
+/// - EditMessagePreview for editing messages
+/// - Reactions, replies, polls, attachments
 class FullChatExample extends StatefulWidget {
   const FullChatExample({super.key});
 
@@ -16,6 +27,31 @@ class _FullChatExampleState extends State<FullChatExample> {
   late final ExampleChatController _controller;
   final ValueNotifier<ChatReplyData?> _replyNotifier = ValueNotifier(null);
   final ValueNotifier<bool> _searchModeNotifier = ValueNotifier(false);
+
+  // Suggestion data
+  final List<ChatUserSuggestion> _users = const [
+    ChatUserSuggestion(id: 'user_2', name: 'Omar', username: 'omar'),
+    ChatUserSuggestion(id: 'user_3', name: 'Sara', username: 'sara'),
+    ChatUserSuggestion(id: 'user_4', name: 'Tariq', username: 'tariq'),
+  ];
+
+  final List<Hashtag> _hashtags = [
+    Hashtag(id: 'tag_1', hashtag: 'release'),
+    Hashtag(id: 'tag_2', hashtag: 'design'),
+    Hashtag(id: 'tag_3', hashtag: 'urgent'),
+  ];
+
+  final List<QuickReply> _quickReplies = [
+    QuickReply(id: 'qr_1', command: '/welcome', response: 'Welcome aboard!'),
+    QuickReply(id: 'qr_2', command: '/thanks', response: 'Thank you!'),
+    QuickReply(id: 'qr_3', command: '/done', response: 'Task completed ✓'),
+  ];
+
+  final List<Map<String, dynamic>> _tasks = const [
+    {'id': 'task_1', 'title': 'Review PR #123'},
+    {'id': 'task_2', 'title': 'Update documentation'},
+    {'id': 'task_3', 'title': 'Fix login bug'},
+  ];
 
   @override
   void initState() {
@@ -40,34 +76,27 @@ class _FullChatExampleState extends State<FullChatExample> {
     return ChatScreen(
       messagesCubit: _controller.messagesCubit,
       currentUserId: ExampleSampleData.currentUserId,
-      onSendMessage: (text) async {
-        await _controller.sendText(text, reply: _replyNotifier.value);
-        _replyNotifier.value = null;
-      },
+      onSendMessage: _handleSendMessage,
       onAttachmentSelected: (type) => _showSnackBar(
-        context,
         'Attachment selected: ${type.name}',
       ),
       onAttachmentTap: (message) => _showSnackBar(
-        context,
         'Attachment tapped: ${message.type.name}',
       ),
       onReactionTap: _controller.toggleReaction,
       onPollVote: (message, optionId) => _showSnackBar(
-        context,
         'Voted on ${message.id}: $optionId',
       ),
       onRefresh: _controller.refresh,
       onDelete: _controller.deleteMessages,
       onForward: (messages) =>
-          _showSnackBar(context, 'Forwarded ${messages.length} message(s)'),
+          _showSnackBar('Forwarded ${messages.length} message(s)'),
       onCopy: (messages, resolvedText) =>
-          _showSnackBar(context, 'Copied ${messages.length} message(s)'),
+          _showSnackBar('Copied ${messages.length} message(s)'),
       onReply: (message) {
         _replyNotifier.value = _buildReplyData(message);
       },
-      onMessageInfo: (message) =>
-          _showSnackBar(context, 'Message info: ${message.id}'),
+      onMessageInfo: (message) => _showSnackBar('Message info: ${message.id}'),
       onSelectionChanged: (selected) {
         if (!mounted) return;
         setState(() {});
@@ -80,19 +109,28 @@ class _FullChatExampleState extends State<FullChatExample> {
       onScrollToMessage: _scrollToPinnedMessage,
       onRecordingComplete: (path, duration, {waveform}) async {
         _showSnackBar(
-          context,
           'Recorded ${duration}s (waveform: ${waveform?.length ?? 0})',
         );
       },
-      onRecordingStart: () => _showSnackBar(context, 'Recording started'),
-      onRecordingCancel: () => _showSnackBar(context, 'Recording cancelled'),
-      onRecordingLockedChanged: (locked) => _showSnackBar(
-          context, locked ? 'Recording locked' : 'Recording unlocked'),
-      onPollRequested: () => _showSnackBar(context, 'Create poll requested'),
+      onRecordingStart: () => _showSnackBar('Recording started'),
+      onRecordingCancel: () => _showSnackBar('Recording cancelled'),
+      onRecordingLockedChanged: (locked) =>
+          _showSnackBar(locked ? 'Recording locked' : 'Recording unlocked'),
+      onPollRequested: () async {
+        final poll = await CreatePollScreen.showAsBottomSheet(context);
+        if (poll != null) {
+          _showSnackBar('Created poll: ${poll.question}');
+        }
+      },
       // In-chat search configuration
       searchModeNotifier: _searchModeNotifier,
       searchHint: 'Search messages...',
       onBackendSearch: _simulateBackendSearch,
+      // Suggestion providers
+      usernameProvider: _usernameProvider,
+      hashtagProvider: _hashtagProvider,
+      quickReplyProvider: _quickReplyProvider,
+      taskProvider: _taskProvider,
       config: ChatMessageUiConfig(
         enableSuggestions: true,
         enableTextPreview: true,
@@ -105,6 +143,12 @@ class _FullChatExampleState extends State<FullChatExample> {
     );
   }
 
+  Future<void> _handleSendMessage(String text) async {
+    // Send new message
+    await _controller.sendText(text, reply: _replyNotifier.value);
+    _replyNotifier.value = null;
+  }
+
   List<IChatMessageData> _buildPinnedList() {
     final items = _controller.messagesCubit.currentItems;
     if (items.isEmpty) return const [];
@@ -112,7 +156,7 @@ class _FullChatExampleState extends State<FullChatExample> {
   }
 
   Future<bool> _scrollToPinnedMessage(String messageId) async {
-    _showSnackBar(context, 'Jump to pinned message: $messageId');
+    _showSnackBar('Jump to pinned message: $messageId');
     return true;
   }
 
@@ -129,11 +173,33 @@ class _FullChatExampleState extends State<FullChatExample> {
             subtitle: '8 members • Online',
             imageUrl: 'https://i.pravatar.cc/150?img=64',
           ),
-          onSearch: () => _openSearch(context),
-          onMenuSelection: (value) => _showSnackBar(
-            context,
-            'Menu action: $value',
-          ),
+          showSearch: true,
+          showVideoCall: true,
+          showTasks: true,
+          showMenu: true,
+          menuItems: [
+            PopupMenuItem(
+              value: 'search_page',
+              child: Row(
+                children: [
+                  Icon(Icons.search,
+                      size: 20, color: theme.colorScheme.onSurface),
+                  const SizedBox(width: 12),
+                  const Text('Search (Full Page)'),
+                ],
+              ),
+            ),
+          ],
+          onSearch: () => _searchModeNotifier.value = true,
+          onMenuSelection: (value) {
+            if (value == 'search_page') {
+              _openSearchPage(context);
+            } else {
+              _showSnackBar('Menu action: $value');
+            }
+          },
+          onVideoCall: () => _showSnackBar('Video call'),
+          onTasks: () => _showSnackBar('Tasks'),
           additionalActions: [
             IconButton(
               icon: const Icon(Icons.info_outline),
@@ -143,9 +209,11 @@ class _FullChatExampleState extends State<FullChatExample> {
                 title: 'Screen Overview',
                 icon: Icons.forum_outlined,
                 lines: const [
-                  'Full chat experience with selection, reply, and search flows.',
-                  'Demonstrates reactions, deletion, and multi-action app bars.',
-                  'Highlights pinned messages, polls, and recording callbacks.',
+                  'Full chat with all features enabled.',
+                  'Suggestion providers: @mention, #hashtag, /quick, \$task.',
+                  'Two search modes: in-chat and full page.',
+                  'EditMessagePreview for editing messages.',
+                  'Reactions, replies, polls, and attachments.',
                 ],
               ),
             ),
@@ -174,24 +242,34 @@ class _FullChatExampleState extends State<FullChatExample> {
         onClearSelection();
       },
       onForward: (messages) => _showSnackBar(
-        context,
         'Forwarded ${messages.length} message(s)',
       ),
-      onInfo: (message) => _showSnackBar(
-        context,
-        'Message info: ${message.id}',
-      ),
+      onInfo: (message) => _showSnackBar('Message info: ${message.id}'),
+      onPin: (messages) =>
+          _showSnackBar('Pinned ${messages.length} message(s)'),
+      onStar: (messages) =>
+          _showSnackBar('Starred ${messages.length} message(s)'),
     );
   }
 
-  Future<void> _openSearch(BuildContext context) async {
-    // Toggle in-chat search mode
-    _searchModeNotifier.value = true;
+  /// Open ChatMessageSearchView as a separate page
+  Future<void> _openSearchPage(BuildContext context) async {
+    final selected = await Navigator.of(context).push<IChatMessageData>(
+      MaterialPageRoute(
+        builder: (context) => ChatMessageSearchView(
+          messages: _controller.messagesCubit.currentItems,
+          currentUserId: ExampleSampleData.currentUserId,
+        ),
+      ),
+    );
+
+    if (!mounted || selected == null) return;
+    _replyNotifier.value = _buildReplyData(selected);
+    _showSnackBar('Selected: ${selected.id}');
   }
 
   /// Simulates a backend search - in real apps, this would call your API
   Future<List<String>> _simulateBackendSearch(String query) async {
-    // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 500));
 
     final lowerQuery = query.toLowerCase();
@@ -205,6 +283,102 @@ class _FullChatExampleState extends State<FullChatExample> {
     }
 
     return matches;
+  }
+
+  // Suggestion providers
+  Future<List<FloatingSuggestionItem<ChatUserSuggestion>>> _usernameProvider(
+    String query,
+  ) async {
+    final cleanQuery = _cleanQuery(query);
+    final lower = cleanQuery.toLowerCase();
+    final matches = cleanQuery.isEmpty
+        ? _users
+        : _users.where(
+            (u) =>
+                u.name.toLowerCase().contains(lower) ||
+                (u.username ?? '').toLowerCase().contains(lower),
+          );
+
+    return matches
+        .map((u) => FloatingSuggestionItem(
+              value: u,
+              label: u.name,
+              subtitle: '@${u.username}',
+              icon: const Icon(Icons.person_outline, size: 16),
+              type: FloatingSuggestionType.username,
+            ))
+        .toList();
+  }
+
+  Future<List<FloatingSuggestionItem<Hashtag>>> _hashtagProvider(
+    String query,
+  ) async {
+    final cleanQuery = _cleanQuery(query);
+    final lower = cleanQuery.toLowerCase();
+    final matches = cleanQuery.isEmpty
+        ? _hashtags
+        : _hashtags.where((h) => h.hashtag.toLowerCase().contains(lower));
+
+    return matches
+        .map((h) => FloatingSuggestionItem(
+              value: h,
+              label: '#${h.hashtag}',
+              type: FloatingSuggestionType.hashtag,
+            ))
+        .toList();
+  }
+
+  Future<List<FloatingSuggestionItem<QuickReply>>> _quickReplyProvider(
+    String query,
+  ) async {
+    final cleanQuery = _cleanQuery(query);
+    final lower = cleanQuery.toLowerCase();
+    final matches = cleanQuery.isEmpty
+        ? _quickReplies
+        : _quickReplies.where((r) {
+            final cmd =
+                r.command.startsWith('/') ? r.command.substring(1) : r.command;
+            return cmd.toLowerCase().contains(lower);
+          });
+
+    return matches
+        .map((r) => FloatingSuggestionItem(
+              value: r,
+              label: r.command,
+              subtitle: r.response,
+              type: FloatingSuggestionType.quickReply,
+            ))
+        .toList();
+  }
+
+  Future<List<FloatingSuggestionItem<dynamic>>> _taskProvider(
+    String query,
+  ) async {
+    final cleanQuery = _cleanQuery(query);
+    final lower = cleanQuery.toLowerCase();
+    final matches = cleanQuery.isEmpty
+        ? _tasks
+        : _tasks
+            .where((t) => t['title'].toString().toLowerCase().contains(lower));
+
+    return matches
+        .map((t) => FloatingSuggestionItem(
+              value: t,
+              label: t['title'].toString(),
+              type: FloatingSuggestionType.clubChatTask,
+            ))
+        .toList();
+  }
+
+  String _cleanQuery(String query) {
+    if (query.isEmpty) return '';
+    if (query.startsWith('@') ||
+        query.startsWith('#') ||
+        query.startsWith('/') ||
+        query.startsWith(r'$')) {
+      return query.substring(1);
+    }
+    return query;
   }
 
   ChatReplyData _buildReplyData(IChatMessageData message) {
@@ -223,7 +397,7 @@ class _FullChatExampleState extends State<FullChatExample> {
     );
   }
 
-  void _showSnackBar(BuildContext context, String text) {
+  void _showSnackBar(String text) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(text)),
     );

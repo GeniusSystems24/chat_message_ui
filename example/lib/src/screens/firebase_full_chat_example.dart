@@ -5,8 +5,22 @@ import '../data/example_sample_data.dart';
 import '../data/firebase_chat_controller.dart';
 import 'shared/example_scaffold.dart';
 
+/// Firebase-connected chat example with all features.
+///
+/// Features demonstrated:
+/// - Full Firebase integration (Firestore + Storage)
+/// - Deep link support via chatId parameter
+/// - In-chat search with searchModeNotifier
+/// - ChatMessageSearchView as separate page
+/// - Suggestion providers
+/// - Custom ChatThemeData
+/// - All message types (text, media, poll, contact, location)
 class FirebaseFullChatExample extends StatefulWidget {
-  const FirebaseFullChatExample({super.key});
+  /// Optional chat ID for deep linking.
+  /// If null, uses default ExampleSampleData.chatId.
+  final String? chatId;
+
+  const FirebaseFullChatExample({super.key, this.chatId});
 
   @override
   State<FirebaseFullChatExample> createState() =>
@@ -16,13 +30,27 @@ class FirebaseFullChatExample extends StatefulWidget {
 class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
   late final FirebaseChatController _controller;
   final ValueNotifier<ChatReplyData?> _replyNotifier = ValueNotifier(null);
+  final ValueNotifier<bool> _searchModeNotifier = ValueNotifier(false);
+
+  // Suggestion data
+  final List<ChatUserSuggestion> _users = const [
+    ChatUserSuggestion(id: 'user_2', name: 'Omar', username: 'omar'),
+    ChatUserSuggestion(id: 'user_3', name: 'Sara', username: 'sara'),
+  ];
+
+  final List<Hashtag> _hashtags = [
+    Hashtag(id: 'tag_1', hashtag: 'firebase'),
+    Hashtag(id: 'tag_2', hashtag: 'sync'),
+  ];
+
+  String get _effectiveChatId => widget.chatId ?? ExampleSampleData.chatId;
 
   @override
   void initState() {
     super.initState();
     _controller = FirebaseChatController(
       currentUserId: ExampleSampleData.currentUserId,
-      chatId: ExampleSampleData.chatId,
+      chatId: _effectiveChatId,
     );
     _controller.loadInitial();
   }
@@ -30,70 +58,90 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
   @override
   void dispose() {
     _replyNotifier.dispose();
+    _searchModeNotifier.dispose();
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ChatScreen(
-      messagesCubit: _controller.messagesCubit,
-      currentUserId: ExampleSampleData.currentUserId,
-      onSendMessage: _handleSendText,
-      onAttachmentSelected: _handleAttachment,
-      onAttachmentTap: (message) => _showSnackBar(
-        context,
-        'Attachment tapped: ${message.type.name}',
+    // Apply custom theme for Firebase example
+    final baseTheme = ChatThemeData.get(context);
+    final customTheme = baseTheme.copyWith(
+      colors: baseTheme.colors.copyWith(
+            primary: Colors.teal,
+          ),
+    );
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        extensions: [customTheme],
       ),
-      onReactionTap: _controller.toggleReaction,
-      onPollVote: (message, optionId) => _showSnackBar(
-        context,
-        'Voted on ${message.id}: $optionId',
-      ),
-      onRefresh: _controller.refresh,
-      onDelete: _controller.deleteMessages,
-      onForward: (messages) =>
-          _showSnackBar(context, 'Forwarded ${messages.length} message(s)'),
-      onCopy: (messages, resolvedText) =>
-          _showSnackBar(context, 'Copied ${messages.length} message(s)'),
-      onReply: (message) {
-        _replyNotifier.value = _buildReplyData(message);
-      },
-      onMessageInfo: (message) =>
-          _showSnackBar(context, 'Message info: ${message.id}'),
-      onSelectionChanged: (selected) {
-        if (!mounted) return;
-        setState(() {});
-      },
-      replyMessage: _replyNotifier,
-      appBarBuilder: _buildAppBar,
-      selectionAppBarBuilder: _buildSelectionAppBar,
-      emptyMessage: 'No messages yet. Send one to Firebase.',
-      pinnedMessages: _buildPinnedList(),
-      onScrollToMessage: _scrollToPinnedMessage,
-      onRecordingComplete: (path, duration, {waveform}) async {
-        await _controller.sendAudio(reply: _replyNotifier.value);
-        _replyNotifier.value = null;
-        _showSnackBar(
-          context,
-          'Uploaded audio (${duration}s, waveform: ${waveform?.length ?? 0})',
-        );
-      },
-      onRecordingStart: () => _showSnackBar(context, 'Recording started'),
-      onRecordingCancel: () => _showSnackBar(context, 'Recording cancelled'),
-      onRecordingLockedChanged: (locked) => _showSnackBar(
-          context, locked ? 'Recording locked' : 'Recording unlocked'),
-      onPollRequested: () async {
-        await _controller.sendPoll(reply: _replyNotifier.value);
-        _replyNotifier.value = null;
-      },
-      config: const ChatMessageUiConfig(
-        enableSuggestions: true,
-        enableTextPreview: true,
-        pagination: ChatPaginationConfig(
-          listPadding: EdgeInsets.fromLTRB(16, 12, 16, 12),
-          messagesGroupingMode: MessagesGroupingMode.sameMinute,
-          messagesGroupingTimeoutInSeconds: 300,
+      child: ChatScreen(
+        messagesCubit: _controller.messagesCubit,
+        currentUserId: ExampleSampleData.currentUserId,
+        onSendMessage: _handleSendText,
+        onAttachmentSelected: _handleAttachment,
+        onAttachmentTap: (message) => _showSnackBar(
+          'Attachment tapped: ${message.type.name}',
+        ),
+        onReactionTap: _controller.toggleReaction,
+        onPollVote: (message, optionId) => _showSnackBar(
+          'Voted on ${message.id}: $optionId',
+        ),
+        onRefresh: _controller.refresh,
+        onDelete: _controller.deleteMessages,
+        onForward: (messages) =>
+            _showSnackBar('Forwarded ${messages.length} message(s)'),
+        onCopy: (messages, resolvedText) =>
+            _showSnackBar('Copied ${messages.length} message(s)'),
+        onReply: (message) {
+          _replyNotifier.value = _buildReplyData(message);
+        },
+        onMessageInfo: (message) => _showSnackBar('Message info: ${message.id}'),
+        onSelectionChanged: (selected) {
+          if (!mounted) return;
+          setState(() {});
+        },
+        replyMessage: _replyNotifier,
+        appBarBuilder: _buildAppBar,
+        selectionAppBarBuilder: _buildSelectionAppBar,
+        emptyMessage: 'No messages yet. Send one to Firebase.',
+        pinnedMessages: _buildPinnedList(),
+        onScrollToMessage: _scrollToPinnedMessage,
+        onRecordingComplete: (path, duration, {waveform}) async {
+          await _controller.sendAudio(reply: _replyNotifier.value);
+          _replyNotifier.value = null;
+          _showSnackBar(
+            'Uploaded audio (${duration}s, waveform: ${waveform?.length ?? 0})',
+          );
+        },
+        onRecordingStart: () => _showSnackBar('Recording started'),
+        onRecordingCancel: () => _showSnackBar('Recording cancelled'),
+        onRecordingLockedChanged: (locked) =>
+            _showSnackBar(locked ? 'Recording locked' : 'Recording unlocked'),
+        onPollRequested: () async {
+          final poll = await CreatePollScreen.showAsBottomSheet(context);
+          if (poll != null) {
+            await _controller.sendPoll(reply: _replyNotifier.value);
+            _replyNotifier.value = null;
+          }
+        },
+        // In-chat search
+        searchModeNotifier: _searchModeNotifier,
+        searchHint: 'Search Firebase messages...',
+        onBackendSearch: _searchMessages,
+        // Suggestion providers
+        usernameProvider: _usernameProvider,
+        hashtagProvider: _hashtagProvider,
+        config: const ChatMessageUiConfig(
+          enableSuggestions: true,
+          enableTextPreview: true,
+          pagination: ChatPaginationConfig(
+            listPadding: EdgeInsets.fromLTRB(16, 12, 16, 12),
+            messagesGroupingMode: MessagesGroupingMode.sameMinute,
+            messagesGroupingTimeoutInSeconds: 300,
+          ),
         ),
       ),
     );
@@ -106,7 +154,7 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
   }
 
   Future<bool> _scrollToPinnedMessage(String messageId) async {
-    _showSnackBar(context, 'Jump to pinned message: $messageId');
+    _showSnackBar('Jump to pinned message: $messageId');
     return true;
   }
 
@@ -149,18 +197,28 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
       child: Container(
         color: theme.colorScheme.surface,
         child: ChatAppBar(
-          chat: const ChatAppBarData(
-            id: 'firebase_demo',
+          chat: ChatAppBarData(
+            id: _effectiveChatId,
             title: 'Firebase Live Chat',
-            subtitle: 'Firestore + Storage sync',
+            subtitle: 'Chat ID: $_effectiveChatId',
             imageUrl: 'https://i.pravatar.cc/150?img=31',
           ),
           showSearch: true,
           showMenu: true,
           showVideoCall: true,
           showTasks: true,
-          menuItems: const [
+          menuItems: [
             PopupMenuItem(
+              value: 'search_page',
+              child: Row(
+                children: [
+                  Icon(Icons.search, color: theme.colorScheme.onSurface),
+                  const SizedBox(width: 8),
+                  const Text('Search (Full Page)'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
               value: 'seed_samples',
               child: Row(
                 children: [
@@ -170,7 +228,7 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'send_audio',
               child: Row(
                 children: [
@@ -180,7 +238,7 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'send_poll',
               child: Row(
                 children: [
@@ -191,11 +249,11 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
               ),
             ),
           ],
-          onSearch: () => _openSearch(context),
-          onMenuSelection: (value) => _handleMenuAction(context, value),
-          onTitleTap: () => _showSnackBar(context, 'Open chat profile'),
-          onVideoCall: () => _showSnackBar(context, 'Start video call'),
-          onTasks: () => _showSnackBar(context, 'Open tasks'),
+          onSearch: () => _searchModeNotifier.value = true,
+          onMenuSelection: (value) => _handleMenuAction(value),
+          onTitleTap: () => _showSnackBar('Chat ID: $_effectiveChatId'),
+          onVideoCall: () => _showSnackBar('Start video call'),
+          onTasks: () => _showSnackBar('Open tasks'),
           additionalActions: [
             IconButton(
               icon: const Icon(Icons.info_outline),
@@ -204,10 +262,12 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
                 context,
                 title: 'Screen Overview',
                 icon: Icons.cloud_outlined,
-                lines: const [
-                  'Fully connected chat that reads/writes messages in Firebase.',
-                  'Supports text, media, location, contact, and poll messages.',
-                  'Showcases pinned highlights, polls, and audio uploads.',
+                lines: [
+                  'Fully connected chat with Firebase (Firestore + Storage).',
+                  'Supports deep linking via chatId parameter.',
+                  'Current chat ID: $_effectiveChatId',
+                  'Custom teal theme applied.',
+                  'In-chat search and full page search available.',
                 ],
               ),
             ),
@@ -236,17 +296,25 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
         onClearSelection();
       },
       onForward: (messages) => _showSnackBar(
-        context,
         'Forwarded ${messages.length} message(s)',
       ),
-      onInfo: (message) => _showSnackBar(
-        context,
-        'Message info: ${message.id}',
-      ),
+      onInfo: (message) => _showSnackBar('Message info: ${message.id}'),
+      onPin: (messages) => _showSnackBar('Pinned ${messages.length} message(s)'),
+      onStar: (messages) =>
+          _showSnackBar('Starred ${messages.length} message(s)'),
     );
   }
 
-  Future<void> _openSearch(BuildContext context) async {
+  Future<List<String>> _searchMessages(String query) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final lowerQuery = query.toLowerCase();
+    return _controller.messagesCubit.currentItems
+        .where((m) => (m.textContent?.toLowerCase() ?? '').contains(lowerQuery))
+        .map((m) => m.id)
+        .toList();
+  }
+
+  Future<void> _openSearchPage(BuildContext context) async {
     final selected = await Navigator.of(context).push<IChatMessageData>(
       MaterialPageRoute(
         builder: (context) => ChatMessageSearchView(
@@ -258,6 +326,47 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
 
     if (!mounted || selected == null) return;
     _replyNotifier.value = _buildReplyData(selected);
+  }
+
+  // Suggestion providers
+  Future<List<FloatingSuggestionItem<ChatUserSuggestion>>> _usernameProvider(
+    String query,
+  ) async {
+    final clean = query.startsWith('@') ? query.substring(1) : query;
+    final lower = clean.toLowerCase();
+    final matches = clean.isEmpty
+        ? _users
+        : _users.where((u) =>
+            u.name.toLowerCase().contains(lower) ||
+            (u.username ?? '').toLowerCase().contains(lower));
+
+    return matches
+        .map((u) => FloatingSuggestionItem(
+              value: u,
+              label: u.name,
+              subtitle: '@${u.username}',
+              icon: const Icon(Icons.person_outline, size: 16),
+              type: FloatingSuggestionType.username,
+            ))
+        .toList();
+  }
+
+  Future<List<FloatingSuggestionItem<Hashtag>>> _hashtagProvider(
+    String query,
+  ) async {
+    final clean = query.startsWith('#') ? query.substring(1) : query;
+    final lower = clean.toLowerCase();
+    final matches = clean.isEmpty
+        ? _hashtags
+        : _hashtags.where((h) => h.hashtag.toLowerCase().contains(lower));
+
+    return matches
+        .map((h) => FloatingSuggestionItem(
+              value: h,
+              label: '#${h.hashtag}',
+              type: FloatingSuggestionType.hashtag,
+            ))
+        .toList();
   }
 
   ChatReplyData _buildReplyData(IChatMessageData message) {
@@ -276,8 +385,11 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
     );
   }
 
-  Future<void> _handleMenuAction(BuildContext context, String value) async {
+  Future<void> _handleMenuAction(String value) async {
     switch (value) {
+      case 'search_page':
+        await _openSearchPage(context);
+        break;
       case 'seed_samples':
         await _controller.seedSampleMessages();
         break;
@@ -292,7 +404,7 @@ class _FirebaseFullChatExampleState extends State<FirebaseFullChatExample> {
     }
   }
 
-  void _showSnackBar(BuildContext context, String text) {
+  void _showSnackBar(String text) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(text)),
     );

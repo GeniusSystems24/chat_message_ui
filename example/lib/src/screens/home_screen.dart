@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-import 'basic_chat_example.dart';
-import 'full_chat_example.dart';
-import 'input_features_example.dart';
-import 'message_types_example.dart';
-import 'reactions_example.dart';
-import 'theming_example.dart';
-import 'firebase_full_chat_example.dart';
-import 'bubbles/bubbles.dart';
-import 'features/features.dart';
+import '../router/routes.dart';
 import 'shared/example_scaffold.dart';
 
 /// Home screen showcasing all available examples with modern design.
+/// Uses go_router for type-safe navigation.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -69,6 +63,12 @@ class HomeScreen extends StatelessWidget {
                 _buildSectionTitle(context, 'Features', Icons.widgets_outlined),
                 const SizedBox(height: 12),
                 _FeaturesGrid(context),
+                const SizedBox(height: 28),
+
+                // New Features Section (poll, edit, file upload, pinned/search)
+                _buildSectionTitle(context, 'New Features', Icons.new_releases_outlined),
+                const SizedBox(height: 12),
+                _NewFeaturesGrid(),
                 const SizedBox(height: 28),
 
                 // Complete Examples Section
@@ -206,7 +206,7 @@ class _HeroHeader extends StatelessWidget {
                   _buildChip('Flutter'),
                   _buildChip('Material 3'),
                   _buildChip('Null-safe'),
-                  _buildChip('Customizable'),
+                  _buildChip('go_router'),
                 ],
               ),
             ],
@@ -302,14 +302,14 @@ class _BubblesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bubbles = [
-      _BubbleItem('Text', Icons.text_fields, Colors.blue, const TextBubbleExample()),
-      _BubbleItem('Image', Icons.image_outlined, Colors.green, const ImageBubbleExample()),
-      _BubbleItem('Video', Icons.videocam_outlined, Colors.red, const VideoBubbleExample()),
-      _BubbleItem('Audio', Icons.audiotrack_outlined, Colors.orange, const AudioBubbleExample()),
-      _BubbleItem('Document', Icons.description_outlined, Colors.indigo, const DocumentBubbleExample()),
-      _BubbleItem('Contact', Icons.contact_phone_outlined, Colors.teal, const ContactBubbleExample()),
-      _BubbleItem('Location', Icons.location_on_outlined, Colors.pink, const LocationBubbleExample()),
-      _BubbleItem('Poll', Icons.poll_outlined, Colors.purple, const PollBubbleExample()),
+      _BubbleItem('Text', Icons.text_fields, Colors.blue, '/bubbles/text'),
+      _BubbleItem('Image', Icons.image_outlined, Colors.green, '/bubbles/image'),
+      _BubbleItem('Video', Icons.videocam_outlined, Colors.red, '/bubbles/video'),
+      _BubbleItem('Audio', Icons.audiotrack_outlined, Colors.orange, '/bubbles/audio'),
+      _BubbleItem('Document', Icons.description_outlined, Colors.indigo, '/bubbles/document'),
+      _BubbleItem('Contact', Icons.contact_phone_outlined, Colors.teal, '/bubbles/contact'),
+      _BubbleItem('Location', Icons.location_on_outlined, Colors.pink, '/bubbles/location'),
+      _BubbleItem('Poll', Icons.poll_outlined, Colors.purple, '/bubbles/poll'),
     ];
 
     return GridView.builder(
@@ -331,9 +331,9 @@ class _BubbleItem {
   final String title;
   final IconData icon;
   final Color color;
-  final Widget screen;
+  final String route;
 
-  _BubbleItem(this.title, this.icon, this.color, this.screen);
+  _BubbleItem(this.title, this.icon, this.color, this.route);
 }
 
 class _BubbleCard extends StatelessWidget {
@@ -349,10 +349,7 @@ class _BubbleCard extends StatelessWidget {
       color: theme.colorScheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => bubble.screen),
-        ),
+        onTap: () => context.go(bubble.route),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(10),
@@ -403,11 +400,11 @@ class _FeaturesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final features = [
-      _FeatureItem('Chat Input', 'Text, attachments, voice', Icons.keyboard_outlined, Colors.blue, const ChatInputExample()),
-      _FeatureItem('App Bar', 'Title, avatar, actions', Icons.web_asset_outlined, Colors.green, const AppBarExample()),
-      _FeatureItem('Replies', 'Reply preview & context', Icons.reply_outlined, Colors.orange, const ReplyExample()),
-      _FeatureItem('Search', 'Find messages', Icons.search_outlined, Colors.purple, const SearchExample()),
-      _FeatureItem('Custom Builders', 'Custom bubble rendering', Icons.build_outlined, Colors.teal, const CustomBuildersExample()),
+      _FeatureItem('Chat Input', 'Text, attachments, voice', Icons.keyboard_outlined, Colors.blue, '/features/input'),
+      _FeatureItem('App Bar', 'Title, avatar, actions', Icons.web_asset_outlined, Colors.green, '/features/appbar'),
+      _FeatureItem('Replies', 'Reply preview & context', Icons.reply_outlined, Colors.orange, '/features/reply'),
+      _FeatureItem('Search', 'Find messages', Icons.search_outlined, Colors.purple, '/features/search'),
+      _FeatureItem('Custom Builders', 'Custom bubble rendering', Icons.build_outlined, Colors.teal, '/features/custom'),
     ];
 
     return GridView.builder(
@@ -430,9 +427,9 @@ class _FeatureItem {
   final String subtitle;
   final IconData icon;
   final Color color;
-  final Widget screen;
+  final String route;
 
-  _FeatureItem(this.title, this.subtitle, this.icon, this.color, this.screen);
+  _FeatureItem(this.title, this.subtitle, this.icon, this.color, this.route);
 }
 
 class _FeatureCard extends StatelessWidget {
@@ -448,10 +445,7 @@ class _FeatureCard extends StatelessWidget {
       color: theme.colorScheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => feature.screen),
-        ),
+        onTap: () => context.go(feature.route),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -513,6 +507,32 @@ class _FeatureCard extends StatelessWidget {
   }
 }
 
+/// New features section showcasing poll, edit, file upload, and pinned/search.
+class _NewFeaturesGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final features = [
+      _FeatureItem('Polls', 'Create & vote on polls', Icons.poll_outlined, Colors.deepPurple, '/features/poll'),
+      _FeatureItem('Edit Messages', 'Edit message preview', Icons.edit_outlined, Colors.amber, '/features/edit'),
+      _FeatureItem('File Upload', 'Upload progress indicator', Icons.cloud_upload_outlined, Colors.cyan, '/features/upload'),
+      _FeatureItem('Pinned & Search', 'Pinned bar & search matches', Icons.push_pin_outlined, Colors.lime, '/features/pinned-search'),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 2.2,
+      ),
+      itemCount: features.length,
+      itemBuilder: (context, index) => _FeatureCard(feature: features[index]),
+    );
+  }
+}
+
 class _CompleteExamplesGrid extends StatelessWidget {
   final BuildContext context;
 
@@ -521,12 +541,12 @@ class _CompleteExamplesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final examples = [
-      _ExampleItem('Basic Chat', 'Simple text messaging', Icons.chat_outlined, Colors.blue, const BasicChatExample()),
-      _ExampleItem('Message Types', 'All bubble types', Icons.category_outlined, Colors.green, const MessageTypesExample()),
-      _ExampleItem('Theming', 'Custom themes', Icons.palette_outlined, Colors.purple, const ThemingExample()),
-      _ExampleItem('Input Features', 'Advanced input', Icons.keyboard_outlined, Colors.orange, const InputFeaturesExample()),
-      _ExampleItem('Reactions', 'Emoji reactions', Icons.add_reaction_outlined, Colors.pink, const ReactionsExample()),
-      _ExampleItem('Full Chat', 'Complete experience', Icons.forum_outlined, Colors.teal, const FullChatExample()),
+      _ExampleItem('Basic Chat', 'Simple text messaging', Icons.chat_outlined, Colors.blue, BasicChatRoute().location),
+      _ExampleItem('Message Types', 'All bubble types', Icons.category_outlined, Colors.green, MessageTypesRoute().location),
+      _ExampleItem('Theming', 'Custom themes', Icons.palette_outlined, Colors.purple, ThemingRoute().location),
+      _ExampleItem('Input Features', 'Advanced input', Icons.keyboard_outlined, Colors.orange, InputFeaturesRoute().location),
+      _ExampleItem('Reactions', 'Emoji reactions', Icons.add_reaction_outlined, Colors.pink, ReactionsRoute().location),
+      _ExampleItem('Full Chat', 'Complete experience', Icons.forum_outlined, Colors.teal, FullChatRoute().location),
     ];
 
     return GridView.builder(
@@ -551,10 +571,10 @@ class _FirebaseExampleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final example = _ExampleItem(
       'Firebase Live Chat',
-      'Realtime Firestore + Storage',
+      'Realtime Firestore + Storage (Deep Link enabled)',
       Icons.cloud_outlined,
       Colors.indigo,
-      const FirebaseFullChatExample(),
+      FirebaseChatRoute(chatId: 'demo_chat_001').location,
     );
 
     return SizedBox(
@@ -569,9 +589,9 @@ class _ExampleItem {
   final String subtitle;
   final IconData icon;
   final Color color;
-  final Widget screen;
+  final String route;
 
-  _ExampleItem(this.title, this.subtitle, this.icon, this.color, this.screen);
+  _ExampleItem(this.title, this.subtitle, this.icon, this.color, this.route);
 }
 
 class _ExampleCard extends StatelessWidget {
@@ -588,10 +608,7 @@ class _ExampleCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       elevation: 0,
       child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => example.screen),
-        ),
+        onTap: () => context.go(example.route),
         borderRadius: BorderRadius.circular(14),
         child: Container(
           padding: const EdgeInsets.all(14),

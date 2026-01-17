@@ -17,6 +17,8 @@ class _SearchExampleState extends State<SearchExample> {
   final _searchController = TextEditingController();
   List<ExampleMessage> _allMessages = [];
   List<ExampleMessage> _filteredMessages = [];
+  String _filterType = 'all';
+  String? _filterSender;
 
   @override
   void initState() {
@@ -34,16 +36,27 @@ class _SearchExampleState extends State<SearchExample> {
   }
 
   void _onSearchChanged() {
+    _applyFilters();
+  }
+
+  void _applyFilters() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      if (query.isEmpty) {
-        _filteredMessages = _allMessages;
-      } else {
-        _filteredMessages = _allMessages
-            .where((msg) =>
-                (msg.textContent?.toLowerCase().contains(query) ?? false))
-            .toList();
-      }
+      _filteredMessages = _allMessages.where((msg) {
+        // Text filter
+        final matchesText = query.isEmpty ||
+            (msg.textContent?.toLowerCase().contains(query) ?? false);
+
+        // Type filter
+        final matchesType =
+            _filterType == 'all' || msg.type.name == _filterType;
+
+        // Sender filter
+        final matchesSender =
+            _filterSender == null || msg.senderId == _filterSender;
+
+        return matchesText && matchesType && matchesSender;
+      }).toList();
     });
   }
 
@@ -76,7 +89,8 @@ class _SearchExampleState extends State<SearchExample> {
               children: [
                 const ExampleSectionHeader(
                   title: 'Overview',
-                  description: 'Search through chat messages with real-time filtering',
+                  description:
+                      'Search through chat messages with real-time filtering',
                   icon: Icons.search_outlined,
                 ),
                 const SizedBox(height: 16),
@@ -88,7 +102,8 @@ class _SearchExampleState extends State<SearchExample> {
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      color: theme.colorScheme.outlineVariant
+                          .withValues(alpha: 0.3),
                     ),
                   ),
                   child: Column(
@@ -128,12 +143,112 @@ class _SearchExampleState extends State<SearchExample> {
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
+                      const SizedBox(height: 12),
+
+                      // Filters
+                      Row(
+                        children: [
+                          // Type Filter
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _filterType,
+                              decoration: InputDecoration(
+                                labelText: 'Type',
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'all', child: Text('All')),
+                                DropdownMenuItem(
+                                    value: 'text', child: Text('Text')),
+                                DropdownMenuItem(
+                                    value: 'image', child: Text('Image')),
+                                DropdownMenuItem(
+                                    value: 'video', child: Text('Video')),
+                                DropdownMenuItem(
+                                    value: 'audio', child: Text('Audio')),
+                              ],
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => _filterType = value);
+                                  _applyFilters();
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Sender Filter
+                          Expanded(
+                            child: DropdownButtonFormField<String?>(
+                              value: _filterSender,
+                              decoration: InputDecoration(
+                                labelText: 'Sender',
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              items: [
+                                const DropdownMenuItem(
+                                    value: null, child: Text('All')),
+                                ...ExampleSampleData.users.entries.map(
+                                  (e) => DropdownMenuItem(
+                                    value: e.key,
+                                    child: Text(e.value.displayName),
+                                  ),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                setState(() => _filterSender = value);
+                                _applyFilters();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
+
+          // Active Filters Display
+          if (_filterType != 'all' || _filterSender != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  if (_filterType != 'all')
+                    Chip(
+                      label: Text('Type: $_filterType'),
+                      onDeleted: () {
+                        setState(() => _filterType = 'all');
+                        _applyFilters();
+                      },
+                    ),
+                  if (_filterSender != null)
+                    Chip(
+                      label: Text(
+                          'From: ${ExampleSampleData.users[_filterSender]?.displayName ?? "Unknown"}'),
+                      onDeleted: () {
+                        setState(() => _filterSender = null);
+                        _applyFilters();
+                      },
+                    ),
+                ],
+              ),
+            ),
 
           // Results List
           Expanded(
@@ -145,7 +260,8 @@ class _SearchExampleState extends State<SearchExample> {
                         Icon(
                           Icons.search_off_outlined,
                           size: 64,
-                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -176,7 +292,8 @@ class _SearchExampleState extends State<SearchExample> {
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Navigate to message: ${message.id}'),
+                              content:
+                                  Text('Navigate to message: ${message.id}'),
                             ),
                           );
                         },
@@ -186,66 +303,89 @@ class _SearchExampleState extends State<SearchExample> {
           ),
 
           // Properties Section
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              border: Border(
-                top: BorderSide(
-                  color: theme.colorScheme.outlineVariant,
-                ),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Search Implementation Tips',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _buildTip(
-                  context,
-                  icon: Icons.filter_list,
-                  text: 'Filter by message type (text, image, etc.)',
-                ),
-                _buildTip(
-                  context,
-                  icon: Icons.date_range,
-                  text: 'Add date range filtering',
-                ),
-                _buildTip(
-                  context,
-                  icon: Icons.person_search,
-                  text: 'Filter by sender',
-                ),
-                _buildTip(
-                  context,
-                  icon: Icons.highlight,
-                  text: 'Highlight matching text',
-                ),
-              ],
-            ),
-          ),
+          _tipsBuild(theme, context),
         ],
       ),
     );
   }
 
-  Widget _buildTip(BuildContext context, {required IconData icon, required String text}) {
+  Container _tipsBuild(ThemeData theme, BuildContext context) {
+    return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            border: Border(
+              top: BorderSide(
+                color: theme.colorScheme.outlineVariant,
+              ),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Search Implementation Tips',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildTip(
+                context,
+                icon: Icons.filter_list,
+                text: 'Filter by message type ✓ Implemented',
+              ),
+              _buildTip(
+                context,
+                icon: Icons.person_search,
+                text: 'Filter by sender ✓ Implemented',
+              ),
+              _buildTip(
+                context,
+                icon: Icons.highlight,
+                text: 'Highlight matching text ✓ Implemented',
+              ),
+              _buildTip(
+                context,
+                icon: Icons.date_range,
+                text: 'Add date range filtering (suggested)',
+              ),
+              _buildTip(
+                context,
+                icon: Icons.history,
+                text: 'Save recent searches (suggested)',
+              ),
+              _buildTip(
+                context,
+                icon: Icons.bookmark,
+                text: 'Search in starred/pinned only (suggested)',
+              ),
+            ],
+          ),
+        );
+  }
+
+  Widget _buildTip(BuildContext context,
+      {required IconData icon, required String text}) {
     final theme = Theme.of(context);
+    final isImplemented = text.contains('✓');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: theme.colorScheme.primary),
+          Icon(
+            icon,
+            size: 16,
+            color: isImplemented ? Colors.green : theme.colorScheme.primary,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: theme.textTheme.bodySmall,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isImplemented ? Colors.green : null,
+                fontWeight: isImplemented ? FontWeight.w600 : null,
+              ),
             ),
           ),
         ],
@@ -292,7 +432,8 @@ class _SearchExampleState extends State<SearchExample> {
         senderId: 'user_2',
         senderData: ExampleSampleData.users['user_2'],
         type: ChatMessageType.text,
-        textContent: 'The attachment system supports images, videos, documents, and more.',
+        textContent:
+            'The attachment system supports images, videos, documents, and more.',
         createdAt: baseTime.add(const Duration(minutes: 25)),
         status: ChatMessageStatus.read,
       ),
@@ -302,7 +443,8 @@ class _SearchExampleState extends State<SearchExample> {
         senderId: 'user_1',
         senderData: ExampleSampleData.users['user_1'],
         type: ChatMessageType.text,
-        textContent: 'I love the dark mode theme! Very easy on the eyes.',
+        textContent:
+            'I really like the reply feature, makes conversations easier to follow.',
         createdAt: baseTime.add(const Duration(minutes: 35)),
         status: ChatMessageStatus.read,
       ),
@@ -311,8 +453,8 @@ class _SearchExampleState extends State<SearchExample> {
         chatId: 'demo',
         senderId: 'user_3',
         senderData: ExampleSampleData.users['user_3'],
-        type: ChatMessageType.text,
-        textContent: 'The poll feature is great for team decisions.',
+        type: ChatMessageType.image,
+        textContent: 'Check out this screenshot',
         createdAt: baseTime.add(const Duration(minutes: 45)),
         status: ChatMessageStatus.read,
       ),
@@ -321,9 +463,9 @@ class _SearchExampleState extends State<SearchExample> {
         chatId: 'demo',
         senderId: 'user_2',
         senderData: ExampleSampleData.users['user_2'],
-        type: ChatMessageType.text,
-        textContent: 'You can also share locations and contacts easily.',
-        createdAt: baseTime.add(const Duration(minutes: 55)),
+        type: ChatMessageType.video,
+        textContent: 'Demo video of the app',
+        createdAt: baseTime.add(const Duration(hours: 1)),
         status: ChatMessageStatus.read,
       ),
       ExampleMessage(
@@ -331,15 +473,36 @@ class _SearchExampleState extends State<SearchExample> {
         chatId: 'demo',
         senderId: 'user_1',
         senderData: ExampleSampleData.users['user_1'],
+        type: ChatMessageType.audio,
+        textContent: 'Voice message',
+        createdAt: baseTime.add(const Duration(hours: 1, minutes: 15)),
+        status: ChatMessageStatus.read,
+      ),
+      ExampleMessage(
+        id: 'search_9',
+        chatId: 'demo',
+        senderId: 'user_3',
+        senderData: ExampleSampleData.users['user_3'],
         type: ChatMessageType.text,
-        textContent: 'The search functionality helps find old messages quickly.',
-        createdAt: baseTime.add(const Duration(hours: 1)),
+        textContent: 'The search feature is very powerful and fast!',
+        createdAt: baseTime.add(const Duration(hours: 2)),
+        status: ChatMessageStatus.read,
+      ),
+      ExampleMessage(
+        id: 'search_10',
+        chatId: 'demo',
+        senderId: 'user_2',
+        senderData: ExampleSampleData.users['user_2'],
+        type: ChatMessageType.text,
+        textContent: 'Yes, and you can filter by message type and sender too.',
+        createdAt: baseTime.add(const Duration(hours: 2, minutes: 5)),
         status: ChatMessageStatus.read,
       ),
     ];
   }
 }
 
+/// Search result item widget
 class _SearchResultItem extends StatelessWidget {
   final ExampleMessage message;
   final String query;
@@ -433,7 +596,8 @@ class _SearchResultItem extends StatelessWidget {
     );
   }
 
-  Widget _buildHighlightedText(BuildContext context, String text, String query) {
+  Widget _buildHighlightedText(
+      BuildContext context, String text, String query) {
     final theme = Theme.of(context);
 
     if (query.isEmpty) {
