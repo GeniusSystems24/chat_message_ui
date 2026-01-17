@@ -127,6 +127,18 @@ class ExampleChat implements IChatData {
     return subtitle;
   }
 
+  @override
+  bool get isGroup => type == ChatType.group || type == ChatType.channel;
+
+  @override
+  bool get isIndividual => type == ChatType.individual;
+
+  @override
+  bool get hasTypingUsers => typingUserIds.isNotEmpty;
+
+  @override
+  bool get hasUnread => unreadCount > 0;
+
   String _formatLastSeen(DateTime lastSeen) {
     final now = DateTime.now();
     final diff = now.difference(lastSeen);
