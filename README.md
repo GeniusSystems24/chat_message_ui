@@ -1,6 +1,6 @@
 # Chat Message UI
 
-[![Pub Version](https://img.shields.io/badge/pub-v1.3.0-blue)](https://pub.dev)
+[![Pub Version](https://img.shields.io/badge/pub-v1.4.0-blue)](https://pub.dev)
 [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?logo=flutter)](https://flutter.dev)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -170,6 +170,164 @@ ChatMediaData(
 
 You can also derive `thumbnail`, `waveform`, and other metadata using
 TransferKit utilities before constructing `ChatMediaData`.
+
+### IChatData
+
+The interface for chat-level data. Implement this to provide comprehensive chat information:
+
+```dart
+class MyChatAdapter implements IChatData {
+  final MyChat _chat;
+  final ChatMemberCache _memberCache = ChatMemberCache();
+
+  MyChatAdapter(this._chat);
+
+  @override
+  String get id => _chat.id;
+
+  @override
+  ChatType get type => _chat.isGroup ? ChatType.group : ChatType.individual;
+
+  @override
+  String get title => _chat.name;
+
+  @override
+  String? get subtitle => _chat.status;
+
+  @override
+  String? get imageUrl => _chat.avatarUrl;
+
+  @override
+  int? get memberCount => _chat.members.length;
+
+  @override
+  List<String> get participantIds => _chat.members.map((m) => m.id).toList();
+
+  @override
+  bool get isOnline => _chat.isOnline;
+
+  @override
+  List<String> get typingUserIds => _chat.typingUsers;
+
+  @override
+  int get unreadCount => _chat.unreadCount;
+
+  @override
+  String? get lastMessagePreview => _chat.lastMessage?.text;
+
+  @override
+  DateTime? get lastMessageAt => _chat.lastMessage?.createdAt;
+
+  // Member data with caching
+  @override
+  Future<ChatSenderData?> getMemberData(String userId) async {
+    // Check cache first
+    final cached = _memberCache.get(userId);
+    if (cached != null) return cached;
+
+    // Fetch from API
+    final user = await api.getUser(userId);
+    if (user != null) {
+      final data = ChatSenderData(
+        id: user.id,
+        name: user.name,
+        imageUrl: user.avatar,
+      );
+      _memberCache.put(userId, data);
+      return data;
+    }
+    return null;
+  }
+
+  @override
+  ChatSenderData? getCachedMemberData(String userId) {
+    return _memberCache.get(userId);
+  }
+
+  @override
+  void clearMemberCache() => _memberCache.clear();
+
+  // ... other overrides
+}
+```
+
+### ChatType
+
+```dart
+enum ChatType {
+  individual,  // 1:1 private chat
+  group,       // Group chat with multiple members
+  channel,     // Broadcast channel
+  support,     // Support/Help chat
+}
+```
+
+### IChatData Properties
+
+| Section | Properties |
+|---------|------------|
+| **Identity** | `id`, `type`, `createdAt` |
+| **Display** | `title`, `subtitle`, `description`, `imageUrl` |
+| **Participants** | `memberCount`, `participantIds`, `creatorId`, `adminIds` |
+| **Presence** | `isOnline`, `lastSeenAt`, `typingUserIds` |
+| **State** | `isMuted`, `isPinned`, `isArchived`, `isBlocked` |
+| **Messages** | `unreadCount`, `lastMessagePreview`, `lastMessageAt`, `lastReadMessageId` |
+
+### IChatData Convenience Methods
+
+```dart
+// Check chat type
+bool get isGroup => type == ChatType.group || type == ChatType.channel;
+bool get isIndividual => type == ChatType.individual;
+
+// Check status
+bool get hasTypingUsers => typingUserIds.isNotEmpty;
+bool get hasUnread => unreadCount > 0;
+
+// Smart subtitle (typing > online > lastSeen > custom)
+String? get displaySubtitle;
+```
+
+### ChatMemberCache
+
+In-memory cache for efficient member data retrieval:
+
+```dart
+final cache = ChatMemberCache();
+
+// Store member data
+cache.put('user_123', ChatSenderData(id: 'user_123', name: 'John'));
+
+// Retrieve member data
+final member = cache.get('user_123');
+
+// Check if cached
+if (cache.contains('user_123')) {
+  // Use cached data
+}
+
+// Clear cache
+cache.clear();
+```
+
+### Using IChatData with ChatAppBar
+
+```dart
+// Create ChatAppBarData from IChatData
+final appBarData = ChatAppBarData.fromChatData(chatData);
+
+// Use in ChatScreen
+ChatScreen(
+  appBarData: appBarData,
+  // ...
+)
+
+// Or create directly
+ChatAppBar(
+  chat: ChatAppBarData.fromChatData(chatData),
+  onTitleTap: () => showChatInfo(),
+)
+```
 
 ---
 
@@ -1219,6 +1377,315 @@ dependencies:
 4. Add new widgets to appropriate subdirectory
 5. Export in `widgets.dart`
 6. Update this README
+
+---
+
+## Complete Examples
+
+### Basic Chat Implementation
+
+```dart
+import 'package:chat_message_ui/chat_message_ui.dart';
+import 'package:smart_pagination/smart_pagination.dart';
+
+class ChatPage extends StatefulWidget {
+  final IChatData chatData;
+
+  const ChatPage({required this.chatData});
+
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  late final SmartPaginationCubit<IChatMessageData> _messagesCubit;
+  final _replyNotifier = ValueNotifier<ChatReplyData?>(null);
+
+  @override
+  void initState() {
+    super.initState();
+    _messagesCubit = SmartPaginationCubit();
+    _loadMessages();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChatScreen(
+      messagesCubit: _messagesCubit,
+      currentUserId: 'current_user_id',
+      appBarData: ChatAppBarData.fromChatData(widget.chatData),
+      onSendMessage: _sendMessage,
+      onAttachmentSelected: _handleAttachment,
+      onRecordingComplete: _sendVoiceMessage,
+      onReactionTap: _addReaction,
+      replyMessage: _replyNotifier,
+      onReply: (message) {
+        _replyNotifier.value = ChatReplyData(
+          id: message.id,
+          senderId: message.senderId,
+          senderName: message.senderData?.displayName,
+          message: message.textContent,
+          type: message.type,
+        );
+      },
+    );
+  }
+
+  Future<void> _sendMessage(String text) async {
+    final message = MyMessage(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      text: text,
+      senderId: 'current_user_id',
+      status: ChatMessageStatus.pending,
+      replyData: _replyNotifier.value,
+    );
+
+    // Insert immediately for instant UI
+    _messagesCubit.insertEmit(message, index: 0);
+    _replyNotifier.value = null;
+
+    // Send to backend
+    await api.sendMessage(message);
+
+    // Update status
+    final sentMessage = message.copyWith(status: ChatMessageStatus.sent);
+    _messagesCubit.addOrUpdateEmit(sentMessage, index: 0);
+  }
+}
+```
+
+### Implementing IChatData with Real-Time Updates
+
+```dart
+class RealtimeChatData implements IChatData {
+  final String _chatId;
+  final ChatMemberCache _memberCache = ChatMemberCache();
+  final ApiClient _api;
+
+  // Observable state
+  final _typingUsers = ValueNotifier<List<String>>([]);
+  final _onlineStatus = ValueNotifier<bool>(false);
+
+  RealtimeChatData(this._chatId, this._api) {
+    // Listen to typing events
+    _api.onTyping(_chatId).listen((userIds) {
+      _typingUsers.value = userIds;
+    });
+
+    // Listen to presence updates
+    _api.onPresence(_chatId).listen((isOnline) {
+      _onlineStatus.value = isOnline;
+    });
+  }
+
+  @override
+  List<String> get typingUserIds => _typingUsers.value;
+
+  @override
+  bool get isOnline => _onlineStatus.value;
+
+  @override
+  String? get displaySubtitle {
+    if (typingUserIds.isNotEmpty) {
+      return typingUserIds.length == 1
+          ? 'typing...'
+          : '${typingUserIds.length} people typing...';
+    }
+    if (isOnline) return 'Online';
+    return null;
+  }
+
+  @override
+  Future<ChatSenderData?> getMemberData(String userId) async {
+    if (_memberCache.contains(userId)) {
+      return _memberCache.get(userId);
+    }
+
+    final user = await _api.getUser(userId);
+    if (user != null) {
+      final data = ChatSenderData(
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        imageUrl: user.avatarUrl,
+      );
+      _memberCache.put(userId, data);
+      return data;
+    }
+    return null;
+  }
+
+  // ... other implementations
+}
+```
+
+### Custom Message Bubble with Member Lookup
+
+```dart
+class GroupMessageBubble extends StatelessWidget {
+  final IChatMessageData message;
+  final IChatData chatData;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<ChatSenderData?>(
+      // First try cache, then fetch
+      future: chatData.getMemberData(message.senderId),
+      initialData: chatData.getCachedMemberData(message.senderId),
+      builder: (context, snapshot) {
+        final sender = snapshot.data;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (sender != null)
+              Text(
+                sender.displayName,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            MessageBubble(
+              message: message,
+              currentUserId: currentUserId,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+```
+
+### File Picker Integration
+
+```dart
+Future<void> _handleAttachment(AttachmentSource source) async {
+  switch (source) {
+    case AttachmentSource.cameraImage:
+      final image = await ImagePicker().pickImage(source: ImageSource.camera);
+      if (image != null) {
+        await _sendImage(File(image.path));
+      }
+      break;
+
+    case AttachmentSource.galleryImage:
+      final images = await ImagePicker().pickMultiImage();
+      for (final image in images) {
+        await _sendImage(File(image.path));
+      }
+      break;
+
+    case AttachmentSource.document:
+      final result = await FilePicker.platform.pickFiles();
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        await _sendDocument(File(file.path!), fileName: file.name);
+      }
+      break;
+
+    case AttachmentSource.cameraVideo:
+      final video = await ImagePicker().pickVideo(source: ImageSource.camera);
+      if (video != null) {
+        await _sendVideo(File(video.path));
+      }
+      break;
+
+    // ... handle other cases
+  }
+}
+
+Future<void> _sendImage(File file) async {
+  // Generate thumbnail
+  final thumbnail = await TransferKitUtils.generateThumbnail(file.path);
+
+  final message = MyMessage(
+    id: DateTime.now().microsecondsSinceEpoch.toString(),
+    type: ChatMessageType.image,
+    senderId: currentUserId,
+    mediaData: ChatMediaData(
+      localPath: file.path,
+      mediaType: ChatMessageType.image,
+      metadata: MediaMetadata(
+        fileName: path.basename(file.path),
+        thumbnail: thumbnail,
+      ),
+    ),
+    status: ChatMessageStatus.pending,
+  );
+
+  _messagesCubit.insertEmit(message, index: 0);
+
+  // Upload and get URL
+  final url = await _api.uploadMedia(file);
+  final uploadedMessage = message.copyWith(
+    mediaData: message.mediaData?.copyWith(url: url),
+    status: ChatMessageStatus.sent,
+  );
+
+  _messagesCubit.addOrUpdateEmit(uploadedMessage, index: 0);
+}
+```
+
+### Video Bubble with Download Progress
+
+```dart
+VideoBubble(
+  message: videoMessage,
+  chatTheme: ChatThemeData.get(context),
+  isMyMessage: videoMessage.senderId == currentUserId,
+  // Shows download button when video not cached
+  // Displays circular progress during download
+  // Auto-plays after download completes
+  onPlay: () {
+    // Called when video starts playing
+    analytics.trackVideoPlay(videoMessage.id);
+  },
+  onPause: () {
+    // Called when video is paused
+  },
+)
+```
+
+### Poll Creation and Voting
+
+```dart
+// Create poll
+final poll = await CreatePollScreen.showAsBottomSheet(
+  context,
+  onCreatePoll: (pollData) async {
+    final message = MyMessage(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      type: ChatMessageType.poll,
+      senderId: currentUserId,
+      pollData: ChatPollData(
+        question: pollData.question,
+        options: pollData.validOptions.map((text) =>
+          ChatPollOption(id: uuid.v4(), text: text)
+        ).toList(),
+        isMultiple: pollData.allowMultipleAnswers,
+      ),
+      status: ChatMessageStatus.pending,
+    );
+
+    _messagesCubit.insertEmit(message, index: 0);
+    await _api.sendMessage(message);
+  },
+);
+
+// Handle vote
+void _onPollVote(IChatMessageData message, String optionId) async {
+  await _api.votePoll(message.id, optionId);
+  // Update poll data in cubit
+  final updatedPoll = message.pollData?.copyWith(
+    options: message.pollData!.options.map((o) {
+      if (o.id == optionId) {
+        return o.copyWith(voterIds: [...o.voterIds, currentUserId]);
+      }
+      return o;
+    }).toList(),
+  );
+  // ... update message in cubit
+}
+```
 
 ---
 

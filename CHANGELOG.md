@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-01-17
+
+### Added
+
+#### Chat Data Interface
+- New `IChatData` interface for comprehensive chat-level data management
+  - **Identity**: `id`, `type`, `createdAt`
+  - **Display Info**: `title`, `subtitle`, `description`, `imageUrl`
+  - **Participants**: `memberCount`, `participantIds`, `creatorId`, `adminIds`
+  - **Presence & Status**: `isOnline`, `lastSeenAt`, `typingUserIds`
+  - **Chat State**: `isMuted`, `isPinned`, `isArchived`, `isBlocked`
+  - **Message Info**: `unreadCount`, `lastMessagePreview`, `lastMessageAt`, `lastReadMessageId`
+  - Convenience methods: `isGroup`, `isIndividual`, `hasTypingUsers`, `hasUnread`, `displaySubtitle`
+- New `ChatType` enum: `individual`, `group`, `channel`, `support`
+- New `ChatAppBarData.fromChatData()` factory method for easy conversion
+
+#### Member Data with Caching
+- New `getMemberData(String userId)` async method in `IChatData`
+  - Fetches member data with automatic in-memory caching
+  - Avoids redundant API calls for previously fetched members
+- New `getCachedMemberData(String userId)` for synchronous cache access
+- New `clearMemberCache()` to refresh cached member data
+- New `ChatMemberCache` utility class for efficient member data storage
+  - `get(userId)`, `put(userId, data)`, `contains(userId)`, `remove(userId)`, `clear()`
+
+#### Example App Improvements
+- New `ExampleChat` class implementing `IChatData` interface
+- `memberFetcher` callback for external data source integration
+- Smart `displaySubtitle` with priority: typing > online > lastSeen > custom
+
+#### Android Configuration
+- Added video playback permissions (INTERNET, READ/WRITE_EXTERNAL_STORAGE)
+- Added `network_security_config.xml` for HTTP video streaming
+- Added `proguard-rules.pro` for video player optimization
+- Enabled `usesCleartextTraffic` for development environments
+
+---
+
 ## [1.3.0] - 2026-01-17
 
 ### Added
