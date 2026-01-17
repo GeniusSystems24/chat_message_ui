@@ -49,6 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Interactive progress bar with seek functionality
   - Auto-hiding controls overlay
   - Full-screen mode with gesture controls
+- `VideoBubble` download progress overlay with `transfer_kit` integration
+  - Shows download button when video not cached
+  - Circular progress indicator with percentage during download
+  - Automatic playback after download completes
 
 #### Polls
 - New `CreatePollScreen` widget for creating polls with WhatsApp-style design
@@ -75,6 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Message grouping configuration (mode + timeout) in pagination config
 - Poll bubble rendering support in attachment builder with vote callbacks
 
+#### Example App
+- Enhanced `ExampleChatController` with media sending methods
+  - `sendText`, `sendImage`, `sendVideo`, `sendDocument`, `sendAudio` methods
+  - Immediate message injection into cubit for instant UI display
+  - Simulated backend send with status updates (pending → sent → delivered)
+- File picker integration in `FullChatExample`
+  - Camera and gallery image/video selection via `image_picker`
+  - Document selection via `file_picker`
+  - All attachment types supported with proper callbacks
+
 ### Changed
 
 - ChatScreen default selection app bar now exposes reply/copy/forward/info hooks
@@ -82,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Video thumbnails fall back to a default placeholder when none is provided
 - Video thumbnail file path handling now avoids passing remote URLs as files
 - `VideoBubble` now uses `VideoPlayerFactory` for state management
+- `VideoBubble` now shows thumbnail only, opens full-screen player on tap
 - `VideoPlayerFactory.play()` now automatically pauses all playing audio
 - `AudioPlayerFactory.play()` now automatically pauses all playing videos
 - Improved video controls with animated play/pause button

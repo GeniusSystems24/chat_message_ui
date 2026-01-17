@@ -1,6 +1,6 @@
 # Chat Message UI
 
-[![Pub Version](https://img.shields.io/badge/pub-v1.0.0-blue)](https://pub.dev)
+[![Pub Version](https://img.shields.io/badge/pub-v1.3.0-blue)](https://pub.dev)
 [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?logo=flutter)](https://flutter.dev)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
