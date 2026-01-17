@@ -524,13 +524,13 @@ class InlineFocusedOverlay extends StatefulWidget {
 class _InlineFocusedOverlayState extends State<InlineFocusedOverlay> {
   void _handleReaction(String emoji) {
     HapticFeedback.lightImpact();
-    widget.controller.dismiss();
+    widget.controller.close();
     widget.onReactionSelected?.call(emoji);
   }
 
   void _handleAction(MessageAction action) {
     HapticFeedback.lightImpact();
-    widget.controller.dismiss();
+    widget.controller.close();
     widget.onActionSelected?.call(action);
   }
 

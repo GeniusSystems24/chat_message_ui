@@ -228,8 +228,10 @@ class _VideoBubbleState extends State<VideoBubble>
     );
 
     // Check if already downloaded
-    final (filePath, streamController) =
-        await controller.enqueueOrResume(downloadTask, autoStart: true);
+    final (filePath, streamController) = await controller.enqueueOrResume(
+      downloadTask,
+      autoStart: true,
+    );
 
     if (filePath != null) {
       // Already downloaded
@@ -244,27 +246,31 @@ class _VideoBubbleState extends State<VideoBubble>
 
     // Subscribe to download progress
     _downloadSubscription?.cancel();
-    _downloadSubscription = (streamController ??
-            FileTaskController.instance.createFileController(downloadTask.url))
-        .stream
-        .listen((taskItem) {
-      if (!mounted) return;
+    _downloadSubscription =
+        (streamController ??
+                FileTaskController.instance.createFileController(
+                  downloadTask.url,
+                ))
+            .stream
+            .listen((taskItem) {
+              if (!mounted) return;
 
-      setState(() {
-        if (taskItem.status == TaskStatus.completed) {
-          _downloadedPath = taskItem.filePath;
-          _isDownloading = false;
-          _downloadProgress = 1.0;
-        } else if (taskItem.status == TaskStatus.failed) {
-          _isDownloading = false;
-          _downloadError = taskItem.error ?? 'Download failed';
-        } else if (taskItem.status == TaskStatus.running) {
-          _downloadProgress = taskItem.progress;
-        } else if (taskItem.status == TaskStatus.paused) {
-          // Keep the current progress
-        }
-      });
-    });
+              setState(() {
+                if (taskItem.status == TaskStatus.complete) {
+                  _downloadedPath = taskItem.filePath;
+                  _isDownloading = false;
+                  _downloadProgress = 1.0;
+                } else if (taskItem.status == TaskStatus.failed) {
+                  _isDownloading = false;
+                  _downloadError =
+                      taskItem.exception?.toJsonString() ?? 'Download failed';
+                } else if (taskItem.status == TaskStatus.running) {
+                  _downloadProgress = taskItem.progress;
+                } else if (taskItem.status == TaskStatus.paused) {
+                  // Keep the current progress
+                }
+              });
+            });
   }
 
   Future<void> _initializeAndPlay() async {
@@ -365,8 +371,9 @@ class _VideoBubbleState extends State<VideoBubble>
         scale: _isPressed ? 0.97 : 1.0,
         duration: VideoBubbleConstants.animationDuration,
         child: ClipRRect(
-          borderRadius:
-              BorderRadius.circular(VideoBubbleConstants.borderRadius),
+          borderRadius: BorderRadius.circular(
+            VideoBubbleConstants.borderRadius,
+          ),
           child: AspectRatio(
             aspectRatio: aspectRatio,
             child: _buildVideoContent(context),
@@ -413,18 +420,13 @@ class _VideoBubbleState extends State<VideoBubble>
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                Colors.black.withValues(alpha: 0.6),
-              ],
+              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
               stops: const [0.5, 1.0],
             ),
           ),
         ),
         // Center button (download progress, download, or play)
-        Center(
-          child: _buildCenterButton(needsDownload, canPlay),
-        ),
+        Center(child: _buildCenterButton(needsDownload, canPlay)),
         // Info overlay
         Positioned(
           bottom: 8,
@@ -512,20 +514,12 @@ class _VideoBubbleState extends State<VideoBubble>
     if (thumbnail == null) return null;
     if (thumbnail.bytes != null) {
       return _BlurredThumbnail(
-        child: Image.memory(
-          thumbnail.bytes!,
-          fit: BoxFit.cover,
-        ),
+        child: Image.memory(thumbnail.bytes!, fit: BoxFit.cover),
       );
     }
     if (thumbnail.base64 != null) {
       final bytes = base64Decode(thumbnail.base64!);
-      return _BlurredThumbnail(
-        child: Image.memory(
-          bytes,
-          fit: BoxFit.cover,
-        ),
-      );
+      return _BlurredThumbnail(child: Image.memory(bytes, fit: BoxFit.cover));
     }
     return null;
   }
@@ -681,8 +675,9 @@ class _VideoControlsOverlayState extends State<_VideoControlsOverlay> {
               // Center play/pause button
               Center(
                 child: StreamBuilder<VideoPlayerState>(
-                  stream: VideoPlayerFactory.stateStream
-                      .where((s) => s.id == widget.videoId),
+                  stream: VideoPlayerFactory.stateStream.where(
+                    (s) => s.id == widget.videoId,
+                  ),
                   builder: (context, snapshot) {
                     final state = snapshot.data;
                     final isPlaying = state?.isPlaying ?? false;
@@ -755,10 +750,7 @@ class _VideoProgressBar extends StatelessWidget {
   final String videoId;
   final ChatThemeData chatTheme;
 
-  const _VideoProgressBar({
-    required this.videoId,
-    required this.chatTheme,
-  });
+  const _VideoProgressBar({required this.videoId, required this.chatTheme});
 
   @override
   Widget build(BuildContext context) {
@@ -781,16 +773,20 @@ class _VideoProgressBar extends StatelessWidget {
                 onHorizontalDragUpdate: (details) {
                   final width = context.size?.width ?? 0;
                   if (width > 0) {
-                    final percent =
-                        (details.localPosition.dx / width).clamp(0.0, 1.0);
+                    final percent = (details.localPosition.dx / width).clamp(
+                      0.0,
+                      1.0,
+                    );
                     VideoPlayerFactory.seekToPercent(videoId, percent);
                   }
                 },
                 onTapDown: (details) {
                   final width = context.size?.width ?? 0;
                   if (width > 0) {
-                    final percent =
-                        (details.localPosition.dx / width).clamp(0.0, 1.0);
+                    final percent = (details.localPosition.dx / width).clamp(
+                      0.0,
+                      1.0,
+                    );
                     VideoPlayerFactory.seekToPercent(videoId, percent);
                   }
                 },
@@ -840,17 +836,11 @@ class _VideoProgressBar extends StatelessWidget {
                 children: [
                   Text(
                     position,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
                   ),
                   Text(
                     duration,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
                   ),
                 ],
               ),
@@ -908,9 +898,10 @@ class _ShimmerPlaceholderState extends State<_ShimmerPlaceholder>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat();
-    _animation = Tween<double>(begin: -2, end: 2).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: -2,
+      end: 2,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -953,10 +944,7 @@ class _LoadingIndicator extends StatelessWidget {
   final AnimationController controller;
   final double progress;
 
-  const _LoadingIndicator({
-    required this.controller,
-    required this.progress,
-  });
+  const _LoadingIndicator({required this.controller, required this.progress});
 
   @override
   Widget build(BuildContext context) {
@@ -990,11 +978,7 @@ class _LoadingIndicator extends StatelessWidget {
               ),
             )
           else
-            const Icon(
-              Icons.videocam_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
+            const Icon(Icons.videocam_rounded, color: Colors.white, size: 20),
         ],
       ),
     );
@@ -1111,10 +1095,7 @@ class _DownloadProgressButton extends StatelessWidget {
   final double progress;
   final double size;
 
-  const _DownloadProgressButton({
-    required this.progress,
-    this.size = 64,
-  });
+  const _DownloadProgressButton({required this.progress, this.size = 64});
 
   @override
   Widget build(BuildContext context) {
@@ -1159,10 +1140,7 @@ class _InfoChip extends StatelessWidget {
   final String text;
   final IconData icon;
 
-  const _InfoChip({
-    required this.text,
-    required this.icon,
-  });
+  const _InfoChip({required this.text, required this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -1530,7 +1508,9 @@ class _VideoFullScreenPlayerState extends State<_VideoFullScreenPlayer> {
 
     // Show play/pause button
     return StreamBuilder<VideoPlayerState>(
-      stream: VideoPlayerFactory.stateStream.where((s) => s.id == widget.videoId),
+      stream: VideoPlayerFactory.stateStream.where(
+        (s) => s.id == widget.videoId,
+      ),
       builder: (context, snapshot) {
         final state = snapshot.data;
         final isPlaying = state?.isPlaying ?? false;
@@ -1586,10 +1566,7 @@ class _TopBar extends StatelessWidget {
   final String title;
   final VoidCallback onClose;
 
-  const _TopBar({
-    required this.title,
-    required this.onClose,
-  });
+  const _TopBar({required this.title, required this.onClose});
 
   @override
   Widget build(BuildContext context) {
@@ -1606,10 +1583,7 @@ class _TopBar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Colors.black.withValues(alpha: 0.7),
-            Colors.transparent,
-          ],
+          colors: [Colors.black.withValues(alpha: 0.7), Colors.transparent],
         ),
       ),
       child: Row(
@@ -1712,7 +1686,9 @@ class _VideoFullScreenState extends State<VideoFullScreen> {
                 valueListenable: widget.videoController,
                 builder: (context, value, child) {
                   final videoWidget = AspectRatio(
-                    aspectRatio: value.aspectRatio > 0 ? value.aspectRatio : 16 / 9,
+                    aspectRatio: value.aspectRatio > 0
+                        ? value.aspectRatio
+                        : 16 / 9,
                     child: VideoPlayer(widget.videoController),
                   );
                   return widget.heroTag != null
@@ -1756,7 +1732,9 @@ class _VideoFullScreenState extends State<VideoFullScreen> {
                             child: const Center(
                               child: CircularProgressIndicator(
                                 strokeWidth: 3,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             ),
                           );
@@ -1779,7 +1757,9 @@ class _VideoFullScreenState extends State<VideoFullScreen> {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                              isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
                               color: Colors.white,
                               size: 40,
                             ),
@@ -1848,19 +1828,31 @@ class _LegacyVideoProgressBar extends StatelessWidget {
                 onHorizontalDragUpdate: (details) {
                   final width = context.size?.width ?? 0;
                   if (width > 0 && duration.inMilliseconds > 0) {
-                    final percent = (details.localPosition.dx / width).clamp(0.0, 1.0);
-                    controller.seekTo(Duration(
-                      milliseconds: (percent * duration.inMilliseconds).toInt(),
-                    ));
+                    final percent = (details.localPosition.dx / width).clamp(
+                      0.0,
+                      1.0,
+                    );
+                    controller.seekTo(
+                      Duration(
+                        milliseconds: (percent * duration.inMilliseconds)
+                            .toInt(),
+                      ),
+                    );
                   }
                 },
                 onTapDown: (details) {
                   final width = context.size?.width ?? 0;
                   if (width > 0 && duration.inMilliseconds > 0) {
-                    final percent = (details.localPosition.dx / width).clamp(0.0, 1.0);
-                    controller.seekTo(Duration(
-                      milliseconds: (percent * duration.inMilliseconds).toInt(),
-                    ));
+                    final percent = (details.localPosition.dx / width).clamp(
+                      0.0,
+                      1.0,
+                    );
+                    controller.seekTo(
+                      Duration(
+                        milliseconds: (percent * duration.inMilliseconds)
+                            .toInt(),
+                      ),
+                    );
                   }
                 },
                 child: Container(

@@ -12,9 +12,11 @@ class ExampleChatRepository {
 
   final List<ExampleMessage> _messages;
 
-  List<ExampleMessage> get messages => List<ExampleMessage>.unmodifiable(_messages);
+  List<ExampleMessage> get messages =>
+      List<ExampleMessage>.unmodifiable(_messages);
 
-  Future<List<IChatMessageData>> fetchMessages(PaginationRequest request) async {
+  Future<List<IChatMessageData>> fetchMessages(
+      PaginationRequest request) async {
     final pageSize = request.pageSize ?? 20;
     final startIndex = (request.page - 1) * pageSize;
 
@@ -103,13 +105,12 @@ class ExampleChatController {
       replyData: reply,
       replyToId: reply?.id,
       mediaData: ChatMediaData(
-        url: file.path,
-        mediaType: ChatMessageType.image,
-        metadata: {
-          'fileName': file.path.split('/').last,
-          'fileSize': await file.length(),
-        },
-      ),
+          url: file.path,
+          mediaType: ChatMessageType.image,
+          metadata: MediaMetadata(
+            fileName: file.path.split('/').last,
+            fileSize: await file.length(),
+          )),
     );
 
     _repository.insertMessage(message);
@@ -140,10 +141,10 @@ class ExampleChatController {
         url: file.path,
         thumbnailUrl: thumbnailPath,
         mediaType: ChatMessageType.video,
-        metadata: {
-          'fileName': file.path.split('/').last,
-          'fileSize': await file.length(),
-        },
+        metadata: MediaMetadata(
+          fileName: file.path.split('/').last,
+          fileSize: await file.length(),
+        ),
       ),
     );
 
@@ -173,10 +174,10 @@ class ExampleChatController {
       mediaData: ChatMediaData(
         url: file.path,
         mediaType: ChatMessageType.document,
-        metadata: {
-          'fileName': name,
-          'fileSize': await file.length(),
-        },
+        metadata: MediaMetadata(
+          fileName: name,
+          fileSize: await file.length(),
+        ),
       ),
     );
 
@@ -207,12 +208,12 @@ class ExampleChatController {
       mediaData: ChatMediaData(
         url: filePath,
         mediaType: ChatMessageType.audio,
-        metadata: {
-          'fileName': filePath.split('/').last,
-          'fileSize': await file.length(),
-          'duration': duration,
-          'waveform': waveform,
-        },
+        metadata: MediaMetadata(
+          fileName: filePath.split('/').last,
+          fileSize: await file.length(),
+          durationInSeconds: duration?.toDouble(),
+          waveform: waveform == null ? null : WaveformData(samples: waveform!),
+        ),
       ),
     );
 
@@ -245,8 +246,7 @@ class ExampleChatController {
 
     final updatedReactions = List<ChatReactionData>.from(message.reactions);
     final existingIndex = updatedReactions.indexWhere(
-      (reaction) =>
-          reaction.emoji == emoji && reaction.userId == currentUserId,
+      (reaction) => reaction.emoji == emoji && reaction.userId == currentUserId,
     );
 
     if (existingIndex >= 0) {
