@@ -164,21 +164,23 @@ class _VideoBubbleState extends State<VideoBubble>
       duration: const Duration(milliseconds: 1500),
     )..repeat();
 
-    // Subscribe to video state changes
-    _stateSubscription = VideoPlayerFactory.stateStream.listen((state) {
-      if (state.id == _videoId && mounted) {
-        setState(() {});
+    // Only subscribe to video state changes if showMiniPlayer is true
+    if (widget.showMiniPlayer) {
+      _stateSubscription = VideoPlayerFactory.stateStream.listen((state) {
+        if (state.id == _videoId && mounted) {
+          setState(() {});
 
-        if (state.isPlaying) {
-          widget.onPlay?.call();
-        } else if (state.isPaused) {
-          widget.onPause?.call();
+          if (state.isPlaying) {
+            widget.onPlay?.call();
+          } else if (state.isPaused) {
+            widget.onPause?.call();
+          }
         }
-      }
-    });
+      });
 
-    if (widget.autoPlay && videoSource != null) {
-      _initializeAndPlay();
+      if (widget.autoPlay && videoSource != null) {
+        _initializeAndPlay();
+      }
     }
   }
 
@@ -194,8 +196,10 @@ class _VideoBubbleState extends State<VideoBubble>
   void dispose() {
     _loadingController.dispose();
     _stateSubscription?.cancel();
-    // Dispose the video controller when the widget is disposed
-    VideoPlayerFactory.dispose(_videoId);
+    // Only dispose video controller if showMiniPlayer was enabled
+    if (widget.showMiniPlayer) {
+      VideoPlayerFactory.dispose(_videoId);
+    }
     super.dispose();
   }
 
@@ -224,38 +228,25 @@ class _VideoBubbleState extends State<VideoBubble>
   }
 
   void _showFullScreenVideo() {
-    final controller = VideoPlayerFactory.getController(_videoId);
-    if (controller != null && _isInitialized) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => _VideoFullScreenPlayer(
-            videoId: _videoId,
-            videoController: controller,
-            videoTitle: widget.message.mediaData?.resolvedFileName ?? 'Video',
-            heroTag: heroTag,
-            chatTheme: widget.chatTheme,
-          ),
+    final filePath = videoSource;
+    final networkUrl = url;
+
+    // Open full-screen player directly - it will handle initialization
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _VideoFullScreenPlayer(
+          videoId: _videoId,
+          filePath: filePath,
+          url: networkUrl,
+          videoTitle: widget.message.mediaData?.resolvedFileName ?? 'Video',
+          heroTag: heroTag,
+          chatTheme: widget.chatTheme,
+          thumbnailWidget: _buildThumbnailContent(),
+          duration: duration,
+          fileSize: fileSize,
         ),
-      );
-    } else if (!_isInitialized && !_isInitializing) {
-      _initializeAndPlay().then((_) {
-        final controller = VideoPlayerFactory.getController(_videoId);
-        if (controller != null && mounted) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => _VideoFullScreenPlayer(
-                videoId: _videoId,
-                videoController: controller,
-                videoTitle:
-                    widget.message.mediaData?.resolvedFileName ?? 'Video',
-                heroTag: heroTag,
-                chatTheme: widget.chatTheme,
-              ),
-            ),
-          );
-        }
-      });
-    }
+      ),
+    );
   }
 
   void _handleTapDown(TapDownDetails details) {
@@ -281,7 +272,7 @@ class _VideoBubbleState extends State<VideoBubble>
       onTapCancel: _handleTapCancel,
       onTap: widget.onTap ??
           (canPlay
-              ? (_isInitialized ? _showFullScreenVideo : _togglePlayPause)
+              ? _showFullScreenVideo
               : null),
       onLongPress: widget.onLongPress,
       child: AnimatedScale(
@@ -302,14 +293,6 @@ class _VideoBubbleState extends State<VideoBubble>
   }
 
   Widget _buildVideoContent(BuildContext context) {
-    if (_hasError && _error != null) {
-      return _VideoErrorWidget(
-        error: _error!,
-        chatTheme: widget.chatTheme,
-        onRetry: _togglePlayPause,
-      );
-    }
-
     if (videoSource == null && !canStream) {
       return _VideoErrorWidget(
         error: 'Video not available',
@@ -318,7 +301,7 @@ class _VideoBubbleState extends State<VideoBubble>
     }
 
     // Show inline player when initialized and mini player mode is on
-    if (_isInitialized && widget.showMiniPlayer) {
+    if (widget.showMiniPlayer && _isInitialized) {
       return Hero(
         tag: heroTag,
         child: _InlineVideoPlayer(
@@ -329,7 +312,7 @@ class _VideoBubbleState extends State<VideoBubble>
       );
     }
 
-    // Show thumbnail with play button
+    // Show thumbnail with play button (default behavior)
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -348,19 +331,14 @@ class _VideoBubbleState extends State<VideoBubble>
             ),
           ),
         ),
-        // Play button or loading indicator
+        // Play button (static, no loading state)
         Center(
-          child: _isInitializing
-              ? _LoadingIndicator(
-                  controller: _loadingController,
-                  progress: _currentState?.bufferedProgress ?? 0,
-                )
-              : _PlayButton(
-                  onTap: _togglePlayPause,
-                  size: VideoBubbleConstants.playButtonSize,
-                  iconSize: VideoBubbleConstants.playIconSize,
-                  isPlaying: _isPlaying,
-                ),
+          child: _PlayButton(
+            onTap: _showFullScreenVideo,
+            size: VideoBubbleConstants.playButtonSize,
+            iconSize: VideoBubbleConstants.playIconSize,
+            isPlaying: false,
+          ),
         ),
         // Info overlay
         Positioned(
@@ -1137,19 +1115,27 @@ class _VideoErrorWidget extends StatelessWidget {
 /// Full-screen video player.
 class _VideoFullScreenPlayer extends StatefulWidget {
   final String videoId;
-  final VideoPlayerController videoController;
+  final String? filePath;
+  final String? url;
   final String videoTitle;
   final String? heroTag;
   final ChatThemeData chatTheme;
+  final Widget? thumbnailWidget;
+  final int duration;
+  final int fileSize;
   final VoidCallback? onShare;
   final VoidCallback? onDownload;
 
   const _VideoFullScreenPlayer({
     required this.videoId,
-    required this.videoController,
+    this.filePath,
+    this.url,
     required this.videoTitle,
     this.heroTag,
     required this.chatTheme,
+    this.thumbnailWidget,
+    this.duration = 0,
+    this.fileSize = 0,
     this.onShare,
     this.onDownload,
   });
@@ -1161,6 +1147,10 @@ class _VideoFullScreenPlayer extends StatefulWidget {
 class _VideoFullScreenPlayerState extends State<_VideoFullScreenPlayer> {
   bool _showControls = true;
   Timer? _hideTimer;
+  bool _isInitialized = false;
+  bool _isInitializing = false;
+  String? _error;
+  StreamSubscription<VideoPlayerState>? _stateSubscription;
 
   @override
   void initState() {
@@ -1171,15 +1161,49 @@ class _VideoFullScreenPlayerState extends State<_VideoFullScreenPlayer> {
       DeviceOrientation.portraitUp,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    _startHideTimer();
+
+    // Subscribe to video state changes
+    _stateSubscription = VideoPlayerFactory.stateStream.listen((state) {
+      if (state.id == widget.videoId && mounted) {
+        setState(() {
+          _isInitialized = state.isReady;
+          _isInitializing = state.state == VideoPlaybackState.initializing;
+          _error = state.errorMessage;
+        });
+      }
+    });
+
+    // Initialize and play video when screen opens
+    _initializeAndPlay();
   }
 
   @override
   void dispose() {
     _hideTimer?.cancel();
+    _stateSubscription?.cancel();
+    // Dispose the video controller when leaving full screen
+    VideoPlayerFactory.dispose(widget.videoId);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  Future<void> _initializeAndPlay() async {
+    if (widget.filePath == null && widget.url == null) return;
+
+    setState(() => _isInitializing = true);
+
+    // First pause any playing audio
+    await AudioPlayerFactory.pauseAll();
+
+    // Then play the video using the factory
+    await VideoPlayerFactory.play(
+      widget.videoId,
+      filePath: widget.filePath,
+      url: widget.url,
+    );
+
+    _startHideTimer();
   }
 
   void _startHideTimer() {
@@ -1200,6 +1224,25 @@ class _VideoFullScreenPlayerState extends State<_VideoFullScreenPlayer> {
     });
   }
 
+  String _formatDuration(int seconds) {
+    if (seconds <= 0) return '';
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes <= 0) return '';
+    const suffixes = ['B', 'KB', 'MB', 'GB'];
+    var i = 0;
+    double size = bytes.toDouble();
+    while (size >= 1024 && i < suffixes.length - 1) {
+      size /= 1024;
+      i++;
+    }
+    return '${size.toStringAsFixed(i == 0 ? 0 : 1)} ${suffixes[i]}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1209,23 +1252,8 @@ class _VideoFullScreenPlayerState extends State<_VideoFullScreenPlayer> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Video player
-            Center(
-              child: ValueListenableBuilder<VideoPlayerValue>(
-                valueListenable: widget.videoController,
-                builder: (context, value, child) {
-                  final videoWidget = AspectRatio(
-                    aspectRatio:
-                        value.aspectRatio > 0 ? value.aspectRatio : 16 / 9,
-                    child: VideoPlayer(widget.videoController),
-                  );
-
-                  return widget.heroTag != null
-                      ? Hero(tag: widget.heroTag!, child: videoWidget)
-                      : videoWidget;
-                },
-              ),
-            ),
+            // Thumbnail or Video player
+            _buildVideoOrThumbnail(),
             // Controls overlay
             AnimatedOpacity(
               opacity: _showControls ? 1.0 : 0.0,
@@ -1242,74 +1270,170 @@ class _VideoFullScreenPlayerState extends State<_VideoFullScreenPlayer> {
                       onClose: () => Navigator.of(context).pop(),
                     ),
                   ),
-                  // Center play/pause button
-                  Center(
-                    child: StreamBuilder<VideoPlayerState>(
-                      stream: VideoPlayerFactory.stateStream
-                          .where((s) => s.id == widget.videoId),
-                      builder: (context, snapshot) {
-                        final state = snapshot.data;
-                        final isPlaying = state?.isPlaying ?? false;
-                        final isBuffering = state?.isBuffering ?? false;
-
-                        if (isBuffering) {
-                          return Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            ),
-                          );
-                        }
-
-                        return GestureDetector(
-                          onTap: () {
-                            VideoPlayerFactory.togglePlayPause(widget.videoId);
-                            _startHideTimer();
-                          },
-                          child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              isPlaying
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded,
-                              color: Colors.white,
-                              size: 40,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                  // Center play/pause button or loading
+                  Center(child: _buildCenterControl()),
                   // Bottom progress bar
-                  Positioned(
-                    bottom: MediaQuery.of(context).padding.bottom + 16,
-                    left: 16,
-                    right: 16,
-                    child: _VideoProgressBar(
-                      videoId: widget.videoId,
-                      chatTheme: widget.chatTheme,
+                  if (_isInitialized)
+                    Positioned(
+                      bottom: MediaQuery.of(context).padding.bottom + 16,
+                      left: 16,
+                      right: 16,
+                      child: _VideoProgressBar(
+                        videoId: widget.videoId,
+                        chatTheme: widget.chatTheme,
+                      ),
                     ),
-                  ),
+                  // Info chips (show when not initialized)
+                  if (!_isInitialized)
+                    Positioned(
+                      bottom: MediaQuery.of(context).padding.bottom + 16,
+                      left: 16,
+                      right: 16,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (widget.duration > 0) ...[
+                            _InfoChip(
+                              text: _formatDuration(widget.duration),
+                              icon: Icons.play_arrow_rounded,
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          if (widget.fileSize > 0)
+                            _InfoChip(
+                              text: _formatFileSize(widget.fileSize),
+                              icon: Icons.video_file_rounded,
+                            ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildVideoOrThumbnail() {
+    // Show error if any
+    if (_error != null) {
+      return _VideoErrorWidget(
+        error: _error!,
+        chatTheme: widget.chatTheme,
+        onRetry: _initializeAndPlay,
+      );
+    }
+
+    // Show video player when initialized
+    if (_isInitialized) {
+      final controller = VideoPlayerFactory.getController(widget.videoId);
+      if (controller != null) {
+        return Center(
+          child: ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: controller,
+            builder: (context, value, child) {
+              final videoWidget = AspectRatio(
+                aspectRatio: value.aspectRatio > 0 ? value.aspectRatio : 16 / 9,
+                child: VideoPlayer(controller),
+              );
+
+              return widget.heroTag != null
+                  ? Hero(tag: widget.heroTag!, child: videoWidget)
+                  : videoWidget;
+            },
+          ),
+        );
+      }
+    }
+
+    // Show thumbnail while loading
+    if (widget.thumbnailWidget != null) {
+      return widget.thumbnailWidget!;
+    }
+
+    // Fallback placeholder
+    return Container(
+      color: widget.chatTheme.colors.surfaceContainerHigh,
+      child: Center(
+        child: Icon(
+          Icons.videocam_rounded,
+          color: widget.chatTheme.colors.onSurface.withValues(alpha: 0.3),
+          size: 64,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCenterControl() {
+    // Show loading indicator when initializing
+    if (_isInitializing) {
+      return Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6),
+          shape: BoxShape.circle,
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        ),
+      );
+    }
+
+    // Show play/pause button
+    return StreamBuilder<VideoPlayerState>(
+      stream: VideoPlayerFactory.stateStream.where((s) => s.id == widget.videoId),
+      builder: (context, snapshot) {
+        final state = snapshot.data;
+        final isPlaying = state?.isPlaying ?? false;
+        final isBuffering = state?.isBuffering ?? false;
+
+        if (isBuffering) {
+          return Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.5),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+          );
+        }
+
+        return GestureDetector(
+          onTap: () {
+            if (_isInitialized) {
+              VideoPlayerFactory.togglePlayPause(widget.videoId);
+            } else {
+              _initializeAndPlay();
+            }
+            _startHideTimer();
+          },
+          child: Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.5),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              color: Colors.white,
+              size: 40,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1372,7 +1496,9 @@ class _TopBar extends StatelessWidget {
 }
 
 /// Legacy full-screen video player (for backward compatibility).
-class VideoFullScreen extends StatelessWidget {
+///
+/// Use this widget when you have a pre-initialized [VideoPlayerController].
+class VideoFullScreen extends StatefulWidget {
   final VideoPlayerController videoController;
   final String videoTitle;
   final String? heroTag;
@@ -1385,14 +1511,273 @@ class VideoFullScreen extends StatelessWidget {
   });
 
   @override
+  State<VideoFullScreen> createState() => _VideoFullScreenState();
+}
+
+class _VideoFullScreenState extends State<VideoFullScreen> {
+  bool _showControls = true;
+  Timer? _hideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _startHideTimer();
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  void _startHideTimer() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _showControls = false);
+    });
+  }
+
+  void _toggleControls() {
+    setState(() {
+      _showControls = !_showControls;
+      if (_showControls) _startHideTimer();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final chatTheme = ChatThemeData.get(context);
-    return _VideoFullScreenPlayer(
-      videoId: 'legacy-${videoController.hashCode}',
-      videoController: videoController,
-      videoTitle: videoTitle,
-      heroTag: heroTag,
-      chatTheme: chatTheme,
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: _toggleControls,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Video player
+            Center(
+              child: ValueListenableBuilder<VideoPlayerValue>(
+                valueListenable: widget.videoController,
+                builder: (context, value, child) {
+                  final videoWidget = AspectRatio(
+                    aspectRatio: value.aspectRatio > 0 ? value.aspectRatio : 16 / 9,
+                    child: VideoPlayer(widget.videoController),
+                  );
+                  return widget.heroTag != null
+                      ? Hero(tag: widget.heroTag!, child: videoWidget)
+                      : videoWidget;
+                },
+              ),
+            ),
+            // Controls overlay
+            AnimatedOpacity(
+              opacity: _showControls ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Stack(
+                children: [
+                  // Top bar
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _TopBar(
+                      title: widget.videoTitle,
+                      onClose: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                  // Center play/pause button
+                  Center(
+                    child: ValueListenableBuilder<VideoPlayerValue>(
+                      valueListenable: widget.videoController,
+                      builder: (context, value, child) {
+                        final isPlaying = value.isPlaying;
+                        final isBuffering = value.isBuffering;
+
+                        if (isBuffering) {
+                          return Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                          );
+                        }
+
+                        return GestureDetector(
+                          onTap: () {
+                            if (isPlaying) {
+                              widget.videoController.pause();
+                            } else {
+                              widget.videoController.play();
+                            }
+                            _startHideTimer();
+                          },
+                          child: Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 40,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  // Bottom progress bar
+                  Positioned(
+                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                    left: 16,
+                    right: 16,
+                    child: _LegacyVideoProgressBar(
+                      controller: widget.videoController,
+                      chatTheme: chatTheme,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Progress bar for legacy video player.
+class _LegacyVideoProgressBar extends StatelessWidget {
+  final VideoPlayerController controller;
+  final ChatThemeData chatTheme;
+
+  const _LegacyVideoProgressBar({
+    required this.controller,
+    required this.chatTheme,
+  });
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
+        final duration = value.duration;
+        final position = value.position;
+        final progress = duration.inMilliseconds > 0
+            ? position.inMilliseconds / duration.inMilliseconds
+            : 0.0;
+        final buffered = value.buffered.isNotEmpty
+            ? value.buffered.last.end.inMilliseconds / duration.inMilliseconds
+            : 0.0;
+
+        return Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Progress bar
+              GestureDetector(
+                onHorizontalDragUpdate: (details) {
+                  final width = context.size?.width ?? 0;
+                  if (width > 0 && duration.inMilliseconds > 0) {
+                    final percent = (details.localPosition.dx / width).clamp(0.0, 1.0);
+                    controller.seekTo(Duration(
+                      milliseconds: (percent * duration.inMilliseconds).toInt(),
+                    ));
+                  }
+                },
+                onTapDown: (details) {
+                  final width = context.size?.width ?? 0;
+                  if (width > 0 && duration.inMilliseconds > 0) {
+                    final percent = (details.localPosition.dx / width).clamp(0.0, 1.0);
+                    controller.seekTo(Duration(
+                      milliseconds: (percent * duration.inMilliseconds).toInt(),
+                    ));
+                  }
+                },
+                child: Container(
+                  height: 12,
+                  alignment: Alignment.center,
+                  child: Stack(
+                    children: [
+                      // Background
+                      Container(
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      // Buffered
+                      FractionallySizedBox(
+                        widthFactor: buffered.clamp(0.0, 1.0),
+                        child: Container(
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      // Progress
+                      FractionallySizedBox(
+                        widthFactor: progress.clamp(0.0, 1.0),
+                        child: Container(
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: chatTheme.colors.primary,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              // Time display
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatDuration(position),
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                  Text(
+                    _formatDuration(duration),
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
