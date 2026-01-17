@@ -80,6 +80,9 @@ class MessageBubble extends StatelessWidget {
   /// Custom bubble builders for different message types.
   final BubbleBuilders? bubbleBuilders;
 
+  /// Callback when message is swiped for reply.
+  final VoidCallback? onSwipeToReply;
+
   const MessageBubble({
     super.key,
     required this.message,
@@ -103,6 +106,7 @@ class MessageBubble extends StatelessWidget {
     this.searchQuery,
     this.isCurrentSearchMatch = false,
     this.bubbleBuilders,
+    this.onSwipeToReply,
   });
 
   /// Whether this message was sent by the current user.
@@ -118,12 +122,52 @@ class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final chatTheme = ChatThemeData.get(context);
 
-    return MessageBubbleLayout(
+    final bubbleLayout = MessageBubbleLayout(
       isMyMessage: isMyMessage,
       messageBubble: _buildMessageBubbleWithReactions(context, chatTheme),
       showAvatar: showAvatar,
       userAvatar: _buildUserAvatar(context, chatTheme),
       spacing: chatTheme.spacing,
+    );
+
+    // Wrap with Dismissible for swipe-to-reply if callback provided
+    if (onSwipeToReply == null || message.isDeleted) {
+      return bubbleLayout;
+    }
+
+    return Dismissible(
+      key: Key('swipe_${message.id}'),
+      direction: isMyMessage
+          ? DismissDirection.endToStart
+          : DismissDirection.startToEnd,
+      confirmDismiss: (direction) async {
+        onSwipeToReply?.call();
+        return false; // Don't dismiss, just trigger reply
+      },
+      movementDuration: const Duration(milliseconds: 150),
+      background: _buildSwipeBackground(isStart: true),
+      secondaryBackground: _buildSwipeBackground(isStart: false),
+      child: bubbleLayout,
+    );
+  }
+
+  /// Builds the swipe background with reply icon.
+  Widget _buildSwipeBackground({required bool isStart}) {
+    return Container(
+      alignment: isStart ? Alignment.centerLeft : Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.reply,
+          color: Colors.grey[600],
+          size: 24,
+        ),
+      ),
     );
   }
 

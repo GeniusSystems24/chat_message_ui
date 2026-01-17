@@ -686,6 +686,7 @@ class _ChatScreenState extends State<ChatScreen> {
             selectedMessages: _selectedMessages,
             onMessageLongPress: _handleMessageLongPress,
             onReplyTap: _handleReplyTap,
+            onSwipeToReply: widget.onReply,
             onReactionTap: widget.onReactionTap,
             onAttachmentTap: widget.onAttachmentTap,
             onPollVote: widget.onPollVote,

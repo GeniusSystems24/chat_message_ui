@@ -65,7 +65,12 @@ class _FullChatExampleState extends State<FullChatExample> {
       currentUserId: ExampleSampleData.currentUserId,
       seedMessages: ExampleSampleData.buildMessages(),
     );
-    _controller.loadInitial();
+    _loadInitialMessages();
+  }
+
+  Future<void> _loadInitialMessages() async {
+    await _controller.loadInitial();
+    if (mounted) setState(() {}); // Rebuild to show pinned messages
   }
 
   @override

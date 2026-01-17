@@ -39,6 +39,9 @@ class ChatMessageList extends StatelessWidget {
   /// Callback when the reply bubble is tapped.
   final ValueChanged<IChatMessageData>? onReplyTap;
 
+  /// Callback when message is swiped for reply.
+  final ValueChanged<IChatMessageData>? onSwipeToReply;
+
   /// Callback when a reaction is tapped.
   final Function(IChatMessageData, String)? onReactionTap;
 
@@ -105,6 +108,7 @@ class ChatMessageList extends StatelessWidget {
     this.showAvatar = true,
     this.onMessageLongPress,
     this.onReplyTap,
+    this.onSwipeToReply,
     this.onReactionTap,
     this.onAttachmentTap,
     this.onPollVote,
@@ -217,6 +221,9 @@ class ChatMessageList extends StatelessWidget {
                 ? (optionId) => onPollVote!(message, optionId)
                 : null,
             onReplyTap: onReplyTap != null ? () => onReplyTap!(message) : null,
+            onSwipeToReply: onSwipeToReply != null
+                ? () => onSwipeToReply!(message)
+                : null,
           ),
     );
 
