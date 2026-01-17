@@ -162,11 +162,7 @@ class MessageBubble extends StatelessWidget {
           color: Colors.grey.withValues(alpha: 0.2),
           shape: BoxShape.circle,
         ),
-        child: Icon(
-          Icons.reply,
-          color: Colors.grey[600],
-          size: 24,
-        ),
+        child: Icon(Icons.reply, color: Colors.grey[600], size: 24),
       ),
     );
   }
@@ -237,8 +233,9 @@ class MessageBubble extends StatelessWidget {
           'This message was deleted',
           style: chatTheme.typography.bodyMedium.copyWith(
             fontStyle: FontStyle.italic,
-            color:
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
       );
@@ -287,10 +284,7 @@ class MessageBubble extends StatelessWidget {
 
   /// Builds the user avatar widget.
   Widget _buildUserAvatar(BuildContext context, ChatThemeData chatTheme) {
-    return UserAvatar(
-      senderData: message.senderData,
-      avatarSize: avatarSize,
-    );
+    return UserAvatar(senderData: message.senderData, avatarSize: avatarSize);
   }
 
   /// Builds the reactions bar if reactions exist.
@@ -322,9 +316,9 @@ class MessageBubble extends StatelessWidget {
   Color _getBubbleBackgroundColor(ThemeData theme, ChatThemeData chatTheme) {
     return isMyMessage
         ? (chatTheme.messageBubble.senderBubbleColor ??
-            chatTheme.colors.primary)
+              chatTheme.colors.primary)
         : (chatTheme.messageBubble.receiverBubbleColor ??
-            chatTheme.colors.surfaceContainer);
+              chatTheme.colors.surfaceContainer);
   }
 
   /// Gets the bubble shape with rounded corners.

@@ -7,6 +7,9 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'firebase_options.dart';
 
+final goRouter = GoRouter(
+  routes: $appRoutes,
+);
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -38,9 +41,7 @@ class ChatMessageUIExampleApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Chat Message UI Example',
       debugShowCheckedModeBanner: false,
-      routerConfig: GoRouter(
-        routes: $appRoutes,
-      ),
+      routerConfig: goRouter,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,

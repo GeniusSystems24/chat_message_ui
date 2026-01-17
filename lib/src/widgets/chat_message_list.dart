@@ -58,12 +58,16 @@ class ChatMessageList extends StatelessWidget {
   final VoidCallback? onSelectionChanged;
 
   /// Custom message bubble builder.
-  final Widget Function(BuildContext context, IChatMessageData message,
-      MessageGroupStatus? groupStatus)? messageBubbleBuilder;
+  final Widget Function(
+    BuildContext context,
+    IChatMessageData message,
+    MessageGroupStatus? groupStatus,
+  )?
+  messageBubbleBuilder;
 
   /// Custom date separator builder.
   final Widget Function(BuildContext context, DateTime date)?
-      dateSeparatorBuilder;
+  dateSeparatorBuilder;
 
   /// Custom initial loading builder.
   final Widget Function(BuildContext context)? initialLoadingBuilder;
@@ -181,25 +185,30 @@ class ChatMessageList extends StatelessWidget {
     );
 
     final messageDate = message.createdAt;
-    final nextMessage =
-        index < messages.length - 1 ? messages[index + 1] : null;
+    final nextMessage = index < messages.length - 1
+        ? messages[index + 1]
+        : null;
     final nextDate = nextMessage?.createdAt;
 
-    final showDateSeparator = messageDate != null &&
+    final showDateSeparator =
+        messageDate != null &&
         (nextDate == null || !_isSameDay(messageDate, nextDate));
 
     // Determine if this message is a search match and if it's the current one
-    final isSearchMatch = searchQuery != null &&
+    final isSearchMatch =
+        searchQuery != null &&
         matchedMessageIds != null &&
         matchedMessageIds!.contains(message.id);
-    final isCurrentSearchMatch = isSearchMatch &&
+    final isCurrentSearchMatch =
+        isSearchMatch &&
         currentMatchIndex != null &&
         currentMatchIndex! < matchedMessageIds!.length &&
         matchedMessageIds![currentMatchIndex!] == message.id;
 
     final bubble = Padding(
       padding: EdgeInsets.only(top: groupStatus?.isFirst == true ? 10 : 4),
-      child: messageBubbleBuilder?.call(context, message, groupStatus) ??
+      child:
+          messageBubbleBuilder?.call(context, message, groupStatus) ??
           MessageBubble(
             message: message,
             showAvatar: showAvatar,
@@ -328,6 +337,7 @@ class ChatMessageList extends StatelessWidget {
         color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(100),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: availableReactions
@@ -348,6 +358,7 @@ class ChatMessageList extends StatelessWidget {
 
     return InkWell(
       onTap: () => onReactionTap?.call(message, emoji),
+      borderRadius: BorderRadius.circular(100),
       child: Container(
         margin: const EdgeInsets.all(4),
         padding: const EdgeInsets.all(4),
