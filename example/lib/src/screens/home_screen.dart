@@ -302,14 +302,14 @@ class _BubblesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bubbles = [
-      _BubbleItem('Text', Icons.text_fields, Colors.blue, '/bubbles/text'),
-      _BubbleItem('Image', Icons.image_outlined, Colors.green, '/bubbles/image'),
-      _BubbleItem('Video', Icons.videocam_outlined, Colors.red, '/bubbles/video'),
-      _BubbleItem('Audio', Icons.audiotrack_outlined, Colors.orange, '/bubbles/audio'),
-      _BubbleItem('Document', Icons.description_outlined, Colors.indigo, '/bubbles/document'),
-      _BubbleItem('Contact', Icons.contact_phone_outlined, Colors.teal, '/bubbles/contact'),
-      _BubbleItem('Location', Icons.location_on_outlined, Colors.pink, '/bubbles/location'),
-      _BubbleItem('Poll', Icons.poll_outlined, Colors.purple, '/bubbles/poll'),
+      _BubbleItem('Text', Icons.text_fields, Colors.blue, TextBubbleRoute().location),
+      _BubbleItem('Image', Icons.image_outlined, Colors.green, ImageBubbleRoute().location),
+      _BubbleItem('Video', Icons.videocam_outlined, Colors.red, VideoBubbleRoute().location),
+      _BubbleItem('Audio', Icons.audiotrack_outlined, Colors.orange, AudioBubbleRoute().location),
+      _BubbleItem('Document', Icons.description_outlined, Colors.indigo, DocumentBubbleRoute().location),
+      _BubbleItem('Contact', Icons.contact_phone_outlined, Colors.teal, ContactBubbleRoute().location),
+      _BubbleItem('Location', Icons.location_on_outlined, Colors.pink, LocationBubbleRoute().location),
+      _BubbleItem('Poll', Icons.poll_outlined, Colors.purple, PollBubbleRoute().location),
     ];
 
     return GridView.builder(
@@ -400,12 +400,12 @@ class _FeaturesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final features = [
-      _FeatureItem('Chat Input', 'Text, attachments, voice', Icons.keyboard_outlined, Colors.blue, '/features/input'),
-      _FeatureItem('App Bar', 'Title, avatar, actions', Icons.web_asset_outlined, Colors.green, '/features/appbar'),
-      _FeatureItem('Replies', 'Reply preview & context', Icons.reply_outlined, Colors.orange, '/features/reply'),
-      _FeatureItem('Search', 'Find messages', Icons.search_outlined, Colors.purple, '/features/search'),
-      _FeatureItem('Custom Builders', 'Custom bubble rendering', Icons.build_outlined, Colors.teal, '/features/custom'),
-      _FeatureItem('Focused Overlay', 'WhatsApp-style context', Icons.center_focus_strong_outlined, Colors.deepOrange, '/features/focused-overlay'),
+      _FeatureItem('Chat Input', 'Text, attachments, voice', Icons.keyboard_outlined, Colors.blue, ChatInputFeatureRoute().location),
+      _FeatureItem('App Bar', 'Title, avatar, actions', Icons.web_asset_outlined, Colors.green, AppBarFeatureRoute().location),
+      _FeatureItem('Replies', 'Reply preview & context', Icons.reply_outlined, Colors.orange, ReplyFeatureRoute().location),
+      _FeatureItem('Search', 'Find messages', Icons.search_outlined, Colors.purple, SearchFeatureRoute().location),
+      _FeatureItem('Custom Builders', 'Custom bubble rendering', Icons.build_outlined, Colors.teal, CustomBuildersFeatureRoute().location),
+      _FeatureItem('Focused Overlay', 'WhatsApp-style context', Icons.center_focus_strong_outlined, Colors.deepOrange, FocusedOverlayFeatureRoute().location),
     ];
 
     return GridView.builder(
@@ -513,10 +513,10 @@ class _NewFeaturesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final features = [
-      _FeatureItem('Polls', 'Create & vote on polls', Icons.poll_outlined, Colors.deepPurple, '/features/poll'),
-      _FeatureItem('Edit Messages', 'Edit message preview', Icons.edit_outlined, Colors.amber, '/features/edit'),
-      _FeatureItem('File Upload', 'Upload progress indicator', Icons.cloud_upload_outlined, Colors.cyan, '/features/upload'),
-      _FeatureItem('Pinned & Search', 'Pinned bar & search matches', Icons.push_pin_outlined, Colors.lime, '/features/pinned-search'),
+      _FeatureItem('Polls', 'Create & vote on polls', Icons.poll_outlined, Colors.deepPurple, PollFeatureRoute().location),
+      _FeatureItem('Edit Messages', 'Edit message preview', Icons.edit_outlined, Colors.amber, EditMessageFeatureRoute().location),
+      _FeatureItem('File Upload', 'Upload progress indicator', Icons.cloud_upload_outlined, Colors.cyan, FileUploadFeatureRoute().location),
+      _FeatureItem('Pinned & Search', 'Pinned bar & search matches', Icons.push_pin_outlined, Colors.lime, PinnedSearchFeatureRoute().location),
     ];
 
     return GridView.builder(

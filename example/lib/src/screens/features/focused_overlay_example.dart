@@ -31,12 +31,14 @@ class _FocusedOverlayExampleState extends State<FocusedOverlayExample> {
     _messages.addAll([
       _createTextMessage(
         id: 'msg_1',
-        text: 'Hello! This is a sample message. Long press to see the focused overlay.',
+        text:
+            'Hello! This is a sample message. Long press to see the focused overlay.',
         isMe: false,
       ),
       _createTextMessage(
         id: 'msg_2',
-        text: 'The overlay shows reactions above and actions below the message.',
+        text:
+            'The overlay shows reactions above and actions below the message.',
         isMe: true,
       ),
       _createTextMessage(
@@ -50,7 +52,8 @@ class _FocusedOverlayExampleState extends State<FocusedOverlayExample> {
       ),
       _createTextMessage(
         id: 'msg_5',
-        text: 'Try long pressing any message to see the focused overlay in action!',
+        text:
+            'Try long pressing any message to see the focused overlay in action!',
         isMe: false,
       ),
     ]);
@@ -98,14 +101,16 @@ class _FocusedOverlayExampleState extends State<FocusedOverlayExample> {
     if (result.hasReaction) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Reacted with ${result.reaction} to message: ${message.id}'),
+          content:
+              Text('Reacted with ${result.reaction} to message: ${message.id}'),
           duration: const Duration(seconds: 2),
         ),
       );
     } else if (result.hasAction) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Action: ${result.action!.name} on message: ${message.id}'),
+          content:
+              Text('Action: ${result.action!.name} on message: ${message.id}'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -124,7 +129,8 @@ class _FocusedOverlayExampleState extends State<FocusedOverlayExample> {
           // Settings Panel
           Container(
             padding: const EdgeInsets.all(16),
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -142,7 +148,8 @@ class _FocusedOverlayExampleState extends State<FocusedOverlayExample> {
                         title: const Text('Show Labels'),
                         subtitle: const Text('Display action labels'),
                         value: _showLabels,
-                        onChanged: (value) => setState(() => _showLabels = value),
+                        onChanged: (value) =>
+                            setState(() => _showLabels = value),
                         contentPadding: EdgeInsets.zero,
                         dense: true,
                       ),
@@ -156,7 +163,8 @@ class _FocusedOverlayExampleState extends State<FocusedOverlayExample> {
                         title: const Text('Show Reactions'),
                         subtitle: const Text('Display reaction bar'),
                         value: _showReactions,
-                        onChanged: (value) => setState(() => _showReactions = value),
+                        onChanged: (value) =>
+                            setState(() => _showReactions = value),
                         contentPadding: EdgeInsets.zero,
                         dense: true,
                       ),
@@ -197,7 +205,8 @@ class _FocusedOverlayExampleState extends State<FocusedOverlayExample> {
             child: Container(
               color: theme.colorScheme.surface,
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
                   final message = _messages[index];
@@ -223,49 +232,61 @@ class _FocusedOverlayExampleState extends State<FocusedOverlayExample> {
               ),
             ),
           ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: _usageBuild,
+          );
+        },
+        child: const Icon(Icons.code),
+      ),
+    );
+  }
 
-          // Code Example Panel
+  Widget _usageBuild(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Usage',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.all(16),
-            color: theme.colorScheme.surfaceContainerHighest,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Usage',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: SelectableText(
-                    '''MessageContextMenu.showWithFocusedOverlay(
-  context,
-  messageBuilder: (ctx) => MessageBubble(...),
-  reactions: ['❤️', '😂', '😮', '👍'],
-  actions: [
-    MessageActionConfig.reply,
-    MessageActionConfig.copy,
-  ],
-  isMyMessage: true,
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
+              ),
+            ),
+            child: SelectableText(
+              '''MessageContextMenu.showWithFocusedOverlay(
+context,
+messageBuilder: (ctx) => MessageBubble(...),
+reactions: ['❤️', '😂', '😮', '👍'],
+actions: [
+  MessageActionConfig.reply,
+  MessageActionConfig.copy,
+],
+isMyMessage: true,
 );''',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontFamily: 'monospace',
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-              ],
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ),
         ],
@@ -307,7 +328,8 @@ class _FocusedOverlayExampleState extends State<FocusedOverlayExample> {
       createdAt: DateTime.now(),
       status: ChatMessageStatus.read,
       mediaData: ChatMediaData(
-        url: 'https://firebasestorage.googleapis.com/v0/b/skycachefiles.appspot.com/o/operation.png?alt=media&token=6e1d3457-f2f3-43db-bcf3-70332e19d298',
+        url:
+            'https://firebasestorage.googleapis.com/v0/b/skycachefiles.appspot.com/o/operation.png?alt=media&token=6e1d3457-f2f3-43db-bcf3-70332e19d298',
         mediaType: ChatMessageType.image,
         aspectRatio: 1.5,
       ),

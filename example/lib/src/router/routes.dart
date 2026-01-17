@@ -14,45 +14,45 @@ import '../screens/theming_example.dart';
 
 part 'routes.g.dart';
 
-/// Route paths constants for type-safe navigation
-abstract class RoutePaths {
-  static const home = '/';
-  static const basic = '/basic';
-  static const full = '/full';
-  static const firebase = '/firebase/:chatId';
-  static const messageTypes = '/message-types';
-  static const inputFeatures = '/input';
-  static const reactions = '/reactions';
-  static const theming = '/theming';
-
-  // Features
-  static const featuresAppBar = '/features/app-bar';
-  static const featuresChatInput = '/features/chat-input';
-  static const featuresCustomBuilders = '/features/custom-builders';
-  static const featuresReply = '/features/reply';
-  static const featuresSearch = '/features/search';
-  static const featuresPoll = '/features/poll';
-  static const featuresEditMessage = '/features/edit-message';
-  static const featuresFileUpload = '/features/file-upload';
-  static const featuresPinnedSearch = '/features/pinned-search';
-  static const featuresFocusedOverlay = '/features/focused-overlay';
-
-  // Bubbles
-  static const bubblesText = '/bubbles/text';
-  static const bubblesImage = '/bubbles/image';
-  static const bubblesVideo = '/bubbles/video';
-  static const bubblesAudio = '/bubbles/audio';
-  static const bubblesDocument = '/bubbles/document';
-  static const bubblesContact = '/bubbles/contact';
-  static const bubblesLocation = '/bubbles/location';
-  static const bubblesPoll = '/bubbles/poll';
-}
-
 // ============================================================================
 // Home Route
 // ============================================================================
 
-@TypedGoRoute<HomeRoute>(path: '/')
+@TypedGoRoute<HomeRoute>(
+  path: "/",
+  routes: [
+    // Main examples
+    TypedGoRoute<BasicChatRoute>(path: 'basic'),
+    TypedGoRoute<FullChatRoute>(path: 'full'),
+    TypedGoRoute<FirebaseChatRoute>(path: 'firebase/:chatId'),
+    TypedGoRoute<MessageTypesRoute>(path: 'message-types'),
+    TypedGoRoute<InputFeaturesRoute>(path: 'input'),
+    TypedGoRoute<ReactionsRoute>(path: 'reactions'),
+    TypedGoRoute<ThemingRoute>(path: 'theming'),
+
+    // Feature demos
+    TypedGoRoute<AppBarFeatureRoute>(path: 'features/app-bar'),
+    TypedGoRoute<ChatInputFeatureRoute>(path: 'features/chat-input'),
+    TypedGoRoute<CustomBuildersFeatureRoute>(path: 'features/custom-builders'),
+    TypedGoRoute<ReplyFeatureRoute>(path: 'features/reply'),
+    TypedGoRoute<SearchFeatureRoute>(path: 'features/search'),
+    TypedGoRoute<PollFeatureRoute>(path: 'features/poll'),
+    TypedGoRoute<EditMessageFeatureRoute>(path: 'features/edit-message'),
+    TypedGoRoute<FileUploadFeatureRoute>(path: 'features/file-upload'),
+    TypedGoRoute<PinnedSearchFeatureRoute>(path: 'features/pinned-search'),
+    TypedGoRoute<FocusedOverlayFeatureRoute>(path: 'features/focused-overlay'),
+
+    // Bubble examples
+    TypedGoRoute<TextBubbleRoute>(path: 'bubbles/text'),
+    TypedGoRoute<ImageBubbleRoute>(path: 'bubbles/image'),
+    TypedGoRoute<VideoBubbleRoute>(path: 'bubbles/video'),
+    TypedGoRoute<AudioBubbleRoute>(path: 'bubbles/audio'),
+    TypedGoRoute<DocumentBubbleRoute>(path: 'bubbles/document'),
+    TypedGoRoute<ContactBubbleRoute>(path: 'bubbles/contact'),
+    TypedGoRoute<LocationBubbleRoute>(path: 'bubbles/location'),
+    TypedGoRoute<PollBubbleRoute>(path: 'bubbles/poll'),
+  ],
+)
 class HomeRoute extends GoRouteData with $HomeRoute {
   const HomeRoute();
 
@@ -66,7 +66,6 @@ class HomeRoute extends GoRouteData with $HomeRoute {
 // Main Example Routes
 // ============================================================================
 
-@TypedGoRoute<BasicChatRoute>(path: '/basic')
 class BasicChatRoute extends GoRouteData with $BasicChatRoute {
   const BasicChatRoute();
 
@@ -76,7 +75,6 @@ class BasicChatRoute extends GoRouteData with $BasicChatRoute {
   }
 }
 
-@TypedGoRoute<FullChatRoute>(path: '/full')
 class FullChatRoute extends GoRouteData with $FullChatRoute {
   const FullChatRoute();
 
@@ -86,7 +84,6 @@ class FullChatRoute extends GoRouteData with $FullChatRoute {
   }
 }
 
-@TypedGoRoute<FirebaseChatRoute>(path: '/firebase/:chatId')
 class FirebaseChatRoute extends GoRouteData with $FirebaseChatRoute {
   const FirebaseChatRoute({required this.chatId});
 
@@ -98,7 +95,6 @@ class FirebaseChatRoute extends GoRouteData with $FirebaseChatRoute {
   }
 }
 
-@TypedGoRoute<MessageTypesRoute>(path: '/message-types')
 class MessageTypesRoute extends GoRouteData with $MessageTypesRoute {
   const MessageTypesRoute();
 
@@ -108,7 +104,6 @@ class MessageTypesRoute extends GoRouteData with $MessageTypesRoute {
   }
 }
 
-@TypedGoRoute<InputFeaturesRoute>(path: '/input')
 class InputFeaturesRoute extends GoRouteData with $InputFeaturesRoute {
   const InputFeaturesRoute();
 
@@ -118,7 +113,6 @@ class InputFeaturesRoute extends GoRouteData with $InputFeaturesRoute {
   }
 }
 
-@TypedGoRoute<ReactionsRoute>(path: '/reactions')
 class ReactionsRoute extends GoRouteData with $ReactionsRoute {
   const ReactionsRoute();
 
@@ -128,7 +122,6 @@ class ReactionsRoute extends GoRouteData with $ReactionsRoute {
   }
 }
 
-@TypedGoRoute<ThemingRoute>(path: '/theming')
 class ThemingRoute extends GoRouteData with $ThemingRoute {
   const ThemingRoute();
 
@@ -142,7 +135,6 @@ class ThemingRoute extends GoRouteData with $ThemingRoute {
 // Feature Routes
 // ============================================================================
 
-@TypedGoRoute<AppBarFeatureRoute>(path: '/features/app-bar')
 class AppBarFeatureRoute extends GoRouteData with $AppBarFeatureRoute {
   const AppBarFeatureRoute();
 
@@ -152,7 +144,6 @@ class AppBarFeatureRoute extends GoRouteData with $AppBarFeatureRoute {
   }
 }
 
-@TypedGoRoute<ChatInputFeatureRoute>(path: '/features/chat-input')
 class ChatInputFeatureRoute extends GoRouteData with $ChatInputFeatureRoute {
   const ChatInputFeatureRoute();
 
@@ -162,8 +153,8 @@ class ChatInputFeatureRoute extends GoRouteData with $ChatInputFeatureRoute {
   }
 }
 
-@TypedGoRoute<CustomBuildersFeatureRoute>(path: '/features/custom-builders')
-class CustomBuildersFeatureRoute extends GoRouteData with $CustomBuildersFeatureRoute {
+class CustomBuildersFeatureRoute extends GoRouteData
+    with $CustomBuildersFeatureRoute {
   const CustomBuildersFeatureRoute();
 
   @override
@@ -172,7 +163,6 @@ class CustomBuildersFeatureRoute extends GoRouteData with $CustomBuildersFeature
   }
 }
 
-@TypedGoRoute<ReplyFeatureRoute>(path: '/features/reply')
 class ReplyFeatureRoute extends GoRouteData with $ReplyFeatureRoute {
   const ReplyFeatureRoute();
 
@@ -182,7 +172,6 @@ class ReplyFeatureRoute extends GoRouteData with $ReplyFeatureRoute {
   }
 }
 
-@TypedGoRoute<SearchFeatureRoute>(path: '/features/search')
 class SearchFeatureRoute extends GoRouteData with $SearchFeatureRoute {
   const SearchFeatureRoute();
 
@@ -192,7 +181,6 @@ class SearchFeatureRoute extends GoRouteData with $SearchFeatureRoute {
   }
 }
 
-@TypedGoRoute<PollFeatureRoute>(path: '/features/poll')
 class PollFeatureRoute extends GoRouteData with $PollFeatureRoute {
   const PollFeatureRoute();
 
@@ -202,8 +190,8 @@ class PollFeatureRoute extends GoRouteData with $PollFeatureRoute {
   }
 }
 
-@TypedGoRoute<EditMessageFeatureRoute>(path: '/features/edit-message')
-class EditMessageFeatureRoute extends GoRouteData with $EditMessageFeatureRoute {
+class EditMessageFeatureRoute extends GoRouteData
+    with $EditMessageFeatureRoute {
   const EditMessageFeatureRoute();
 
   @override
@@ -212,7 +200,6 @@ class EditMessageFeatureRoute extends GoRouteData with $EditMessageFeatureRoute 
   }
 }
 
-@TypedGoRoute<FileUploadFeatureRoute>(path: '/features/file-upload')
 class FileUploadFeatureRoute extends GoRouteData with $FileUploadFeatureRoute {
   const FileUploadFeatureRoute();
 
@@ -222,8 +209,8 @@ class FileUploadFeatureRoute extends GoRouteData with $FileUploadFeatureRoute {
   }
 }
 
-@TypedGoRoute<PinnedSearchFeatureRoute>(path: '/features/pinned-search')
-class PinnedSearchFeatureRoute extends GoRouteData with $PinnedSearchFeatureRoute {
+class PinnedSearchFeatureRoute extends GoRouteData
+    with $PinnedSearchFeatureRoute {
   const PinnedSearchFeatureRoute();
 
   @override
@@ -232,8 +219,8 @@ class PinnedSearchFeatureRoute extends GoRouteData with $PinnedSearchFeatureRout
   }
 }
 
-@TypedGoRoute<FocusedOverlayFeatureRoute>(path: '/features/focused-overlay')
-class FocusedOverlayFeatureRoute extends GoRouteData with $FocusedOverlayFeatureRoute {
+class FocusedOverlayFeatureRoute extends GoRouteData
+    with $FocusedOverlayFeatureRoute {
   const FocusedOverlayFeatureRoute();
 
   @override
@@ -246,7 +233,6 @@ class FocusedOverlayFeatureRoute extends GoRouteData with $FocusedOverlayFeature
 // Bubble Routes
 // ============================================================================
 
-@TypedGoRoute<TextBubbleRoute>(path: '/bubbles/text')
 class TextBubbleRoute extends GoRouteData with $TextBubbleRoute {
   const TextBubbleRoute();
 
@@ -256,7 +242,6 @@ class TextBubbleRoute extends GoRouteData with $TextBubbleRoute {
   }
 }
 
-@TypedGoRoute<ImageBubbleRoute>(path: '/bubbles/image')
 class ImageBubbleRoute extends GoRouteData with $ImageBubbleRoute {
   const ImageBubbleRoute();
 
@@ -266,7 +251,6 @@ class ImageBubbleRoute extends GoRouteData with $ImageBubbleRoute {
   }
 }
 
-@TypedGoRoute<VideoBubbleRoute>(path: '/bubbles/video')
 class VideoBubbleRoute extends GoRouteData with $VideoBubbleRoute {
   const VideoBubbleRoute();
 
@@ -276,7 +260,6 @@ class VideoBubbleRoute extends GoRouteData with $VideoBubbleRoute {
   }
 }
 
-@TypedGoRoute<AudioBubbleRoute>(path: '/bubbles/audio')
 class AudioBubbleRoute extends GoRouteData with $AudioBubbleRoute {
   const AudioBubbleRoute();
 
@@ -286,7 +269,6 @@ class AudioBubbleRoute extends GoRouteData with $AudioBubbleRoute {
   }
 }
 
-@TypedGoRoute<DocumentBubbleRoute>(path: '/bubbles/document')
 class DocumentBubbleRoute extends GoRouteData with $DocumentBubbleRoute {
   const DocumentBubbleRoute();
 
@@ -296,7 +278,6 @@ class DocumentBubbleRoute extends GoRouteData with $DocumentBubbleRoute {
   }
 }
 
-@TypedGoRoute<ContactBubbleRoute>(path: '/bubbles/contact')
 class ContactBubbleRoute extends GoRouteData with $ContactBubbleRoute {
   const ContactBubbleRoute();
 
@@ -306,7 +287,6 @@ class ContactBubbleRoute extends GoRouteData with $ContactBubbleRoute {
   }
 }
 
-@TypedGoRoute<LocationBubbleRoute>(path: '/bubbles/location')
 class LocationBubbleRoute extends GoRouteData with $LocationBubbleRoute {
   const LocationBubbleRoute();
 
@@ -316,7 +296,6 @@ class LocationBubbleRoute extends GoRouteData with $LocationBubbleRoute {
   }
 }
 
-@TypedGoRoute<PollBubbleRoute>(path: '/bubbles/poll')
 class PollBubbleRoute extends GoRouteData with $PollBubbleRoute {
   const PollBubbleRoute();
 
