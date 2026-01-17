@@ -20,4 +20,5 @@
 library;
 
 export 'chat_data_models.dart';
+export 'chat_data.dart';
 export 'chat_message_data.dart';

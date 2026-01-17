@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../adapters/chat_data.dart';
+
 /// Data model for chat info displayed in app bar
 class ChatAppBarData {
   /// Chat ID
@@ -24,6 +26,17 @@ class ChatAppBarData {
     this.imageUrl,
     this.memberCount,
   });
+
+  /// Create ChatAppBarData from IChatData interface
+  factory ChatAppBarData.fromChatData(IChatData chat) {
+    return ChatAppBarData(
+      id: chat.id,
+      title: chat.title,
+      subtitle: chat.displaySubtitle ?? chat.subtitle,
+      imageUrl: chat.imageUrl,
+      memberCount: chat.memberCount,
+    );
+  }
 }
 
 /// A customizable app bar for chat screens.
