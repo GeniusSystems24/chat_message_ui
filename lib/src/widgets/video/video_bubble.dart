@@ -108,6 +108,12 @@ class _VideoBubbleState extends State<VideoBubble>
   bool _autoStartTriggered = false;
   StreamSubscription<VideoPlayerState>? _stateSubscription;
 
+  // Download state
+  bool _isDownloading = false;
+  double _downloadProgress = 0.0;
+  String? _downloadError;
+  StreamSubscription<TaskItem>? _downloadSubscription;
+
   String get _videoId => 'video-${widget.message.id}';
 
   String? get url {
@@ -196,11 +202,69 @@ class _VideoBubbleState extends State<VideoBubble>
   void dispose() {
     _loadingController.dispose();
     _stateSubscription?.cancel();
+    _downloadSubscription?.cancel();
     // Only dispose video controller if showMiniPlayer was enabled
     if (widget.showMiniPlayer) {
       VideoPlayerFactory.dispose(_videoId);
     }
     super.dispose();
+  }
+
+  /// Starts downloading the video using transfer_kit
+  Future<void> _startDownload() async {
+    final downloadUrl = url;
+    if (downloadUrl == null) return;
+
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+      _downloadError = null;
+    });
+
+    final controller = MediaTransferController.instance;
+    final downloadTask = controller.buildDownloadTask(
+      url: downloadUrl,
+      fileName: widget.message.mediaData?.resolvedFileName,
+    );
+
+    // Check if already downloaded
+    final (filePath, streamController) =
+        await controller.enqueueOrResume(downloadTask, autoStart: true);
+
+    if (filePath != null) {
+      // Already downloaded
+      if (mounted) {
+        setState(() {
+          _downloadedPath = filePath;
+          _isDownloading = false;
+        });
+      }
+      return;
+    }
+
+    // Subscribe to download progress
+    _downloadSubscription?.cancel();
+    _downloadSubscription = (streamController ??
+            FileTaskController.instance.createFileController(downloadTask.url))
+        .stream
+        .listen((taskItem) {
+      if (!mounted) return;
+
+      setState(() {
+        if (taskItem.status == TaskStatus.completed) {
+          _downloadedPath = taskItem.filePath;
+          _isDownloading = false;
+          _downloadProgress = 1.0;
+        } else if (taskItem.status == TaskStatus.failed) {
+          _isDownloading = false;
+          _downloadError = taskItem.error ?? 'Download failed';
+        } else if (taskItem.status == TaskStatus.running) {
+          _downloadProgress = taskItem.progress;
+        } else if (taskItem.status == TaskStatus.paused) {
+          // Keep the current progress
+        }
+      });
+    });
   }
 
   Future<void> _initializeAndPlay() async {
@@ -231,6 +295,12 @@ class _VideoBubbleState extends State<VideoBubble>
     final filePath = videoSource;
     final networkUrl = url;
 
+    // If no local file and streaming not allowed, need to download first
+    if (filePath == null && !canStream) {
+      _startDownload();
+      return;
+    }
+
     // Open full-screen player directly - it will handle initialization
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -249,6 +319,28 @@ class _VideoBubbleState extends State<VideoBubble>
     );
   }
 
+  void _handleTap() {
+    // If downloading, do nothing (could add pause/resume later)
+    if (_isDownloading) return;
+
+    // If download error, retry download
+    if (_downloadError != null) {
+      _startDownload();
+      return;
+    }
+
+    // If video available (local or streaming), show full screen
+    if (videoSource != null || canStream) {
+      _showFullScreenVideo();
+      return;
+    }
+
+    // Need to download first
+    if (url != null) {
+      _startDownload();
+    }
+  }
+
   void _handleTapDown(TapDownDetails details) {
     setState(() => _isPressed = true);
   }
@@ -263,17 +355,11 @@ class _VideoBubbleState extends State<VideoBubble>
 
   @override
   Widget build(BuildContext context) {
-    final isDownloadOnly = videoSource == null && url != null && !canStream;
-    final canPlay = videoSource != null || canStream;
-
     return GestureDetector(
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
       onTapCancel: _handleTapCancel,
-      onTap: widget.onTap ??
-          (canPlay
-              ? _showFullScreenVideo
-              : null),
+      onTap: widget.onTap ?? _handleTap,
       onLongPress: widget.onLongPress,
       child: AnimatedScale(
         scale: _isPressed ? 0.97 : 1.0,
@@ -283,9 +369,7 @@ class _VideoBubbleState extends State<VideoBubble>
               BorderRadius.circular(VideoBubbleConstants.borderRadius),
           child: AspectRatio(
             aspectRatio: aspectRatio,
-            child: isDownloadOnly
-                ? _buildDownloadContent(context, url!)
-                : _buildVideoContent(context),
+            child: _buildVideoContent(context),
           ),
         ),
       ),
@@ -293,10 +377,12 @@ class _VideoBubbleState extends State<VideoBubble>
   }
 
   Widget _buildVideoContent(BuildContext context) {
-    if (videoSource == null && !canStream) {
+    // Show download error
+    if (_downloadError != null) {
       return _VideoErrorWidget(
-        error: 'Video not available',
+        error: _downloadError!,
         chatTheme: widget.chatTheme,
+        onRetry: _startDownload,
       );
     }
 
@@ -312,7 +398,11 @@ class _VideoBubbleState extends State<VideoBubble>
       );
     }
 
-    // Show thumbnail with play button (default behavior)
+    // Determine which button to show
+    final bool needsDownload = videoSource == null && url != null && !canStream;
+    final bool canPlay = videoSource != null || canStream;
+
+    // Show thumbnail with appropriate button
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -331,14 +421,9 @@ class _VideoBubbleState extends State<VideoBubble>
             ),
           ),
         ),
-        // Play button (static, no loading state)
+        // Center button (download progress, download, or play)
         Center(
-          child: _PlayButton(
-            onTap: _showFullScreenVideo,
-            size: VideoBubbleConstants.playButtonSize,
-            iconSize: VideoBubbleConstants.playIconSize,
-            isPlaying: false,
-          ),
+          child: _buildCenterButton(needsDownload, canPlay),
         ),
         // Info overlay
         Positioned(
@@ -362,6 +447,34 @@ class _VideoBubbleState extends State<VideoBubble>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCenterButton(bool needsDownload, bool canPlay) {
+    // Show download progress
+    if (_isDownloading) {
+      return _DownloadProgressButton(
+        progress: _downloadProgress,
+        size: VideoBubbleConstants.playButtonSize,
+      );
+    }
+
+    // Show download button if needs download
+    if (needsDownload) {
+      return _DownloadButton(
+        onTap: _startDownload,
+        size: VideoBubbleConstants.playButtonSize,
+        iconSize: VideoBubbleConstants.playIconSize,
+        fileSize: fileSize,
+      );
+    }
+
+    // Show play button
+    return _PlayButton(
+      onTap: _showFullScreenVideo,
+      size: VideoBubbleConstants.playButtonSize,
+      iconSize: VideoBubbleConstants.playIconSize,
+      isPlaying: false,
     );
   }
 
@@ -415,80 +528,6 @@ class _VideoBubbleState extends State<VideoBubble>
       );
     }
     return null;
-  }
-
-  Widget _buildDownloadContent(BuildContext context, String downloadUrl) {
-    final controller = MediaTransferController.instance;
-    final downloadTask = controller.buildDownloadTask(
-      url: downloadUrl,
-      fileName: widget.message.mediaData?.resolvedFileName,
-    );
-
-    return FutureBuilder(
-      future: controller.enqueueOrResume(downloadTask, autoStart: false),
-      builder: (context, asyncSnapshot) {
-        final (
-          String? filePath,
-          StreamController<TaskItem>? streamController
-        ) = asyncSnapshot.data ?? (null, null);
-
-        if (filePath != null) {
-          _setDownloadedPath(filePath);
-          return _buildVideoContent(context);
-        }
-
-        if (_shouldAutoStart() && !_autoStartTriggered) {
-          _autoStartTriggered = true;
-          controller.startDownload(downloadTask);
-        }
-
-        return StreamBuilder(
-          initialData: FileTaskController.instance.fileUpdates[downloadTask.url],
-          stream: (streamController ??
-                  FileTaskController.instance.createFileController(
-                    downloadTask.url,
-                  ))
-              .stream,
-          builder: (context, snapshot) {
-            final taskItem = snapshot.data;
-            return MediaDownloadCard(
-              item: taskItem,
-              isVideo: true,
-              onStart: () => controller.startDownload(downloadTask),
-              onPause: controller.pauseDownload,
-              onResume: controller.resumeDownload,
-              onCancel: controller.cancelDownload,
-              onRetry: controller.retryDownload,
-              completedBuilder: (context, item) {
-                _setDownloadedPath(item.filePath);
-                return _buildVideoContent(context);
-              },
-              thumbnailWidget: _buildThumbnailContent(),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _setDownloadedPath(String filePath) {
-    if (_downloadedPath == filePath) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() {
-        _downloadedPath = filePath;
-      });
-    });
-  }
-
-  bool _shouldAutoStart() {
-    switch (widget.autoDownloadPolicy) {
-      case AutoDownloadPolicy.always:
-        return true;
-      case AutoDownloadPolicy.wifiOnly:
-      case AutoDownloadPolicy.never:
-        return false;
-    }
   }
 
   Widget _buildPlaceholder() {
@@ -1006,6 +1045,110 @@ class _PlayButton extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Download button widget - shown when video needs to be downloaded.
+class _DownloadButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final double size;
+  final double iconSize;
+  final int fileSize;
+
+  const _DownloadButton({
+    required this.onTap,
+    this.size = 64,
+    this.iconSize = 32,
+    this.fileSize = 0,
+  });
+
+  String _formatFileSize(int bytes) {
+    if (bytes <= 0) return '';
+    const suffixes = ['B', 'KB', 'MB', 'GB'];
+    var i = 0;
+    double size = bytes.toDouble();
+    while (size >= 1024 && i < suffixes.length - 1) {
+      size /= 1024;
+      i++;
+    }
+    return '${size.toStringAsFixed(i == 0 ? 0 : 1)} ${suffixes[i]}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.95),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Icon(
+            Icons.download_rounded,
+            color: Colors.black87,
+            size: iconSize,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Download progress button widget - shown during download.
+class _DownloadProgressButton extends StatelessWidget {
+  final double progress;
+  final double size;
+
+  const _DownloadProgressButton({
+    required this.progress,
+    this.size = 64,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        shape: BoxShape.circle,
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Progress indicator
+          SizedBox(
+            width: size - 12,
+            height: size - 12,
+            child: CircularProgressIndicator(
+              value: progress > 0 ? progress : null,
+              strokeWidth: 3,
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ),
+          // Percentage text
+          Text(
+            '${(progress * 100).toInt()}%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
