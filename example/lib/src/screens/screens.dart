@@ -4,6 +4,7 @@ library;
 // Main screens
 export 'home_screen.dart';
 export 'basic_chat_example.dart';
+export 'chat_settings_example.dart';
 export 'full_chat_example.dart';
 export 'input_features_example.dart';
 export 'message_types_example.dart';
