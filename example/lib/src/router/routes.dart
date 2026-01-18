@@ -10,6 +10,7 @@ import '../screens/home_screen.dart';
 import '../screens/input_features_example.dart';
 import '../screens/message_types_example.dart';
 import '../screens/reactions_example.dart';
+import '../screens/status_indicators_example.dart';
 import '../screens/theming_example.dart';
 
 part 'routes.g.dart';
@@ -41,6 +42,7 @@ part 'routes.g.dart';
     TypedGoRoute<FileUploadFeatureRoute>(path: 'features/file-upload'),
     TypedGoRoute<PinnedSearchFeatureRoute>(path: 'features/pinned-search'),
     TypedGoRoute<FocusedOverlayFeatureRoute>(path: 'features/focused-overlay'),
+    TypedGoRoute<StatusIndicatorsFeatureRoute>(path: 'features/status-indicators'),
 
     // Bubble examples
     TypedGoRoute<TextBubbleRoute>(path: 'bubbles/text'),
@@ -226,6 +228,16 @@ class FocusedOverlayFeatureRoute extends GoRouteData
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const FocusedOverlayExample();
+  }
+}
+
+class StatusIndicatorsFeatureRoute extends GoRouteData
+    with $StatusIndicatorsFeatureRoute {
+  const StatusIndicatorsFeatureRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const StatusIndicatorsExample();
   }
 }
 

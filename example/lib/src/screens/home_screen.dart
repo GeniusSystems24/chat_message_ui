@@ -179,7 +179,7 @@ class _HeroHeader extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'v1.4.0',
+                        'v1.4.2',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 12,
@@ -517,6 +517,7 @@ class _NewFeaturesGrid extends StatelessWidget {
       _FeatureItem('Edit Messages', 'Edit message preview', Icons.edit_outlined, Colors.amber, EditMessageFeatureRoute().location),
       _FeatureItem('File Upload', 'Upload progress indicator', Icons.cloud_upload_outlined, Colors.cyan, FileUploadFeatureRoute().location),
       _FeatureItem('Pinned & Search', 'Pinned bar & search matches', Icons.push_pin_outlined, Colors.lime, PinnedSearchFeatureRoute().location),
+      _FeatureItem('Status Indicators', 'Pin, star, save & reactions', Icons.stars_outlined, Colors.pink, StatusIndicatorsFeatureRoute().location),
     ];
 
     return GridView.builder(
@@ -793,7 +794,7 @@ class _Footer extends StatelessWidget {
             children: [
               _FooterChip(Icons.code, 'MIT License'),
               const SizedBox(width: 12),
-              _FooterChip(Icons.verified, 'v1.4.0'),
+              _FooterChip(Icons.verified, 'v1.4.2'),
             ],
           ),
         ],

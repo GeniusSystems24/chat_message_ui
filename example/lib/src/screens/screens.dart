@@ -8,6 +8,7 @@ export 'full_chat_example.dart';
 export 'input_features_example.dart';
 export 'message_types_example.dart';
 export 'reactions_example.dart';
+export 'status_indicators_example.dart';
 export 'theming_example.dart';
 export 'firebase_full_chat_example.dart';
 
