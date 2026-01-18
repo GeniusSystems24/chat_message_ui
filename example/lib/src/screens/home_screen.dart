@@ -548,6 +548,7 @@ class _CompleteExamplesGrid extends StatelessWidget {
       _ExampleItem('Theming', 'Custom themes', Icons.palette_outlined, Colors.purple, ThemingRoute().location),
       _ExampleItem('Input Features', 'Advanced input', Icons.keyboard_outlined, Colors.orange, InputFeaturesRoute().location),
       _ExampleItem('Reactions', 'Emoji reactions', Icons.add_reaction_outlined, Colors.pink, ReactionsRoute().location),
+      _ExampleItem('Settings', 'All configurations', Icons.settings_outlined, Colors.blueGrey, ChatSettingsRoute().location),
       _ExampleItem('Full Chat', 'Complete experience', Icons.forum_outlined, Colors.teal, FullChatRoute().location),
     ];
 

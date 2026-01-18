@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../screens/basic_chat_example.dart';
+import '../screens/chat_settings_example.dart';
 import '../screens/bubbles/bubbles.dart';
 import '../screens/features/features.dart';
 import '../screens/firebase_full_chat_example.dart';
@@ -30,6 +31,7 @@ part 'routes.g.dart';
     TypedGoRoute<InputFeaturesRoute>(path: 'input'),
     TypedGoRoute<ReactionsRoute>(path: 'reactions'),
     TypedGoRoute<ThemingRoute>(path: 'theming'),
+    TypedGoRoute<ChatSettingsRoute>(path: 'settings'),
 
     // Feature demos
     TypedGoRoute<AppBarFeatureRoute>(path: 'features/app-bar'),
@@ -130,6 +132,15 @@ class ThemingRoute extends GoRouteData with $ThemingRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const ThemingExample();
+  }
+}
+
+class ChatSettingsRoute extends GoRouteData with $ChatSettingsRoute {
+  const ChatSettingsRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return const ChatSettingsExample();
   }
 }
 
