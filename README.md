@@ -1,6 +1,6 @@
 # Chat Message UI
 
-[![Pub Version](https://img.shields.io/badge/pub-v1.4.2-blue)](https://pub.dev)
+[![Pub Version](https://img.shields.io/badge/pub-v1.4.3-blue)](https://pub.dev)
 [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?logo=flutter)](https://flutter.dev)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -1342,6 +1342,54 @@ GestureDetector(
   child: MessageBubble(message: message),
 )
 ```
+
+**WhatsApp-Style Focused Overlay:**
+
+```dart
+// Show focused overlay with centered message (WhatsApp/Telegram style)
+final result = await MessageContextMenu.showWithFocusedOverlay(
+  context,
+  messageBuilder: (ctx) => MessageBubble(
+    message: message,
+    currentUserId: currentUserId,
+  ),
+  actions: [
+    MessageActionConfig.reply,
+    MessageActionConfig.copy,
+    MessageActionConfig.forward,
+    MessageActionConfig.pin,
+    MessageActionConfig.star,
+    MessageActionConfig.delete,
+  ],
+  reactions: ['❤️', '😂', '😮', '😢', '🙏', '👍'],
+  showReactions: true,
+  showActionLabels: true, // false for horizontal icons only
+  isMyMessage: message.senderId == currentUserId,
+  barrierColor: Colors.black.withOpacity(0.6),
+);
+```
+
+**Available Actions:**
+
+| Action | Icon | Description |
+|--------|------|-------------|
+| `reply` | ↩️ | Reply to message |
+| `copy` | 📋 | Copy text content |
+| `forward` | ➡️ | Forward message |
+| `pin` / `unpin` | 📌 | Pin/Unpin message |
+| `star` / `unstar` | ⭐ | Star/Unstar message |
+| `edit` | ✏️ | Edit message |
+| `delete` | 🗑️ | Delete message |
+| `info` | ℹ️ | Message info |
+
+**Display Modes:**
+
+| Mode | `showActionLabels` | Description |
+|------|-------------------|-------------|
+| Vertical | `true` | List with icon + text labels |
+| Horizontal | `false` | Compact row of icons only |
+
+---
 
 #### ChatSelectionAppBar
 
