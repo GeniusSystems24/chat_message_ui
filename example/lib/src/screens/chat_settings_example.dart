@@ -73,10 +73,29 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
   bool _showTimestamp = true;
   bool _showStatus = true;
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Context Menu Settings
+  // ═══════════════════════════════════════════════════════════════════════════
+  bool _useFocusedOverlay = true; // true = WhatsApp-style, false = popup
+  bool _showMenuReactions = true;
+  bool _showActionLabels = true; // true = vertical, false = horizontal icons
+  int _animationDurationMs = 250;
+  double _barrierOpacity = 0.6;
+
+  // Available actions toggles
+  bool _actionReply = true;
+  bool _actionCopy = true;
+  bool _actionForward = true;
+  bool _actionPin = true;
+  bool _actionStar = true;
+  bool _actionEdit = false;
+  bool _actionDelete = true;
+  bool _actionInfo = false;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _messages = _buildDemoMessages();
     _pagination = ExamplePaginationHelper<ExampleMessage>(
       items: _messages,
@@ -222,6 +241,7 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
             Tab(icon: Icon(Icons.download), text: 'Download'),
             Tab(icon: Icon(Icons.view_list), text: 'Pagination'),
             Tab(icon: Icon(Icons.palette), text: 'Theme'),
+            Tab(icon: Icon(Icons.menu), text: 'Context Menu'),
           ],
         ),
       ),
@@ -237,6 +257,7 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
                 _buildAutoDownloadSettings(),
                 _buildPaginationSettings(),
                 _buildThemeSettings(),
+                _buildContextMenuSettings(),
               ],
             ),
           ),
@@ -693,6 +714,277 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Context Menu Settings Tab
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildContextMenuSettings() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionHeader('Menu Style'),
+        SwitchListTile(
+          title: const Text('Focused Overlay'),
+          subtitle: Text(_useFocusedOverlay
+              ? 'WhatsApp-style with centered message'
+              : 'Simple popup at tap position'),
+          value: _useFocusedOverlay,
+          onChanged: (value) => setState(() => _useFocusedOverlay = value),
+        ),
+        const Divider(),
+        _buildSectionHeader('Display Options'),
+        SwitchListTile(
+          title: const Text('Show Reactions Bar'),
+          subtitle: const Text('Quick reaction emojis at top'),
+          value: _showMenuReactions,
+          onChanged: (value) => setState(() => _showMenuReactions = value),
+        ),
+        SwitchListTile(
+          title: const Text('Show Action Labels'),
+          subtitle: Text(_showActionLabels
+              ? 'Vertical list with text labels'
+              : 'Horizontal icons only'),
+          value: _showActionLabels,
+          onChanged: (value) => setState(() => _showActionLabels = value),
+        ),
+        const Divider(),
+        _buildSectionHeader('Animation'),
+        _buildSliderTile(
+          'Animation Duration',
+          _animationDurationMs.toDouble(),
+          100,
+          500,
+          (value) => setState(() => _animationDurationMs = value.toInt()),
+        ),
+        _buildSliderTile(
+          'Barrier Opacity',
+          _barrierOpacity * 100,
+          20,
+          80,
+          (value) => setState(() => _barrierOpacity = value / 100),
+        ),
+        const Divider(),
+        _buildSectionHeader('Available Actions'),
+        const Text(
+          'Toggle which actions appear in the context menu',
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildActionChip('Reply', Icons.reply, _actionReply,
+                (v) => setState(() => _actionReply = v)),
+            _buildActionChip('Copy', Icons.content_copy, _actionCopy,
+                (v) => setState(() => _actionCopy = v)),
+            _buildActionChip('Forward', Icons.forward, _actionForward,
+                (v) => setState(() => _actionForward = v)),
+            _buildActionChip('Pin', Icons.push_pin_outlined, _actionPin,
+                (v) => setState(() => _actionPin = v)),
+            _buildActionChip('Star', Icons.star_outline, _actionStar,
+                (v) => setState(() => _actionStar = v)),
+            _buildActionChip('Edit', Icons.edit_outlined, _actionEdit,
+                (v) => setState(() => _actionEdit = v)),
+            _buildActionChip('Delete', Icons.delete_outline, _actionDelete,
+                (v) => setState(() => _actionDelete = v)),
+            _buildActionChip('Info', Icons.info_outline, _actionInfo,
+                (v) => setState(() => _actionInfo = v)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildActionPresets(),
+        const SizedBox(height: 16),
+        _buildContextMenuPreview(),
+      ],
+    );
+  }
+
+  Widget _buildActionChip(
+    String label,
+    IconData icon,
+    bool isEnabled,
+    ValueChanged<bool> onChanged,
+  ) {
+    return FilterChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16),
+          const SizedBox(width: 4),
+          Text(label),
+        ],
+      ),
+      selected: isEnabled,
+      onSelected: onChanged,
+    );
+  }
+
+  Widget _buildActionPresets() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Action Presets:',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: [
+            ActionChip(
+              label: const Text('Minimal'),
+              onPressed: () => setState(() {
+                _actionReply = true;
+                _actionCopy = true;
+                _actionForward = false;
+                _actionPin = false;
+                _actionStar = false;
+                _actionEdit = false;
+                _actionDelete = true;
+                _actionInfo = false;
+              }),
+            ),
+            ActionChip(
+              label: const Text('WhatsApp'),
+              onPressed: () => setState(() {
+                _actionReply = true;
+                _actionCopy = true;
+                _actionForward = true;
+                _actionPin = true;
+                _actionStar = true;
+                _actionEdit = false;
+                _actionDelete = true;
+                _actionInfo = false;
+              }),
+            ),
+            ActionChip(
+              label: const Text('Full'),
+              onPressed: () => setState(() {
+                _actionReply = true;
+                _actionCopy = true;
+                _actionForward = true;
+                _actionPin = true;
+                _actionStar = true;
+                _actionEdit = true;
+                _actionDelete = true;
+                _actionInfo = true;
+              }),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  List<MessageActionConfig> _getEnabledActions() {
+    final actions = <MessageActionConfig>[];
+    if (_actionReply) actions.add(MessageActionConfig.reply);
+    if (_actionCopy) actions.add(MessageActionConfig.copy);
+    if (_actionForward) actions.add(MessageActionConfig.forward);
+    if (_actionPin) actions.add(MessageActionConfig.pin);
+    if (_actionStar) actions.add(MessageActionConfig.star);
+    if (_actionEdit) actions.add(MessageActionConfig.edit);
+    if (_actionDelete) actions.add(MessageActionConfig.delete);
+    if (_actionInfo) actions.add(MessageActionConfig.info);
+    return actions;
+  }
+
+  Widget _buildContextMenuPreview() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.touch_app,
+                  size: 16, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              const Text('Test Context Menu',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: ElevatedButton.icon(
+              onPressed: _showDemoContextMenu,
+              icon: const Icon(Icons.menu),
+              label: const Text('Show Context Menu'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: Text(
+              'Or long-press any message in preview',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDemoContextMenu() {
+    final actions = _getEnabledActions();
+
+    if (_useFocusedOverlay) {
+      MessageContextMenu.showWithFocusedOverlay(
+        context,
+        messageBuilder: (context) => Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Text(
+            'This is a demo message for testing the context menu.',
+            style: TextStyle(fontSize: 14),
+          ),
+        ),
+        actions: actions,
+        reactions: _availableReactions,
+        showReactions: _showMenuReactions,
+        showActionLabels: _showActionLabels,
+        isMyMessage: true,
+        barrierColor: Colors.black.withValues(alpha: _barrierOpacity),
+      ).then((result) {
+        if (result != null) {
+          if (result.hasReaction) {
+            _showSnackBar('Reaction: ${result.reaction}');
+          } else if (result.hasAction) {
+            _showSnackBar('Action: ${result.action?.name}');
+          }
+        }
+      });
+    } else {
+      final box = context.findRenderObject() as RenderBox;
+      final position = box.localToGlobal(
+        Offset(box.size.width / 2, box.size.height / 2),
+      );
+
+      MessageContextMenu.show(
+        context,
+        position: position,
+        actions: actions,
+        reactions: _availableReactions,
+        showReactions: _showMenuReactions,
+        showActionLabels: _showActionLabels,
+      ).then((result) {
+        if (result != null) {
+          if (result.hasReaction) {
+            _showSnackBar('Reaction: ${result.reaction}');
+          } else if (result.hasAction) {
+            _showSnackBar('Action: ${result.action?.name}');
+          }
+        }
+      });
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Theme Settings Tab
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildThemeSettings() {
@@ -888,14 +1180,18 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
                   final message = items[index] as ExampleMessage;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: MessageBubble(
-                      message: message,
-                      currentUserId: ExampleSampleData.currentUserId,
-                      showAvatar: _showAvatar,
-                      availableReactions: config.pagination.availableReactions,
-                      onReactionTap: (emoji) {
-                        _showSnackBar('Reaction: $emoji');
-                      },
+                    child: GestureDetector(
+                      onLongPressStart: (details) =>
+                          _showMessageContextMenu(context, details, message),
+                      child: MessageBubble(
+                        message: message,
+                        currentUserId: ExampleSampleData.currentUserId,
+                        showAvatar: _showAvatar,
+                        availableReactions: config.pagination.availableReactions,
+                        onReactionTap: (emoji) {
+                          _showSnackBar('Reaction: $emoji');
+                        },
+                      ),
                     ),
                   );
                 },
@@ -917,6 +1213,57 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
         ),
       ),
     );
+  }
+
+  void _showMessageContextMenu(
+    BuildContext context,
+    LongPressStartDetails details,
+    ExampleMessage message,
+  ) {
+    final actions = _getEnabledActions();
+    final isMyMessage = message.senderId == ExampleSampleData.currentUserId;
+
+    if (_useFocusedOverlay) {
+      MessageContextMenu.showWithFocusedOverlay(
+        context,
+        messageBuilder: (ctx) => MessageBubble(
+          message: message,
+          currentUserId: ExampleSampleData.currentUserId,
+          showAvatar: _showAvatar,
+        ),
+        actions: actions,
+        reactions: _availableReactions,
+        showReactions: _showMenuReactions,
+        showActionLabels: _showActionLabels,
+        isMyMessage: isMyMessage,
+        barrierColor: Colors.black.withValues(alpha: _barrierOpacity),
+      ).then((result) {
+        if (result != null) {
+          if (result.hasReaction) {
+            _showSnackBar('Reaction: ${result.reaction}');
+          } else if (result.hasAction) {
+            _showSnackBar('Action: ${result.action?.name}');
+          }
+        }
+      });
+    } else {
+      MessageContextMenu.show(
+        context,
+        position: details.globalPosition,
+        actions: actions,
+        reactions: _availableReactions,
+        showReactions: _showMenuReactions,
+        showActionLabels: _showActionLabels,
+      ).then((result) {
+        if (result != null) {
+          if (result.hasReaction) {
+            _showSnackBar('Reaction: ${result.reaction}');
+          } else if (result.hasAction) {
+            _showSnackBar('Action: ${result.action?.name}');
+          }
+        }
+      });
+    }
   }
 
   void _showSnackBar(String message) {
