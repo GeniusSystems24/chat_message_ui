@@ -19,6 +19,8 @@ class ExampleMessage implements IChatMessageData {
     this.replyToId,
     this.isDeleted = false,
     this.isPinned = false,
+    this.isStarred = false,
+    this.isSaved = false,
     this.isEdited = false,
     this.isForwarded = false,
     this.forwardedFromId,
@@ -78,6 +80,12 @@ class ExampleMessage implements IChatMessageData {
   final bool isPinned;
 
   @override
+  final bool isStarred;
+
+  @override
+  final bool isSaved;
+
+  @override
   final bool isEdited;
 
   @override
@@ -135,6 +143,8 @@ class ExampleMessage implements IChatMessageData {
     ChatMessageStatus? status,
     bool? isDeleted,
     bool? isPinned,
+    bool? isStarred,
+    bool? isSaved,
     bool? isEdited,
     bool? isForwarded,
     String? forwardedFromId,
@@ -159,6 +169,8 @@ class ExampleMessage implements IChatMessageData {
       status: status ?? this.status,
       isDeleted: isDeleted ?? this.isDeleted,
       isPinned: isPinned ?? this.isPinned,
+      isStarred: isStarred ?? this.isStarred,
+      isSaved: isSaved ?? this.isSaved,
       isEdited: isEdited ?? this.isEdited,
       isForwarded: isForwarded ?? this.isForwarded,
       forwardedFromId: forwardedFromId ?? this.forwardedFromId,

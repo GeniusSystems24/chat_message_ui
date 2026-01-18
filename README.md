@@ -1,6 +1,6 @@
 # Chat Message UI
 
-[![Pub Version](https://img.shields.io/badge/pub-v1.4.0-blue)](https://pub.dev)
+[![Pub Version](https://img.shields.io/badge/pub-v1.4.2-blue)](https://pub.dev)
 [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?logo=flutter)](https://flutter.dev)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -112,7 +112,13 @@ class MyMessageAdapter implements IChatMessageData {
   
   @override
   bool get isDeleted => false;
-  
+
+  @override
+  bool get isStarred => _message.isStarred;
+
+  @override
+  bool get isSaved => _message.isSaved;
+
   @override
   ChatPollData? get pollData => null;
   
@@ -582,6 +588,10 @@ ChatMessageList(
   onReplyTap: (message) {
     // Handle reply navigation
   },
+  onSwipeToReply: (message) {
+    // Set reply message when user swipes
+    _replyNotifier.value = ChatReplyData.fromMessage(message);
+  },
   onReactionTap: (message, emoji) {
     // Add/remove reaction
   },
@@ -803,6 +813,46 @@ DocumentBubble(
 
 ### Interactive Widgets
 
+#### Swipe-to-Reply
+
+Enable swipe gestures on message bubbles to trigger reply:
+
+```dart
+// In ChatMessageList
+ChatMessageList(
+  cubit: messagesCubit,
+  currentUserId: 'user123',
+  onSwipeToReply: (message) {
+    // Swipe right on received messages, left on sent messages
+    _replyNotifier.value = ChatReplyData(
+      id: message.id,
+      senderId: message.senderId,
+      senderName: message.senderData?.displayName,
+      message: message.textContent,
+      type: message.type,
+    );
+  },
+)
+
+// Or directly on MessageBubble
+MessageBubble(
+  message: message,
+  currentUserId: 'user123',
+  onSwipeToReply: () {
+    // Handle swipe-to-reply
+    setReplyMessage(message);
+  },
+)
+```
+
+**Features:**
+- Swipe direction based on message ownership (right for received, left for sent)
+- Reply icon indicator appears during swipe
+- Smooth spring animation with haptic feedback
+- Automatically disabled for deleted messages
+
+---
+
 #### PollBubble
 
 Display interactive polls:
@@ -980,6 +1030,149 @@ DeleteMessageDialog.show(
 ---
 
 ### Common Widgets
+
+#### ReactionChip
+
+Compact chip displaying an emoji reaction with count:
+
+```dart
+ReactionChip(
+  emoji: '❤️',
+  users: ['user1', 'user2', 'user3'],
+  currentUserId: 'user1',
+  chatTheme: ChatThemeData.get(context),
+  onTap: (emoji) {
+    // Toggle reaction
+    toggleReaction(messageId, emoji);
+  },
+)
+```
+
+**Features:**
+- Highlights when current user has reacted
+- Shows count when multiple users reacted
+- Customizable colors via `ChatReactionsTheme`
+- Border indicator for active user reactions
+
+**Theme Customization:**
+```dart
+ChatThemeData(
+  reactions: ChatReactionsTheme(
+    padding: 8.0,
+    verticalPadding: 4.0,
+    borderRadius: 12.0,
+    emojiSize: 16.0,
+    countSize: 12.0,
+    activeBackgroundColor: Colors.blue.withOpacity(0.2),
+    inactiveBackgroundColor: Colors.grey.shade200,
+    activeTextColor: Colors.blue,
+    inactiveTextColor: Colors.black87,
+  ),
+)
+```
+
+---
+
+#### CompactReactionChip
+
+WhatsApp-style compact reaction display combining all emojis with total count:
+
+```dart
+CompactReactionChip(
+  groupedReactions: message.groupedReactions, // Map<String, List<String>>
+  currentUserId: 'user1',
+  chatTheme: ChatThemeData.get(context),
+  onTap: () {
+    // Show reaction details or picker
+    showReactionDetails(message);
+  },
+)
+```
+
+**Features:**
+- All emojis displayed in sequence: "👍❤️😂 5"
+- Total count of all reactions
+- Professional neutral background (grey tones)
+- Subtle shadow for depth
+- Dark/Light theme support
+- Compact design that doesn't cover message content
+
+**Example Output:**
+- Single reaction: "👍 1"
+- Multiple reactions: "👍❤️😂 5"
+
+---
+
+#### StatusIcon
+
+Message delivery status indicator:
+
+```dart
+StatusIcon(
+  status: ChatMessageStatus.delivered,
+  chatTheme: ChatThemeData.get(context),
+  primaryColor: Colors.blue, // Optional override
+)
+```
+
+**Status Icons:**
+| Status | Icon | Default Color |
+|--------|------|---------------|
+| `pending` | Clock | Grey |
+| `sent` | Double check | Primary |
+| `delivered` | Double check | Grey |
+| `read` | Double check | Blue |
+| `failed` | Error | Red |
+
+**Theme Customization:**
+```dart
+ChatThemeData(
+  status: ChatStatusTheme(
+    iconSize: 16.0,
+    sendingColor: Colors.grey,
+    sentColor: Colors.blue,
+    deliveredColor: Colors.grey,
+    readColor: Colors.blue,
+    errorColor: Colors.red,
+  ),
+)
+```
+
+---
+
+#### Message Status Indicators
+
+Messages automatically display visual indicators in the metadata area based on their status:
+
+| Field | Icon | Description |
+|-------|------|-------------|
+| `isPinned` | 📌 Push Pin | Message is pinned in the chat |
+| `isStarred` | ⭐ Star (amber) | Message is starred/favorited |
+| `isSaved` | 🔖 Bookmark | Message is saved/bookmarked |
+
+**Display Order:**
+```
+[edited] [timestamp] [📌] [⭐] [🔖] [✓✓ status]
+```
+
+**Example:**
+```dart
+// Message with all status indicators
+class MyMessage implements IChatMessageData {
+  @override
+  bool get isPinned => true;  // Shows 📌
+
+  @override
+  bool get isStarred => true; // Shows ⭐
+
+  @override
+  bool get isSaved => true;   // Shows 🔖
+
+  // ... other fields
+}
+```
+
+---
 
 #### FileUploadIndicator
 

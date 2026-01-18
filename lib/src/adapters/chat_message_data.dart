@@ -91,6 +91,12 @@ abstract class IChatMessageData {
   /// Whether this message is pinned
   bool get isPinned;
 
+  /// Whether this message is starred/favorited by the current user
+  bool get isStarred;
+
+  /// Whether this message is saved/bookmarked by the current user
+  bool get isSaved;
+
   /// Whether this message has been edited
   bool get isEdited;
 

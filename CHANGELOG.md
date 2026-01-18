@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-01-18
+
+### Added
+
+#### Message Status Fields
+- New `isStarred` field in `IChatMessageData` for starred/favorite messages
+- New `isSaved` field in `IChatMessageData` for saved/bookmarked messages
+- Both fields integrated into `ExampleMessage` with `copyWith` support
+
+#### Visual Status Indicators in Message Bubble
+- Pin icon (📌) displayed in message metadata when `isPinned` is true
+- Star icon (⭐) displayed in message metadata when `isStarred` is true
+- Bookmark icon (🔖) displayed in message metadata when `isSaved` is true
+- Icons appear next to timestamp before the delivery status icon
+
+#### Compact Reaction Display (WhatsApp-style)
+- New `CompactReactionChip` widget combining all emojis in single label with total count
+- Example: "👍❤️😂 5" instead of separate chips for each emoji
+- Professional neutral background colors (grey tones)
+- Subtle shadow for depth
+- Dark/Light theme support
+
+#### Widget Documentation
+- Documented `ReactionChip` widget for displaying emoji reactions with counts
+  - Supports active/inactive states based on current user
+  - Customizable via `ChatReactionsTheme`
+- Documented `StatusIcon` widget for message delivery status display
+  - Supports all `ChatMessageStatus` states (pending, sent, delivered, read, failed)
+  - Customizable colors via `ChatStatusTheme`
+
+### Changed
+- `MessageMetadataBuilder` now displays pin/star/save indicators alongside timestamp
+
+---
+
+## [1.4.1] - 2026-01-17
+
+### Added
+
+#### Swipe-to-Reply
+- New swipe-to-reply gesture for `MessageBubble` and `ChatMessageList`
+  - Swipe right on received messages or left on sent messages to trigger reply
+  - `onSwipeToReply` callback in `MessageBubble` and `ChatMessageList`
+  - Reply icon indicator during swipe gesture
+  - Smooth animation with configurable duration
+  - Automatically disabled for deleted messages
+
+### Fixed
+
+- `PinnedMessagesBar` now correctly loads on initial render when pinned messages exist
+
+---
+
 ## [1.4.0] - 2026-01-17
 
 ### Added

@@ -67,6 +67,35 @@ class MessageMetadataBuilder extends StatelessWidget {
                 ),
               ),
             ),
+          // Status indicator icons (pin, star, save)
+          if (message.isPinned) ...[
+            const SizedBox(width: 4),
+            Icon(
+              Icons.push_pin,
+              size: 12,
+              color: theme.colorScheme.onSurface.withValues(
+                alpha: chatTheme.status.opacityDimmed,
+              ),
+            ),
+          ],
+          if (message.isStarred) ...[
+            const SizedBox(width: 4),
+            Icon(
+              Icons.star,
+              size: 12,
+              color: Colors.amber.shade600,
+            ),
+          ],
+          if (message.isSaved) ...[
+            const SizedBox(width: 4),
+            Icon(
+              Icons.bookmark,
+              size: 12,
+              color: theme.colorScheme.onSurface.withValues(
+                alpha: chatTheme.status.opacityDimmed,
+              ),
+            ),
+          ],
           if (showStatus && isMyMessage) ...[
             SizedBox(width: chatTheme.status.spacing),
             StatusIcon(
