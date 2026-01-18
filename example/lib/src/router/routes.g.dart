@@ -26,6 +26,10 @@ RouteBase get $homeRoute => GoRouteData.$route(
     GoRouteData.$route(path: 'reactions', factory: $ReactionsRoute._fromState),
     GoRouteData.$route(path: 'theming', factory: $ThemingRoute._fromState),
     GoRouteData.$route(
+      path: 'settings',
+      factory: $ChatSettingsRoute._fromState,
+    ),
+    GoRouteData.$route(
       path: 'features/app-bar',
       factory: $AppBarFeatureRoute._fromState,
     ),
@@ -257,6 +261,27 @@ mixin $ThemingRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/theming');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $ChatSettingsRoute on GoRouteData {
+  static ChatSettingsRoute _fromState(GoRouterState state) =>
+      const ChatSettingsRoute();
+
+  @override
+  String get location => GoRouteData.$location('/settings');
 
   @override
   void go(BuildContext context) => context.go(location);

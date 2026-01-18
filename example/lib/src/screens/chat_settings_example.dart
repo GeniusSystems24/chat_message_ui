@@ -184,26 +184,19 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
   }
 
   ChatThemeData _buildTheme(BuildContext context) {
-    final baseTheme =
-        _useDarkTheme ? ChatThemeData.dark() : ChatThemeData.light();
+    final baseTheme = _useDarkTheme
+        ? ChatThemeData.dark()
+        : ChatThemeData.light();
 
     return baseTheme.copyWith(
-      colors: baseTheme.colors.copyWith(
-        primary: _primaryColor,
-      ),
+      colors: baseTheme.colors.copyWith(primary: _primaryColor),
       messageBubble: baseTheme.messageBubble.copyWith(
         contentPadding: 12,
-        borderRadius: _bubbleBorderRadius,
+        bubbleRadius: _bubbleBorderRadius,
       ),
-      avatar: baseTheme.avatar.copyWith(
-        defaultSize: _avatarSize,
-      ),
-      reactions: baseTheme.reactions.copyWith(
-        emojiSize: _reactionEmojiSize,
-      ),
-      status: baseTheme.status.copyWith(
-        iconSize: _statusIconSize,
-      ),
+      avatar: baseTheme.avatar.copyWith(defaultSize: _avatarSize),
+      reactions: baseTheme.reactions.copyWith(emojiSize: _reactionEmojiSize),
+      status: baseTheme.status.copyWith(iconSize: _statusIconSize),
       input: baseTheme.input.copyWith(
         borderRadius: _inputBorderRadius,
         inputHeight: _inputHeight,
@@ -266,10 +259,7 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
           const Divider(height: 1),
 
           // Preview Section
-          Expanded(
-            flex: 3,
-            child: _buildPreview(),
-          ),
+          Expanded(flex: 3, child: _buildPreview()),
         ],
       ),
     );
@@ -373,10 +363,7 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
       title: Text(title),
       trailing: SegmentedButton<AutoDownloadPolicy>(
         segments: const [
-          ButtonSegment(
-            value: AutoDownloadPolicy.never,
-            label: Text('Never'),
-          ),
+          ButtonSegment(value: AutoDownloadPolicy.never, label: Text('Never')),
           ButtonSegment(
             value: AutoDownloadPolicy.wifiOnly,
             label: Text('WiFi'),
@@ -430,10 +417,7 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
               if (value != null) setState(() => _groupingMode = value);
             },
             items: MessagesGroupingMode.values.map((mode) {
-              return DropdownMenuItem(
-                value: mode,
-                child: Text(mode.name),
-              );
+              return DropdownMenuItem(value: mode, child: Text(mode.name));
             }).toList(),
           ),
         ),
@@ -488,8 +472,10 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Quick Presets:',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'Quick Presets:',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -525,7 +511,7 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
                   '🔥',
                   '🎉',
                   '👏',
-                  '🙏'
+                  '🙏',
                 ];
               }),
             ),
@@ -663,8 +649,10 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Select Emoji',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Select Emoji',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             Expanded(
               child: GridView.builder(
@@ -682,8 +670,9 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
                         ? null
                         : () {
                             setState(() {
-                              _availableReactions =
-                                  List.from(_availableReactions)..add(emoji);
+                              _availableReactions = List.from(
+                                _availableReactions,
+                              )..add(emoji);
                             });
                             Navigator.pop(context);
                           },
@@ -723,9 +712,11 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
         _buildSectionHeader('Menu Style'),
         SwitchListTile(
           title: const Text('Focused Overlay'),
-          subtitle: Text(_useFocusedOverlay
-              ? 'WhatsApp-style with centered message'
-              : 'Simple popup at tap position'),
+          subtitle: Text(
+            _useFocusedOverlay
+                ? 'WhatsApp-style with centered message'
+                : 'Simple popup at tap position',
+          ),
           value: _useFocusedOverlay,
           onChanged: (value) => setState(() => _useFocusedOverlay = value),
         ),
@@ -739,9 +730,11 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
         ),
         SwitchListTile(
           title: const Text('Show Action Labels'),
-          subtitle: Text(_showActionLabels
-              ? 'Vertical list with text labels'
-              : 'Horizontal icons only'),
+          subtitle: Text(
+            _showActionLabels
+                ? 'Vertical list with text labels'
+                : 'Horizontal icons only',
+          ),
           value: _showActionLabels,
           onChanged: (value) => setState(() => _showActionLabels = value),
         ),
@@ -772,22 +765,54 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
           spacing: 8,
           runSpacing: 8,
           children: [
-            _buildActionChip('Reply', Icons.reply, _actionReply,
-                (v) => setState(() => _actionReply = v)),
-            _buildActionChip('Copy', Icons.content_copy, _actionCopy,
-                (v) => setState(() => _actionCopy = v)),
-            _buildActionChip('Forward', Icons.forward, _actionForward,
-                (v) => setState(() => _actionForward = v)),
-            _buildActionChip('Pin', Icons.push_pin_outlined, _actionPin,
-                (v) => setState(() => _actionPin = v)),
-            _buildActionChip('Star', Icons.star_outline, _actionStar,
-                (v) => setState(() => _actionStar = v)),
-            _buildActionChip('Edit', Icons.edit_outlined, _actionEdit,
-                (v) => setState(() => _actionEdit = v)),
-            _buildActionChip('Delete', Icons.delete_outline, _actionDelete,
-                (v) => setState(() => _actionDelete = v)),
-            _buildActionChip('Info', Icons.info_outline, _actionInfo,
-                (v) => setState(() => _actionInfo = v)),
+            _buildActionChip(
+              'Reply',
+              Icons.reply,
+              _actionReply,
+              (v) => setState(() => _actionReply = v),
+            ),
+            _buildActionChip(
+              'Copy',
+              Icons.content_copy,
+              _actionCopy,
+              (v) => setState(() => _actionCopy = v),
+            ),
+            _buildActionChip(
+              'Forward',
+              Icons.forward,
+              _actionForward,
+              (v) => setState(() => _actionForward = v),
+            ),
+            _buildActionChip(
+              'Pin',
+              Icons.push_pin_outlined,
+              _actionPin,
+              (v) => setState(() => _actionPin = v),
+            ),
+            _buildActionChip(
+              'Star',
+              Icons.star_outline,
+              _actionStar,
+              (v) => setState(() => _actionStar = v),
+            ),
+            _buildActionChip(
+              'Edit',
+              Icons.edit_outlined,
+              _actionEdit,
+              (v) => setState(() => _actionEdit = v),
+            ),
+            _buildActionChip(
+              'Delete',
+              Icons.delete_outline,
+              _actionDelete,
+              (v) => setState(() => _actionDelete = v),
+            ),
+            _buildActionChip(
+              'Info',
+              Icons.info_outline,
+              _actionInfo,
+              (v) => setState(() => _actionInfo = v),
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -807,11 +832,7 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
     return FilterChip(
       label: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16),
-          const SizedBox(width: 4),
-          Text(label),
-        ],
+        children: [Icon(icon, size: 16), const SizedBox(width: 4), Text(label)],
       ),
       selected: isEnabled,
       onSelected: onChanged,
@@ -822,8 +843,10 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Action Presets:',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'Action Presets:',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -898,11 +921,16 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
         children: [
           Row(
             children: [
-              Icon(Icons.touch_app,
-                  size: 16, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                Icons.touch_app,
+                size: 16,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(width: 8),
-              const Text('Test Context Menu',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Test Context Menu',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -918,8 +946,8 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
             child: Text(
               'Or long-press any message in preview',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
@@ -1115,12 +1143,7 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
       subtitle: Text(value.toStringAsFixed(0)),
       trailing: SizedBox(
         width: 150,
-        child: Slider(
-          value: value,
-          min: min,
-          max: max,
-          onChanged: onChanged,
-        ),
+        child: Slider(value: value, min: min, max: max, onChanged: onChanged),
       ),
     );
   }
@@ -1131,9 +1154,9 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }
@@ -1142,13 +1165,14 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
   // Preview Section
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildPreview() {
-    final theme = _buildTheme(context);
+    final chatTheme = _buildTheme(context);
+    final theme = Theme.of(context).copyWith(extensions: [chatTheme]);
     final config = _buildConfig();
 
-    return ChatTheme(
+    return Theme(
       data: theme,
       child: Container(
-        color: theme.colors.surface,
+        color: chatTheme.colors.surface,
         child: Column(
           children: [
             // Preview Header
@@ -1157,11 +1181,16 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Row(
                 children: [
-                  Icon(Icons.preview,
-                      size: 16, color: Theme.of(context).colorScheme.primary),
+                  Icon(
+                    Icons.preview,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   const SizedBox(width: 8),
-                  const Text('Live Preview',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Live Preview',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const Spacer(),
                   Text(
                     'Reactions: ${_availableReactions.length}',
@@ -1187,7 +1216,8 @@ class _ChatSettingsExampleState extends State<ChatSettingsExample>
                         message: message,
                         currentUserId: ExampleSampleData.currentUserId,
                         showAvatar: _showAvatar,
-                        availableReactions: config.pagination.availableReactions,
+                        availableReactions:
+                            config.pagination.availableReactions ?? [],
                         onReactionTap: (emoji) {
                           _showSnackBar('Reaction: $emoji');
                         },
