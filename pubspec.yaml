@@ -6,6 +6,7 @@ description: A comprehensive, unified Chat UI library for displaying and
 version: 1.4.2
 homepage: https://github.com/geniussystems24/chat_message_ui
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=3.0.0"
@@ -24,7 +25,8 @@ dependencies:
   lottie: ^3.1.3
   recase: ^4.1.0
   record: ^6.1.2
-  smart_pagination: ^3.1.1
+  smart_pagination:
+    path: ../smart_pagination
   super_interactive_text: ^1.1.0
   transfer_kit: ^2.1.0+1
   url_launcher: ^6.3.2
