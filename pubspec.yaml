@@ -38,8 +38,3 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   flutter_test:
     sdk: flutter
-
-
-# dependency_overrides:
-#   intl: ^0.20.1
-#   http: ^1.2.2
