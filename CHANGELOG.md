@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2026-01-18
+
+### Added
+
+#### New Example Screens
+
+##### Status Indicators Example
+- Interactive demonstration of pin, star, and save message indicators
+- `CompactReactionChip` demo with single, multiple, and many reactions
+- Legend showing icon meanings (📌 pinned, ⭐ starred, 🔖 saved)
+- Toggle status indicators on messages via bottom sheet
+- Located at: Complete Examples → "Status Indicators"
+
+##### Chat Settings Example (Comprehensive)
+- All-in-one configuration demo with 5 tabs and live preview
+
+**General Tab:**
+- `enableSuggestions` toggle (@mentions, #hashtags, /commands)
+- `enableTextPreview` toggle (link previews)
+- Display options: Show Avatar, Timestamp, Status
+
+**Download Tab:**
+- Per-media-type auto-download policies (Never/WiFi/Always)
+- Images, Videos, Audio, Documents configuration
+- Visual policy legend
+
+**Pagination Tab:**
+- `MessagesGroupingMode` selection (sameMinute, sameSender, disabled)
+- Grouping timeout slider (60-600 seconds)
+- Available reactions customization with emoji picker
+- Reaction presets: Default, WhatsApp, Minimal, Extended
+
+**Theme Tab:**
+- Light/Dark theme toggle
+- Primary color picker (8 colors)
+- Dimension sliders: Bubble radius, Avatar size, Emoji size, Status icon size
+- Input theme: Border radius, Height, Max lines
+
+**Context Menu Tab (NEW):**
+- Menu style: Focused Overlay (WhatsApp) vs Simple Popup
+- Show/hide reactions bar toggle
+- Action labels: Vertical list vs Horizontal icons
+- Animation duration slider (100-500ms)
+- Barrier opacity slider (20-80%)
+- Available actions toggles: Reply, Copy, Forward, Pin, Star, Edit, Delete, Info
+- Action presets: Minimal, WhatsApp, Full
+- Interactive "Show Context Menu" test button
+- Long-press messages in preview to test
+
+### Changed
+- Home screen now includes "Settings" in Complete Examples grid
+- Home screen now includes "Status Indicators" in New Features grid
+- Version display updated to 1.4.3
+
+---
+
 ## [1.4.2] - 2026-01-18
 
 ### Added

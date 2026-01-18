@@ -179,7 +179,7 @@ class _HeroHeader extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'v1.4.2',
+                        'v1.4.3',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 12,
@@ -795,7 +795,7 @@ class _Footer extends StatelessWidget {
             children: [
               _FooterChip(Icons.code, 'MIT License'),
               const SizedBox(width: 12),
-              _FooterChip(Icons.verified, 'v1.4.2'),
+              _FooterChip(Icons.verified, 'v1.4.3'),
             ],
           ),
         ],
